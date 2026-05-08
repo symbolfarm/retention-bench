@@ -1,37 +1,38 @@
-# CL-N: A Continual Learning Benchmark for LLM Agents
+---
+title: Continual-Learning Eval (CL-N)
+status: scoping (joint-scoping mode; pilot #2 of the joint-scoping pattern)
+started: 2026-05-08
+promoted_from: scratch/continual-learning-eval/ (commit 3733126)
+tags: [project, continual-learning, eval, benchmark, scoping]
+---
 
-**Status:** Draft v0.1 — design spec, no implementation yet.
+# Continual-Learning Eval
 
-CL-N is a benchmark for evaluating the ability of LLM agents to operate across one or more context-clearing events. A "clear" is defined operationally as a process restart: everything in working memory is gone, and only a designated persistent filesystem survives. The benchmark measures how gracefully a system's task performance degrades as the number of clears (`N`) increases.
+Research project for a benchmark that measures **how gracefully a system's task performance degrades across discontinuities** that erase working state. The headline artifact is a *retention curve*: task score as a function of the number of discontinuities, comparing systems with different memory/state-preservation strategies on equal footing.
 
-The core question CL-N asks: **given an agent's memory scaffolding (or lack thereof), how well does it preserve and reuse task-relevant information across discontinuities?**
+Two tracks are in scope:
 
-## Why this benchmark
+- **Agent-memory track** — SUT is an LLM agent with a persistent filesystem; "discontinuity" is a process restart. Existing v0.1 spec ([[spec]]) is largely about this track. **Externally-legible track** — most readers will land here first, since most current memory-system work is in this regime.
+- **Weight-update / constructive track** — SUT is a model + training/construction procedure; "discontinuity" is a weight update or a structural growth event. Currently lives as a deferred extension in [[extensions]]. **Priority track for this project's owner** — the constructive-neural-networks project depends on this evaluator existing.
 
-Existing memory benchmarks (LoCoMo, LongMemEval, MemoryAgentBench, AMA-Bench, SkillLearnBench, and others) treat sessions as a dialogue abstraction — new turns, simulated time gaps — and mostly measure retrieval quality within a fixed memory architecture. Few evaluate the *number of clears* as a parametric axis, and fewer still offer a clean comparison between:
+Scoping decisions resolve the way constructive-track concerns dictate, but the agent-memory track keeps its seat at the table because (a) it's the more externally legible framing and (b) v0.1 of the spec already invested heavily in it.
 
-1. Pure LLMs (no scaffolding) with filesystem access
-2. Long-context LLMs attempting to stuff state into a single window
-3. Full agent harnesses with explicit memory systems
+## Entry points
 
-CL-N fixes the task and varies the clear topology, producing a **retention curve**: performance as a function of N. This reveals degradation shape (linear, stepped, cliff) rather than a single number, and lets systems be compared on equal footing.
+- [[spec]] — the existing v0.1 design spec, promoted from `scratch/`. Effectively the agent-memory track in current form. **Read for the protocol shape, not as a final commitment to scope.**
+- [[design-dialogue]] — joint-scoping conversation. Turn 1 reopens the v1-vs-extension scoping question and surfaces the two-track reframing.
+- [[handover]] — short read-order guide for a fresh Claude resuming this project.
 
-## Design at a glance
+The other 7 spec documents (`protocol.md`, `interface.md`, `metrics.md`, `tasks.md`, `topology.md`, `validity.md`, `extensions.md`, `open-questions.md`) are reference material under joint-scoping treatment — they are *v0.1 starting points*, not stable specifications.
 
-- **Clear primitive:** process restart. Only the persistent filesystem survives.
-- **Memory primitive:** a persistent filesystem at a designated path. The agent designer chooses what lives there and how it is organised.
-- **Task structure:** staged DAGs. Stage `k` may depend on outputs of stages `1..k-1`. Clears happen between stages (or more, depending on `N`).
-- **Baseline mode:** CL-0 — the whole task runs in one uninterrupted session. This is the no-restart upper bound, not a "short-input" case.
-- **Core metric:** the retention curve — task score as a function of `N`, reported alongside resource usage (tokens, filesystem size).
-- **Default awareness:** clear-aware (the agent knows clears are coming and how many). Clear-blind is supported as a stiffer variant.
+## What this project owes other projects
 
-## Document index
+- **constructive-neural-networks** depends on the weight-update track existing in some form. CNN's branch-promotion gate ("read the eval before drilling into target signal or unit-of-construction") was set against this project's previous shape (a deferred extension); promoting + reopening scope satisfies the dependency-shape that CNN actually needs.
 
-- [`protocol.md`](./protocol.md) — the CL-N protocol: clears, stages, run semantics
-- [`interface.md`](./interface.md) — the system-under-test contract
-- [`metrics.md`](./metrics.md) — retention curves, resource metrics, reporting
-- [`tasks.md`](./tasks.md) — task track specifications (book-episodic, codebase; others flagged)
-- [`topology.md`](./topology.md) — clear-topology design space and parameters
-- [`validity.md`](./validity.md) — contamination, confounds, and guardrails
-- [`extensions.md`](./extensions.md) — deferred items: weight-update CL, multi-agent, etc.
-- [`open-questions.md`](./open-questions.md) — explicitly unresolved items
+## Communication norms
+
+This project uses the **echo-back / design-dialogue / idea-tree** joint-scoping pattern, same as the CNN project. See `feedback/joint-design-dialogue-pattern.md` and `feedback/echo-back-communication-norms.md`. The CNN project is pilot #1 of this mode; this is pilot #2.
+
+## Status
+
+Scoping. No `plan.md`. The first joint-scoping question is **whether the eval is one protocol with two tracks, or one protocol with one headline track and an extension family** — see [[design-dialogue]] Turn 1.
