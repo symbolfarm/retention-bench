@@ -1,50 +1,66 @@
 ---
-title: Handover — continual-learning-eval (initial scoping)
+title: Handover — continual-learning-eval (post-Turn-3)
 project: continual-learning-eval
-date: 2026-05-08
-from: Claude (scoping session)
+date: 2026-05-09
+from: Claude (scoping session, Turns 2-3)
 to: a fresh Claude resuming this project
 tags: [handover, scoping]
 ---
 
-# Handover — continual-learning-eval, post-promotion
+# Handover — continual-learning-eval, post-Turn-3
 
 ## Where the project is
 
 **Phase**: scoping. Joint-scoping mode (pilot #2). Project promoted
 from `scratch/continual-learning-eval/` on 2026-05-08 (commit 3733126,
-unedited). The 9 v0.1 spec docs are now reference material under
-joint-scoping treatment, not stable specifications. Turn 1 of the
-design-dialogue lands the two-track reframing and asks Toby to pick
-between three ranked next moves.
+unedited). The 9 v0.1 spec docs are reference material under
+joint-scoping treatment, not stable specifications.
+
+**State as of Turn 3 (2026-05-09):** the SUT interface is now defined
+to be **mechanism-agnostic** — one protocol, one five-thing contract
+(STAGE_INPUT, STAGE_OUTPUT, persistent-state directory, action budget,
+optional clear schedule + awareness flag), and SGD / structural growth
+/ agent-notes / vector-store / EWC are all *reference modes* above the
+interface rather than separate protocol tracks. The "two tracks" frame
+from Turn 1 has softened to "two areas of focus" for task and
+reference-mode design.
 
 ## Read order for a fresh Claude
 
-1. [[README]] — project overview + the two-track framing.
-2. [[design-dialogue]] — Turn 1 has the echo-back of v0.1 scope, the
-   reframing, the four 2026-05-08 agreements, and three ranked
-   options for Turn 2. **Read before doing any other work on this
-   project.**
-3. [[spec]] — the v0.1 design overview (what was `README.md` in
-   scratch). Treat as reference, not as spec.
-4. The other 7 v0.1 docs — read on demand. [[interface]] is the
-   most likely first read because Turn 2 option #1 (Claude's pick)
-   chases the interface-contract delta.
-5. [[../constructive-neural-networks/handover]] — context on the
+1. [[README]] — project overview.
+2. [[design-dialogue]] — **read all three turns, in order.** Turn 3
+   has the canonical worked sketch (harness loop + SUT-type table)
+   and the eight cumulative "Agreed" markers. **Read before doing any
+   other work on this project.**
+3. [[spec]] — v0.1 design overview. Treat as reference, not spec.
+4. [[interface]] — v0.1 six-thing contract; **superseded by Turn 3's
+   five-thing agnostic contract**, but useful for the design history.
+   Slated for rewrite.
+5. [[extensions]] — v0.1 deferred extensions; the
+   *Weight-update / catastrophic-forgetting CL* section is **partially
+   dissolved** (those algorithms become reference modes, not a
+   separate track). Other extensions (failure-mode diagnostics,
+   multi-agent, adversarial, etc.) still stand. Slated for rewrite.
+6. The other 5 v0.1 docs — read on demand.
+7. [[../constructive-neural-networks/handover]] — context on the
    downstream project that depends on this evaluator existing.
 
 ## What is *not* yet decided
 
-- **Turn 2's direction.** Three ranked options pending Toby's pick:
-  (1) interface-contract delta, (2) worked-example task, (3) open-
-  questions triage. Claude's pick is #1.
-- **Constructive-track name.** "Weight-update CL" is the inherited
-  name from `extensions.md`; may not survive the two-track
-  reframing.
-- **Whether "CL-N" survives** as the eval's overall name now that
-  it covers both tracks.
-- **Constructive-track reference SUT design.** Defer until Turn 2
-  or 3.
+- **Turn 4's direction.** Three ranked options pending Toby's pick:
+  (1) pressure-test the unified interface with one real task from
+  [[tasks]] walked through ≥2 SUT types (Claude's pick),
+  (2) rewrite [[interface]] directly from Turn 3's sketch,
+  (3) sketch constructive-area reference modes.
+- **`interface.md` rewrite.** Needed to match the five-thing agnostic
+  contract; not done yet.
+- **`extensions.md` rewrite.** The *Weight-update / catastrophic-
+  forgetting CL* section needs revising now that it partially
+  dissolves into reference modes.
+- **Whether "CL-N" survives** as the eval's overall name. Deferred.
+- **Constructive-area reference modes.** Sketch list exists in Turn
+  3's table (no-state baseline, naive checkpoint-and-grow, etc.) but
+  not designed.
 
 ## Communication norms (important)
 

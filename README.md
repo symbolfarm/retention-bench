@@ -10,12 +10,14 @@ tags: [project, continual-learning, eval, benchmark, scoping]
 
 Research project for a benchmark that measures **how gracefully a system's task performance degrades across discontinuities** that erase working state. The headline artifact is a *retention curve*: task score as a function of the number of discontinuities, comparing systems with different memory/state-preservation strategies on equal footing.
 
-Two tracks are in scope:
+**Interface design (resolved 2026-05-09, Turn 3 of [[design-dialogue]]):** one protocol with a **mechanism-agnostic interface**. The SUT is a subprocess that reads `STAGE_INPUT`, possibly mutates a persistent-state directory, and writes `STAGE_OUTPUT` within an action budget. Discontinuity = `process.kill()` + only the directory survives. SGD fine-tuning, structural growth (constructive nets), agent-with-notes, vector-store retrieval, EWC, and so on are all *reference modes* above the interface — the harness can't tell them apart.
 
-- **Agent-memory track** — SUT is an LLM agent with a persistent filesystem; "discontinuity" is a process restart. Existing v0.1 spec ([[spec]]) is largely about this track. **Externally-legible track** — most readers will land here first, since most current memory-system work is in this regime.
-- **Weight-update / constructive track** — SUT is a model + training/construction procedure; "discontinuity" is a weight update or a structural growth event. Currently lives as a deferred extension in [[extensions]]. **Priority track for this project's owner** — the constructive-neural-networks project depends on this evaluator existing.
+Two **areas of focus** for task and reference-mode design (not protocol bifurcations):
 
-Scoping decisions resolve the way constructive-track concerns dictate, but the agent-memory track keeps its seat at the table because (a) it's the more externally legible framing and (b) v0.1 of the spec already invested heavily in it.
+- **Agent-memory area** — externally-legible framing; most current memory-system work lives here, so most external interest will land here first.
+- **Constructive area** — priority area for this project's owner; the constructive-neural-networks project depends on this evaluator existing.
+
+Task and reference-mode design decisions resolve the way constructive-area concerns dictate, but the agent-memory area keeps its seat because (a) it's the more externally legible framing and (b) v0.1 of the spec already invested heavily in it.
 
 ## Entry points
 
@@ -35,4 +37,4 @@ This project uses the **echo-back / design-dialogue / idea-tree** joint-scoping 
 
 ## Status
 
-Scoping. No `plan.md`. The first joint-scoping question is **whether the eval is one protocol with two tracks, or one protocol with one headline track and an extension family** — see [[design-dialogue]] Turn 1.
+Scoping. No `plan.md`. Through Turn 3 of [[design-dialogue]] (2026-05-09): two-track-vs-extension question resolved (one protocol, agnostic interface, modes above the interface). Open question for Turn 4: pressure-test the unified interface with one real task walked through ≥2 SUT types (Claude's pick), or rewrite [[interface]] directly, or sketch constructive-area reference modes.
