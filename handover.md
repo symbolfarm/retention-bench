@@ -89,6 +89,6 @@ joint-scoping pattern, same as constructive-neural-networks. See
 
 ## Cross-references
 
-- [[../constructive-neural-networks/]] — downstream project. Idea-
-  tree should be updated to point at this project's directory
-  rather than `scratch/`.
+- [[../constructive-neural-networks/]] — downstream project. CNN's
+  `idea-tree.md` already points at this project's directory (verified
+  2026-05-11).
