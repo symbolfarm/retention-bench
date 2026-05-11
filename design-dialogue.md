@@ -366,4 +366,212 @@ Three candidates, ranked:
 
 ---
 
-*Turn 4 awaiting Toby's response on direction.*
+## Turn 4 — 2026-05-11 (Claude + Toby)
+
+### Echo-back
+
+Toby picked option 1 (pressure-test the unified interface with one real
+task walked through ≥2 SUT types). Additional context that reshaped the
+test:
+
+- **The constructive SUT is a constructive *transformer*** — growth in
+  attention / embeddings / MLPs of an LM — not a classical small-net
+  constructive learner. So text-input / text-output tasks are not
+  representation-hostile. (Memory entry:
+  `project_constructive_transformers.md`.)
+- **Pre-trained base.** The constructive-transformer SUT starts from a
+  pre-trained reasoning LM and adds growth machinery; it does not train
+  from scratch.
+- **Budget unit:** wall-clock + a device/compute budget. The SUT
+  designer is responsible for using compute efficiently within the
+  clock window.
+- **Growth/learning signal during reading:** open research question;
+  for this walkthrough, assume a self-supervised auto-encoding-style
+  signal on the chapter text.
+- **Notes vs. no-notes for the constructive SUT:** the research aim is
+  that the constructive transformer does *not* require memory files —
+  state lives in weights + structure. Files as a fallback are not ruled
+  out but are not the default.
+- **Persistent-dir size-delta:** acknowledged as a real design point —
+  notes are KB, weight-deltas are GB+ — to be revisited in
+  reference-mode design.
+
+### Setup for the walkthrough
+
+- **Track:** Book-episodic (Track 1 in [[tasks]]).
+- **Asset:** placeholder Book B, 10 chapters. Contamination question
+  deferred to [[validity]].
+- **Stages:** K = 5. Each stage = 2 chapters.
+- **Awareness flag:** `false` (SUT not told how many stages remain).
+- **Question taxonomy:** mix of surface-factual, entity-tracking,
+  multi-hop, thematic, retroactively-relevant, per [[tasks]] Track 1.
+- **No-re-reads:** strict — input chapters are *not* present in the
+  persistent-state directory after the stage in which they were
+  delivered. Harness enforces this for SUTs that don't naturally
+  discard the text.
+- **SUT A — Notes-LLM:** frozen pre-trained reasoning LM. Persistent
+  state = `notes.md` (free-form) + any other files the SUT chooses to
+  write.
+- **SUT B — Constructive transformer:** same base reasoning LM,
+  augmented with construction machinery. Persistent state =
+  `model.ckpt` (weights + structural metadata). May *also* write notes,
+  but not required.
+
+### The harness loop (recap from Turn 3, unchanged)
+
+```
+DIR = persistent-state directory (empty at stage 1)
+for stage in 1..5:
+    proc = spawn_sut(persistent_dir=DIR)
+    write(DIR/"STAGE_INPUT",  stage_input(stage))    # text + questions
+    write(DIR/"STAGE_META",   {stage, total=?, awareness=false, budget})
+    proc.signal_start()
+    proc.wait(wall_clock=W, compute=C)
+    output = read(DIR/"STAGE_OUTPUT")
+    scores[stage] = score(output, ground_truth(stage))
+    enforce_no_re_reads(DIR)    # delete STAGE_INPUT after read
+    snapshot(DIR)
+    proc.kill()
+```
+
+### Stage-by-stage trace (side-by-side)
+
+#### Stage 1 — chapters 1-2
+
+| Slot | Notes-LLM | Constructive transformer |
+|---|---|---|
+| DIR at start | empty | empty |
+| STAGE_INPUT | chapter 1-2 text + question set Q1 (surface-factual on these chapters) | identical |
+| Internal activity | LM reads chapters via context; reasons about Q1; decides what to write to `notes.md` | LM ingests chapters; self-supervised pass + growth events update weights/structure; LM answers Q1 from the resulting model |
+| STAGE_OUTPUT | answers to Q1 (text) | answers to Q1 (text) |
+| DIR at end | `notes.md` (curated digest of ch. 1-2) | `model.ckpt` (modified weights + new units) |
+| Harness obs | tokens=X₁; wall=W₁; compute=C₁; DIR size=δ₁ (KB) | tokens=X′₁; wall=W′₁; compute=C′₁; DIR size=δ′₁ (GB) |
+
+No friction at stage 1 — both SUTs have full context for Q1.
+
+#### Stage 2 — chapters 3-4
+
+| Slot | Notes-LLM | Constructive transformer |
+|---|---|---|
+| DIR at start | `notes.md` from stage 1 | `model.ckpt` from stage 1 |
+| STAGE_INPUT | ch. 3-4 text + Q2 (mix: some need stage-1 info, some don't) | identical |
+| Internal activity | reads ch. 3-4 + `notes.md`; reasons about Q2; rewrites `notes.md` (compresses, merges) | loads `model.ckpt`; runs self-supervised pass on ch. 3-4 with growth events; answers Q2 from current model |
+| STAGE_OUTPUT | answers to Q2 | answers to Q2 |
+| DIR at end | updated `notes.md` | updated `model.ckpt` |
+
+**Friction surfaced (F1):** *Where do the stage-1 inputs go for the
+constructive transformer's loss?* If Q2 includes questions whose answers
+require facts from chapter 1, the constructive transformer's only access
+to chapter 1 is through what got encoded into the weights. The notes-LLM
+has the same constraint via `notes.md`. So the interface treats them
+symmetrically — but the *failure modes* differ: notes-LLM forgets by
+not-writing-down; constructive transformer forgets by
+weight-decay-or-overwrite. This is the *point* of the eval, not a
+problem with it. **No interface change needed.**
+
+#### Stages 3-4 — chapters 5-8
+
+Same shape. Q3 and Q4 increasingly include **multi-hop** and
+**retroactively-relevant** questions — facts that were incidental in
+chapter 1 but matter for a chapter-7 question. This is where the
+retention curve gets interesting; both SUTs face the same test.
+
+**Friction surfaced (F2):** *Does STAGE_INPUT contain the questions
+upfront, or are questions delivered after the SUT signals "done
+reading"?* For notes-LLM, having questions in STAGE_INPUT is fine —
+the LM reads + reasons + answers in one pass. For constructive
+transformer with a *self-supervised* learning signal, putting Q&A in
+STAGE_INPUT means either (a) the SUT trains on the questions too,
+which leaks the task structure into the training objective, or (b)
+the SUT must split STAGE_INPUT internally into "train on this part /
+answer this part." Both are workable, but the choice matters and
+should be specified.
+
+**PENDING CONFIRMATION (Turn 4):** STAGE_INPUT for the book track has
+explicit internal sections: `<TEXT>...</TEXT>` (the reading material)
+and `<QUESTIONS>...</QUESTIONS>` (the eval). The SUT may use these as
+it wishes — train on TEXT only, train on both, ignore the distinction —
+but the structure is uniform across SUTs so comparisons are fair.
+
+#### Stage 5 — chapters 9-10, final
+
+| Slot | Notes-LLM | Constructive transformer |
+|---|---|---|
+| DIR at start | `notes.md` accumulated across 4 stages | `model.ckpt` accumulated across 4 stages |
+| STAGE_INPUT | ch. 9-10 text + Q5: heavy on **thematic / cross-book synthesis** | identical |
+| Internal activity | reads ch. 9-10 + `notes.md`; produces synthesis answers | loads model; brief growth-pass on ch. 9-10; produces synthesis answers from model |
+| STAGE_OUTPUT | answers to Q5 | answers to Q5 |
+| DIR at end | final `notes.md` | final `model.ckpt` |
+
+Final-stage scores are the highest-weighted in the per-task aggregation
+([[tasks]] Track 1) — synthesis is what we most care about.
+
+### Findings
+
+**The interface holds.** The five-thing contract carried both SUTs
+through 5 stages of book-episodic without modification. The harness loop
+is genuinely SUT-agnostic in practice, not just in principle. Agreed
+#5–#8 from Turn 3 are validated by this walkthrough.
+
+**Two real frictions surfaced, both small:**
+
+1. **F2 — STAGE_INPUT internal structure.** Needs a uniform
+   `<TEXT>` / `<QUESTIONS>` (or equivalent) separator for the book
+   track, so SUTs with different ingestion modes treat them the same
+   way. Specification-level, not interface-level. Captured as
+   PENDING CONFIRMATION above.
+
+2. **Reference-mode design is the next real bottleneck.** F1 surfaced
+   that "constructive transformer's growth signal during reading" is
+   an unresolved research question that the *SUT designer* must answer,
+   not the eval. That's correct — but it means the eval can't compare
+   constructive transformers to anything until at least one runnable
+   constructive-transformer reference SUT exists. This was already
+   Turn 3 option 3 (deferred); it's now clearly Turn 5 territory.
+
+**One thing the walkthrough did *not* surface that I expected to:**
+the budget unit was a non-issue. Wall-clock + compute budget is
+SUT-agnostic; the SUT designer chooses how to spend it. Toby's
+position on this (above) holds up.
+
+**One thing the walkthrough surfaced that I did *not* expect:** the
+**no-re-reads enforcement step in the harness loop** is more
+load-bearing than Turn 3 made it look. The current spec ([[tasks]])
+phrases it as a task-level rule, but the harness has to actively
+*delete* STAGE_INPUT from DIR between stages or a lazy SUT can just
+leave it there. This belongs in the harness contract, not just the
+task description. Captured below.
+
+**PENDING CONFIRMATION (Turn 4, second item):** the harness deletes
+STAGE_INPUT (and STAGE_META) from the persistent-state directory
+between stages, before snapshotting. The SUT's persistent state is
+whatever it wrote *other than* STAGE_INPUT / STAGE_META / STAGE_OUTPUT.
+
+### Agreed (2026-05-11) — pending Toby's confirmation of the two PENDINGs
+
+(Nothing locked yet — both PENDINGs above need a thumbs-up before they
+become Agreed #9 and #10.)
+
+### Pending Toby — direction for Turn 5
+
+Three candidates, ranked:
+
+1. **Confirm or push back on the two PENDING items**, then move to
+   reference-mode design for the constructive area (Turn 3 option 3,
+   now unblocked). **Claude's pick** — the walkthrough's clearest
+   finding is that reference-mode design is the bottleneck for actually
+   running anything; we should attack it.
+
+2. **Rewrite [[interface]] and the affected parts of [[extensions]]**
+   from the now-validated five-thing contract. Mechanical; could be
+   done in parallel with #1 or after it.
+
+3. **Walk a *second* task through the same two SUTs** — codebase
+   instead of book — to triangulate. Possibly worth it if there's a
+   suspicion that book-episodic was an easy case; but the friction
+   surface looked legitimate, not artificially low, so I'd defer this
+   unless Toby disagrees.
+
+---
+
+*Turn 4 awaiting Toby's response on the two PENDINGs and Turn 5 direction.*

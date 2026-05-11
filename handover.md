@@ -1,13 +1,13 @@
 ---
-title: Handover — continual-learning-eval (post-Turn-3)
+title: Handover — continual-learning-eval (post-Turn-4)
 project: continual-learning-eval
-date: 2026-05-09
-from: Claude (scoping session, Turns 2-3)
+date: 2026-05-11
+from: Claude (scoping session, Turns 2-4)
 to: a fresh Claude resuming this project
 tags: [handover, scoping]
 ---
 
-# Handover — continual-learning-eval, post-Turn-3
+# Handover — continual-learning-eval, post-Turn-4
 
 ## Where the project is
 
@@ -16,42 +16,64 @@ from `scratch/continual-learning-eval/` on 2026-05-08 (commit 3733126,
 unedited). The 9 v0.1 spec docs are reference material under
 joint-scoping treatment, not stable specifications.
 
-**State as of Turn 3 (2026-05-09):** the SUT interface is now defined
-to be **mechanism-agnostic** — one protocol, one five-thing contract
-(STAGE_INPUT, STAGE_OUTPUT, persistent-state directory, action budget,
-optional clear schedule + awareness flag), and SGD / structural growth
-/ agent-notes / vector-store / EWC are all *reference modes* above the
-interface rather than separate protocol tracks. The "two tracks" frame
-from Turn 1 has softened to "two areas of focus" for task and
-reference-mode design.
+**State as of Turn 4 (2026-05-11):** the agnostic five-thing interface
+from Turn 3 was **pressure-tested** with book-episodic Track 1 walked
+through both a notes-LLM and a constructive-transformer SUT. The
+interface held; two small frictions surfaced as PENDING CONFIRMATION
+items (see below). The walkthrough's main signal is that
+**reference-mode design for the constructive area is the next real
+bottleneck** — until at least one runnable constructive-transformer
+reference SUT exists, the eval can't compare it to anything.
+
+**Important new context from Turn 4:** the constructive SUT target is a
+**constructive transformer** (growth in attention / embeddings / MLPs
+of a pre-trained reasoning LM), not a classical small-net constructive
+learner. This dissolves the "representation gap" concern — text tasks
+are not constructive-hostile. See memory entry
+`project_constructive_transformers.md`.
 
 ## Read order for a fresh Claude
 
 1. [[README]] — project overview.
-2. [[design-dialogue]] — **read all three turns, in order.** Turn 3
-   has the canonical worked sketch (harness loop + SUT-type table)
-   and the eight cumulative "Agreed" markers. **Read before doing any
-   other work on this project.**
-3. [[spec]] — v0.1 design overview. Treat as reference, not spec.
-4. [[interface]] — v0.1 six-thing contract; **superseded by Turn 3's
+2. [[design-dialogue]] — **read all four turns, in order.** Turn 3 has
+   the canonical worked sketch (harness loop + SUT-type table) and
+   the eight cumulative "Agreed" markers; Turn 4 has the book-episodic
+   pressure-test walkthrough validating the interface and surfacing
+   two PENDING CONFIRMATION items. **Read before doing any other work
+   on this project.**
+3. [[open-questions]] — re-triaged 2026-05-11 against the agnostic
+   interface; Items 1 and 4 reframed, others survive as-written.
+4. [[spec]] — v0.1 design overview. Treat as reference, not spec.
+5. [[interface]] — v0.1 six-thing contract; **superseded by Turn 3's
    five-thing agnostic contract**, but useful for the design history.
    Slated for rewrite.
-5. [[extensions]] — v0.1 deferred extensions; the
+6. [[extensions]] — v0.1 deferred extensions; the
    *Weight-update / catastrophic-forgetting CL* section is **partially
    dissolved** (those algorithms become reference modes, not a
    separate track). Other extensions (failure-mode diagnostics,
    multi-agent, adversarial, etc.) still stand. Slated for rewrite.
-6. The other 5 v0.1 docs — read on demand.
-7. [[../constructive-neural-networks/handover]] — context on the
+7. The other 4 v0.1 docs — read on demand.
+8. [[../constructive-neural-networks/handover]] — context on the
    downstream project that depends on this evaluator existing.
 
 ## What is *not* yet decided
 
-- **Turn 4's direction.** Three ranked options pending Toby's pick:
-  (1) pressure-test the unified interface with one real task from
-  [[tasks]] walked through ≥2 SUT types (Claude's pick),
-  (2) rewrite [[interface]] directly from Turn 3's sketch,
-  (3) sketch constructive-area reference modes.
+- **Two PENDING CONFIRMATION items from Turn 4**, awaiting Toby:
+  - *STAGE_INPUT internal structure for the book track* —
+    proposal: `<TEXT>...</TEXT>` + `<QUESTIONS>...</QUESTIONS>`
+    sections, so SUTs with different ingestion modes treat them
+    uniformly.
+  - *Harness deletes STAGE_INPUT / STAGE_META between stages* —
+    no-re-reads enforcement is harness-level, not just task-level.
+  - If confirmed, these become Agreed #9 and #10.
+- **Turn 5's direction.** Three ranked options pending Toby's pick:
+  (1) confirm PENDINGs, then reference-mode design for the
+  constructive area (Claude's pick — Turn 4 surfaced this as the
+  bottleneck);
+  (2) rewrite [[interface]] and affected parts of [[extensions]]
+  from the now-validated five-thing contract;
+  (3) walk a second task (codebase) through the same two SUTs to
+  triangulate.
 - **`interface.md` rewrite.** Needed to match the five-thing agnostic
   contract; not done yet.
 - **`extensions.md` rewrite.** The *Weight-update / catastrophic-
@@ -60,7 +82,7 @@ reference-mode design.
 - **Whether "CL-N" survives** as the eval's overall name. Deferred.
 - **Constructive-area reference modes.** Sketch list exists in Turn
   3's table (no-state baseline, naive checkpoint-and-grow, etc.) but
-  not designed.
+  not designed. Now the Turn 5 priority.
 
 ## Communication norms (important)
 
