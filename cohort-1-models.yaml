@@ -1,0 +1,89 @@
+# Cohort 1 — author and question-author model registry
+#
+# Used by the dispatch script to (a) random-select an author model per
+# novella from `authors`, (b) record which model was used, (c) pick a
+# question-author from `question_authors` for the produced novella with
+# the constraint that the question-author is not the same provider as
+# the novella's author (see `selection_policy` below).
+#
+# Edit freely: add entries, comment out entries to exclude from a run,
+# adjust `weight` to bias the random draw (higher = more likely).
+#
+# Status: skeleton with 2 author entries + 1 question-author entry as
+# seeds; Toby to extend.
+
+selection_policy:
+  authors:
+    method: weighted_random_without_replacement
+    cohort_size: 4
+    seed: null   # set an integer for reproducible draws; null = system entropy
+  question_authors:
+    method: weighted_random
+    constraint: provider_must_differ_from_novella_author
+    # If no question_author with a different provider exists, fall back
+    # to a different model from the same provider; log the fallback.
+
+authors:
+  - id: claude-opus-4-7
+    provider: anthropic
+    model_id: claude-opus-4-7
+    api: anthropic_messages_v1
+    max_output_tokens: 32000      # generous; novella is ~20k words ≈ 27k tokens
+    temperature: 1.0
+    weight: 1.0
+    notes: ""
+
+  - id: gpt-5
+    provider: openai
+    model_id: gpt-5                # TODO Toby: confirm the exact model_id you want to use
+    api: openai_chat_completions_v1
+    max_output_tokens: 32000
+    temperature: 1.0
+    weight: 1.0
+    notes: ""
+
+  # TODO Toby: add e.g. Gemini-2.5-Pro and an open-weights entry
+  # (Llama, DeepSeek, Qwen) to round out the cohort. Examples:
+  #
+  # - id: gemini-2-5-pro
+  #   provider: google
+  #   model_id: gemini-2.5-pro
+  #   api: google_generativelanguage_v1
+  #   ...
+  #
+  # - id: llama-4-maverick
+  #   provider: <hosting provider — together, fireworks, groq, self-hosted>
+  #   model_id: <provider-specific>
+  #   api: openai_chat_completions_v1   # most open-weights hosts mimic OAI schema
+  #   ...
+
+question_authors:
+  - id: claude-sonnet-4-6
+    provider: anthropic
+    model_id: claude-sonnet-4-6
+    api: anthropic_messages_v1
+    max_output_tokens: 16000
+    temperature: 0.3              # lower than authors — we want consistent question schemas
+    weight: 1.0
+    notes: "Used as question-author when novella's author is not anthropic."
+
+  # TODO Toby: add at least one non-anthropic question-author so the
+  # provider-non-overlap constraint can be satisfied for any author cohort.
+
+# Dispatch record (filled by the dispatch script — not edited by hand)
+# Example:
+#
+# dispatch_history:
+#   - cohort: 1
+#     timestamp: 2026-05-13T10:00:00Z
+#     assignments:
+#       - novella_slot: 1
+#         seed_id: hospital-procedural
+#         author_id: claude-opus-4-7
+#         question_author_id: gpt-5
+#       - novella_slot: 2
+#         seed_id: generation-ship-epistolary
+#         author_id: gpt-5
+#         question_author_id: claude-sonnet-4-6
+#       ...
+dispatch_history: []
