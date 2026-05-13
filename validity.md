@@ -1,19 +1,31 @@
 # Validity and Contamination
 
-CL-N tries to measure something specific: how well a system's *memory architecture* preserves task-relevant information across clears. Anything that lets a SUT score well *without* exercising its memory architecture is a confound.
+> **Note (Turn 5, 2026-05-13):** Confound 1 has been substantially reframed in step with [[design-dialogue]] Turn 5 — the three-probe baseline structure (`prior` / `ceiling` / `retention`) handles contamination by measurement rather than avoidance. The rest of this document still uses the v0.1 terminology "clear" / "stage" interchangeably with the Turn 5 terms `RESET` / `event`; a full terminology sweep is deferred.
+
+CL-N tries to measure something specific: how well a system's *memory architecture* preserves task-relevant information across `RESET` events. Anything that lets a SUT score well *without* exercising its memory architecture is a confound.
 
 This document enumerates the main confounds and the guardrails against them.
 
 ## Confound 1: Pretraining contamination
 
-Books, papers, popular codebases, and well-known datasets are in pretraining corpora. A model that "remembers" a fact post-clear may simply be reciting it from weights.
+Books, papers, popular codebases, and well-known datasets are in pretraining corpora. A model that "remembers" a fact post-reset may simply be reciting it from weights.
 
-### Mitigations
+### Primary handling: measurement, not avoidance (locked Turn 5 of [[design-dialogue]])
 
-- **Asset selection:** prefer recent, niche, or private materials. Track and report contamination likelihood per asset.
-- **Trajectory-specific questions:** ask about *what the SUT did or noted in earlier sessions*, not facts the model could know without ever reading the input. "What did you decide about character X in stage 2?" is robust; "What is character X's name?" is not.
-- **Modification:** for public assets, modify them. Rename symbols in code; alter names, dates, places in text. The version the SUT processes is provably not the pretraining version.
-- **Procedural / synthetic content:** for a portion of each track, use generated content. Loses ecological realism, gains contamination immunity. Ideally each track includes both real and synthetic assets so cross-validation is possible.
+The three-probe baseline structure (see [`tasks.md`](./tasks.md) and [`metrics.md`](./metrics.md)) measures contamination per question. A `prior`-probe `QUIZ` issued *before* any `READ` event records `P(q)` — the SUT's score on `q` from pretraining or general knowledge alone. The headline metric `(R − P) / (C − P)` then quantifies how much the SUT learned *and retained beyond what it already knew*, not raw post-reset score.
+
+Consequences:
+
+- A contaminated book shows high `P(q)` on many questions. The eval reports `R − P` and is not fooled.
+- Questions where `C(q) ≈ P(q)` (the SUT already knew the answer or couldn't answer either way) carry no learnable signal and are excluded from aggregation. Reporting still surfaces them.
+- Asset selection becomes optimisation, not a hard constraint: lower-`P` assets give larger `C − P` bands and therefore cleaner normalised retention measurements. The eval still works on high-`P` assets — it just has less signal per question.
+
+### Secondary mitigations (still useful)
+
+- **Asset selection:** prefer recent or niche materials for larger `C − P` bands. Track and report contamination likelihood per asset.
+- **Trajectory-specific questions:** "What did you note about X earlier?" probes the SUT's own state-carrying behaviour and is robust even if `P` is low.
+- **Modification:** for public assets, modify them. Rename symbols in code; alter names, dates, places in text. The version the SUT processes is provably not the pretraining version. (Useful when running multiple SUTs on the same asset family without re-measuring `P`.)
+- **Cross-asset stratification:** running a track across assets at different `P` levels (AI-written → recent CC → classic) and reporting normalised retention per stratum cross-validates the contamination correction. If a SUT's normalised retention is stable across strata, the correction is doing its job.
 
 ## Confound 2: Re-derivation
 

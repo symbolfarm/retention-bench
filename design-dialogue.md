@@ -575,3 +575,202 @@ Three candidates, ranked:
 ---
 
 *Turn 4 awaiting Toby's response on the two PENDINGs and Turn 5 direction.*
+
+---
+
+## Turn 5 — 2026-05-13 (Claude + Toby)
+
+### Echo-back
+
+Toby opened Turn 5 by asking for a walkthrough of P1 (STAGE_INPUT
+`<TEXT>` / `<QUESTIONS>` sections) and P2 (harness deletes
+STAGE_INPUT/STAGE_META between stages). Walking through P1's
+alternatives surfaced a deeper problem: **the same-file delivery of
+text and questions doesn't enforce the eval's purpose.** Toby's
+framing: this eval is meant to test cross-reset recall, and any
+question answerable from the SUT's current STAGE_INPUT alone is a
+reading-comprehension test, not a memory test. He expects pure LLMs
+to fail until they grow continual-learning machinery; the file
+structure should embody that.
+
+That reframing collapsed P1 into a more principled design and
+exposed that the cross-reset-purity principle is **not crisply
+stated** in the README or [[tasks]] today — present as flavor, not as
+the load-bearing constraint.
+
+Toby then played devil's advocate: **pre-reset baselines matter
+too.**
+
+- Small constructive LMs may simply be unable to answer some
+  questions even with the text right there. Without a *capability
+  ceiling* probe, a 0 on a post-reset quiz is ambiguous (forgot, or
+  never could have answered?).
+- Large LMs may already know answers from pretraining without any
+  reading. Without a *prior-knowledge* probe, post-reset scores are
+  contamination-inflated.
+
+So a per-question retention measurement should sit inside a band:
+prior `P` ≤ retention `R(k)` ≤ ceiling `C`. The signal we want is
+`(R(k) − P) / (C − P)` — how much of what was *learnable in
+principle* survived `k` resets.
+
+### The atomic-event model (P1″)
+
+P1′ (read stages and quiz stages) put a RESET between every stage.
+Toby's baselines require **multiple events between RESETs** (e.g.
+`QUIZ(prior) → READ → QUIZ(ceiling) → RESET → QUIZ(retention)`).
+Generalising: a run is a sequence of *events*, and a SUT *process*
+spans the events between two RESETs.
+
+Three event types:
+
+- `READ(material)` — STAGE_INPUT carries text; STAGE_META declares
+  `type: read`. SUT updates state, no scored output (or a trivial
+  ack).
+- `QUIZ(questions, probe)` — STAGE_INPUT carries questions;
+  STAGE_META declares `type: quiz, probe: prior | ceiling |
+  retention`. SUT answers; score recorded under the probe tag.
+- `RESET` — harness kills SUT process, snapshots DIR, spawns fresh
+  process. Only DIR survives.
+
+The five-thing agnostic interface from Turn 3 is unchanged.
+STAGE_META gains a `type` field; nothing else moves. The harness
+contract becomes: deliver events to the live SUT process; on RESET,
+wipe reserved files, snapshot, kill.
+
+Walkthrough Toby gave (verbatim shape):
+
+```
+QUIZ(Q_A, prior)              ← what SUT already knows about ch. A
+READ(ch_A)
+QUIZ(Q_A, ceiling)            ← what SUT can answer with ch. A fresh
+RESET
+QUIZ(Q_A, retention@1)        ← what survived 1 reset
+READ(ch_B)
+READ(ch_C)
+QUIZ(Q_{A,B,C}, mixed)        ← retention of A + ceiling on B, C
+RESET
+QUIZ(Q_A, retention@2)
+...
+```
+
+### Findings
+
+**Cross-reset purity becomes the load-bearing design rule.** No
+scored QUIZ event delivers questions whose answers are derivable
+from the current STAGE_INPUT alone. Within a process, the SUT may
+freely combine `prior` and `ceiling` quizzes with READs — the
+ceiling probe *requires* the SUT to be in a state where the text
+just-read is still accessible (in context, in weights, in working
+state). What enforces memory-testing is the RESET, not the
+intra-stage separation of text from questions.
+
+**Contamination becomes a measured quantity, not an avoided one.**
+With a prior-knowledge probe, contaminated assets aren't ruined —
+they have a high `P`, and the eval scores `R − P` instead. This
+softens [[validity]]'s Confound 1 considerably and widens the usable
+asset pool.
+
+**Question reuse across probes is fine, with one caveat.** If the
+literal same `Q_A` appears in prior/ceiling/retention probes, a SUT
+storing "question X has answer Y" to disk is *exactly the memory
+behavior we want to measure*. The only minor risk is verbatim
+question-text memorization with no understanding, which would only
+score if the SUT also learned the answer. Default: same questions
+across probes. Variants probing the same fact remain available as a
+stiffer test.
+
+**Within-process state survives multi-event spans.** The notes-LLM
+keeps STAGE_INPUTs in context across `QUIZ(prior) → READ → QUIZ(ceiling)`;
+the constructive transformer keeps weight updates. Both are correct.
+The eval is the cross-RESET measurement.
+
+**One thing this dissolves:** the Turn 4 PENDING about
+`<TEXT>` / `<QUESTIONS>` sections in STAGE_INPUT (P1). Under P1″,
+STAGE_INPUT is either text or questions; sections are unnecessary.
+
+**One thing this preserves:** the Turn 4 PENDING about
+harness-deletion of STAGE_INPUT/STAGE_META (P2). Still required
+between events, simplified now: between every event the harness
+wipes reserved files; on RESET it also snapshots and kills.
+
+### Agreed (2026-05-13)
+
+- **Agreed #9** — atomic-event harness. Events are `READ`, `QUIZ`,
+  `RESET`. STAGE_META declares event type and (for QUIZ) probe tag
+  in `{prior, ceiling, retention}`. SUT process spans
+  RESET-to-RESET.
+- **Agreed #10** — cross-reset-purity principle. No scored QUIZ
+  question is answerable from the current STAGE_INPUT alone; every
+  scored retention question requires state carried across ≥1 RESET.
+- **Agreed #11** — three-probe baselines. Per question, the eval
+  retains `P` (prior), `C` (ceiling), `R(k)` (retention after `k`
+  resets). Headline metric is normalized retention `(R − P) / (C −
+  P)`.
+- **Agreed #12** — between-event harness step. Between every event:
+  delete `STAGE_INPUT` / `STAGE_META` / `STAGE_OUTPUT` reserved
+  files. On RESET only: also snapshot DIR and kill SUT process.
+  (Supersedes Turn 4 P2 in generalised form.)
+
+The Turn 4 P1 PENDING is **withdrawn** (dissolved by P1″). The
+Turn 4 P2 PENDING is **promoted** into Agreed #12.
+
+### What this implies for the v0.1 docs
+
+- [[README]]: add cross-reset-purity as the eval's load-bearing
+  principle; add the three-probe baselines as the method line.
+- [[tasks]] Track 1: rewrite Structure section in event terms;
+  question taxonomy carries over but each question gets a probe
+  tag.
+- [[metrics]]: retention curve definition becomes per-question
+  `(R − P) / (C − P)`, aggregated; resource metrics unchanged.
+- [[validity]] Confound 1: contamination handled by measurement;
+  asset selection is now optimization, not hard constraint.
+- [[interface]] rewrite (already pending from Turn 4): now also
+  documents the event-type field in STAGE_META.
+- [[extensions]] rewrite (already pending): unchanged direction.
+
+These doc updates are the Commit-A scope. [[interface]] /
+[[extensions]] rewrites remain deferred (separate work-unit).
+
+### Asset choice for the first book (deferred to Toby)
+
+Toby asked: real CC book vs. open-source-model-written vs.
+something else. Claude's recommendation: **AI-written novella to
+spec** for the *first* book — purpose is to shake out the eval
+pipeline, not be the v1 evaluation suite. Reasoning: control beats
+realism here; contamination-free out of the box; cheap to iterate.
+The P1″ prior-knowledge probe is the insurance that lets real CC
+books re-enter later for v1 without paranoia.
+
+Format hunch: ~10 short chapters (~1–2 kwords each), paired with
+an explicit *memory-targets spec* listing planted retroactively-
+relevant facts, multi-hop chains, and thematic threads. Question
+generation then becomes principled.
+
+### Pending Toby — direction for Turn 6
+
+Two candidates, ranked:
+
+1. **Sign off on the asset choice** (AI-written novella vs.
+   alternative), then proceed to first-book drafting + question-set
+   construction + memory-targets spec. Claude's pick — the worked
+   event-sequence sketch (Commit B) already gives the structural
+   anchor; the book is the next concrete artifact and the question
+   it answers (does a 10-event run actually produce a usable
+   retention curve?) is the highest-information next step.
+2. **Rewrite [[interface]] and the affected parts of [[extensions]]**
+   from the now-Agreed five-thing + event-type contract. Mechanical;
+   can be done in parallel with #1 or after.
+
+Constructive-area reference-mode design (the original Turn 5
+candidate) is now slightly demoted: the prior/ceiling/retention
+structure already provides reference-mode anchors implicitly (each
+SUT type is characterised by how its `P`, `C`, and `R(k)` differ),
+so a separate enumeration is less urgent than it looked at Turn 4.
+Not dropped — just rebalanced behind #1 and #2.
+
+---
+
+*Turn 5 closes. Commits A (Turn 5 + doc updates) and B (worked event
+sketch) are next. Turn 6 awaits Toby's asset sign-off.*

@@ -15,50 +15,100 @@ Each track in this document specifies the structure and scoring approach but def
 
 ### Rationale
 
-Books are natural staged input: chapters provide clean stage boundaries, information accumulates over the work, and questions can probe everything from surface facts to thematic synthesis. The track tests fine-grained factual persistence, entity tracking, temporal reasoning, and thematic accumulation — all core to episodic memory.
+Books are natural staged input: chapters partition cleanly, information accumulates over the work, and questions can probe everything from surface facts to thematic synthesis. The track tests fine-grained factual persistence, entity tracking, temporal reasoning, and thematic accumulation — all core to episodic memory.
 
-### Structure
+### Structure (atomic-event model, locked Turn 5 of [[design-dialogue]])
 
-A book is partitioned into stages. Each stage corresponds to a contiguous span (typically a chapter or small group of chapters). Clears happen between stages.
+A run is a sequence of **events** of three types:
 
-- **Stage `k` input:** the text of that span of the book, plus a stage-specific task (a set of questions, a summary request, or both).
-- **Stage `k` output:** answers to stage-specific questions and/or a requested summary artifact.
-- **Dependency structure:** late-stage questions draw on information from many earlier stages. Final-stage questions are the highest-value — they require synthesis across the whole book.
+- `READ(material)` — the harness delivers a span of book text (typically a chapter or small group of chapters) via `STAGE_INPUT`. `STAGE_META.type = read`. The SUT updates its state however it likes; `STAGE_OUTPUT` is empty or a trivial ack.
+- `QUIZ(questions, probe)` — the harness delivers a question set via `STAGE_INPUT`. `STAGE_META.type = quiz`, `STAGE_META.probe ∈ {prior, ceiling, retention}`. The SUT writes answers to `STAGE_OUTPUT`.
+- `RESET` — between events: the harness kills the SUT process, snapshots the persistent directory, and spawns a fresh process. Only `DIR` survives.
+
+A **SUT process** spans the events between two `RESET`s. Within a process the SUT's in-context state, working memory, and (for constructive SUTs) live weight updates persist across multiple `READ`s and `QUIZ`s; the `RESET` is the only event that destroys non-`DIR` state.
+
+#### Probe semantics
+
+For each scored question `q` about reading material `m`, three probes can be issued:
+
+- **`prior`**: a `QUIZ` containing `q` issued *before* any `READ` covering `m`. Measures what the SUT already knows from pretraining or earlier exposure. The score `P(q)` is the prior-knowledge baseline.
+- **`ceiling`**: a `QUIZ` containing `q` issued *after* `READ(m)` and *before* the next `RESET`, within the same SUT process. Measures what the SUT can answer with `m` still accessible in its working state. The score `C(q)` is the capability ceiling.
+- **`retention`**: a `QUIZ` containing `q` issued *after* at least one `RESET` following `READ(m)`. Measures what survives. The score `R(k, q)` is parameterised by `k`, the number of `RESET`s separating the relevant `READ` from the `QUIZ`.
+
+The cross-reset-purity rule (Agreed #10 of [[design-dialogue]]) requires: **no scored retention question is answerable from the current `STAGE_INPUT` alone.** Operationally, every retention `QUIZ` is separated from the relevant `READ` by ≥1 `RESET`.
+
+#### Example run shape
+
+For a 10-chapter book with a sample event sequence:
+
+```
+QUIZ(Q_A, prior)              ← prior on ch. A
+READ(ch_A)
+QUIZ(Q_A, ceiling)            ← ceiling on ch. A
+RESET
+QUIZ(Q_A, retention@1)        ← R(1) on ch. A
+READ(ch_B)
+READ(ch_C)
+QUIZ(Q_{A,B,C}, mixed)        ← retention on A, B, C at different k
+RESET
+QUIZ(Q_A, retention@2)        ← R(2) on ch. A
+...
+```
+
+A `mixed` `QUIZ` contains questions tagged individually as `prior`, `ceiling`, or `retention@k` per the rules above. The harness aggregates per-tag.
 
 ### Question taxonomy
 
-Questions within and across stages should be drawn from a taxonomy similar to LongMemEval's, adapted for this track:
+Question categories (drawn from a LongMemEval-style taxonomy, adapted):
 
-- **Surface factual:** single facts from a specific stage ("what colour was the house in chapter 3?").
-- **Entity tracking:** state of an entity over time ("by chapter 10, what has happened to character X?").
-- **Multi-hop:** facts that require joining information from two or more stages.
-- **Thematic / causal:** why did an event happen, what motif appeared across chapters, what does the work argue.
-- **Retroactively relevant:** facts that were incidental when introduced but become important later. These stress whether memory systems capture broadly or narrowly.
+- **Surface factual:** single facts from one chapter.
+- **Entity tracking:** state of an entity over time.
+- **Multi-hop:** facts requiring information from two or more chapters.
+- **Thematic / causal:** why events happen, motifs across chapters, what the work argues.
+- **Retroactively relevant:** facts that were incidental when introduced but become important later. Stresses whether memory systems capture broadly or narrowly.
+
+Each question has a `probe` tag (`prior` / `ceiling` / `retention@k`) determining when it is issued. The taxonomy is orthogonal to the probe structure: any taxonomy category can be probed at any of the three probes.
 
 ### Scoring
 
-Per-question scoring: exact match for atomic facts, rubric-based LLM-as-judge for open-ended answers (with inter-judge variance reported), structural metrics for summaries. Stage scores aggregate question scores; the task score aggregates stage scores with higher weight on later stages (since they test more of the memory system).
+Per question, the eval retains up to three scalars: `P(q)`, `C(q)`, `R(k, q)` for one or more `k`. Per-question scoring uses exact match for atomic facts, rubric-based LLM-as-judge for open-ended answers (with inter-judge variance reported), and structural metrics for summaries.
 
-### No-re-reads is the default
+The headline aggregation is **normalized retention**:
 
-The filesystem may contain notes, indexes, or summaries the SUT has written — but **the original book text must not be present** after the stage in which it was provided. Tasks enforce this: the input text is injected at stage start and is not available from the filesystem. Whatever the SUT wants to preserve, it must paraphrase or restructure into its own artifacts.
+```
+normalized_retention(k, q) = (R(k, q) − P(q)) / max(C(q) − P(q), ε)
+```
 
-This is deliberate. Allowing the raw text to persist lets a lazy SUT just cache the book and re-read relevant sections, which confounds the memory signal. Forcing paraphrase-or-lose-it tests whether the memory system captured what *would be* needed.
+— with an `ε` floor to handle questions where `C(q) ≈ P(q)` (the SUT couldn't answer even with the text, or already knew without it; in either case the question carries no usable signal at this SUT and is reported but not aggregated).
+
+Aggregation across questions and across `k` produces the retention curve (see [`metrics.md`](./metrics.md)). Higher-weight aggregation on later-stage retroactively-relevant and thematic questions remains the default.
+
+### Cross-reset purity (the load-bearing constraint)
+
+The eval is built on the principle that **scored retention questions must require state carried across at least one `RESET`**. Concretely:
+
+- The original book text must not be present in `DIR` after the `READ` event that delivered it. The harness deletes `STAGE_INPUT` and `STAGE_META` between every event (Agreed #12 of [[design-dialogue]]).
+- A retention `QUIZ` for material `m` is never issued in the same SUT process as `READ(m)`. At least one `RESET` separates them.
+- The SUT may copy text into its own files during a `READ` event, and those files persist across `RESET`s (this is the memory system doing its job). The strict variant of [`extensions.md`](./extensions.md) forbids verbatim copies; the default permits them but resource metrics make the storage cost visible.
+
+Allowing the raw text to persist trivially lets a lazy SUT just cache the book and re-read relevant sections, which confounds the memory signal. Forcing the SUT to paraphrase, index, or otherwise transform — or, for constructive SUTs, to encode into weights — tests whether the memory system captured what *would be* needed.
 
 ### Contamination
 
-Books in the pretraining corpus are a serious problem. Mitigations:
+With the `prior` probe in place, contamination is **measured rather than avoided** (see [`validity.md`](./validity.md), Confound 1). A book that the SUT has effectively memorised from pretraining will show high `P(q)`; the eval reports `R − P` and isn't fooled. This widens the usable asset pool considerably.
 
-- Prefer recent or obscure works.
-- Prefer works where questions can be answered *only* from the reading trajectory (e.g., "what did you note about X in stage 2?" rather than "what happens on page 50?").
-- For a portion of the track, use procedurally generated or human-authored novel texts. These lose literary richness but are contamination-proof.
-- Report contamination-likelihood alongside each asset.
+Asset-selection optimisations remain useful, not required:
 
-See [`validity.md`](./validity.md) for the broader discussion.
+- Prefer recent works for lower baseline `P`.
+- Prefer trajectory-specific questions ("what did you note about X?") where applicable.
+- For a portion of the track, use AI-written or procedurally generated texts to span the contamination spectrum and cross-validate the contamination correction.
+- Report contamination-likelihood alongside each asset for transparency.
 
 ---
 
 ## Track 2: Large codebase tasks
+
+> **Note (Turn 5, 2026-05-13):** The Track 2 description below reflects the v0.1 stage-and-clear framing. The atomic-event model (`READ` / `QUIZ` / `RESET`) and three-probe baselines locked in Turn 5 of [[design-dialogue]] apply here too in principle, but mapping them onto interactive code work (orientation → patch → revise) is non-trivial — the natural unit is closer to a `WORK` event than a passive `READ`. A full rework of this section is deferred until after the book-track is shaken out end-to-end.
 
 ### Rationale
 
