@@ -14,7 +14,7 @@ Research project for a benchmark that measures **how gracefully a system's task 
 
 **Eval philosophy (locked Turn 5, 2026-05-13):** the load-bearing rule is **cross-reset purity** — no scored question is answerable from the SUT's current `STAGE_INPUT` alone; every scored retention question requires state carried across at least one RESET. A run is a sequence of `READ`, `QUIZ`, and `RESET` events; a SUT process spans `RESET`-to-`RESET`. Per-question, the eval measures three probes: `P` (prior knowledge, before any reading), `C` (capability ceiling, with the text fresh in the same process), and `R(k)` (retention after `k` resets). The headline metric is **normalized retention** `(R − P) / (C − P)` — how much of what was *learnable in principle* survived the resets. A useful side-effect: pretraining contamination becomes a measured quantity (a high `P`) rather than something to be avoided, which widens the usable asset pool.
 
-For the cross-project framing of how this eval composes with the sibling projects (constructive-neural-networks and eureka-tokens), see [[../research-stack-synthesis]] — CL-eval supplies the **measurement** slot in the trigger-operator-measurement triple.
+For the cross-project framing of how this eval composes with the sibling projects (constructive-neural-networks and eureka-tokens), see [research-stack-synthesis](https://github.com/symbolfarm/meta-research/blob/main/projects/research-stack-synthesis.md) — CL-eval supplies the **measurement** slot in the trigger-operator-measurement triple.
 
 Two **areas of focus** for task and reference-mode design (not protocol bifurcations):
 

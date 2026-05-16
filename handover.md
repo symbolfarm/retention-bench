@@ -53,7 +53,7 @@ are not constructive-hostile. See memory entry
    separate track). Other extensions (failure-mode diagnostics,
    multi-agent, adversarial, etc.) still stand. Slated for rewrite.
 7. The other 4 v0.1 docs — read on demand.
-8. [[../constructive-neural-networks/handover]] — context on the
+8. [constructive-neural-networks/handover.md](https://github.com/symbolfarm/meta-research/blob/main/projects/constructive-neural-networks/handover.md) — context on the
    downstream project that depends on this evaluator existing.
 
 ## What is *not* yet decided
@@ -111,6 +111,6 @@ joint-scoping pattern, same as constructive-neural-networks. See
 
 ## Cross-references
 
-- [[../constructive-neural-networks/]] — downstream project. CNN's
+- [constructive-neural-networks](https://github.com/symbolfarm/meta-research/tree/main/projects/constructive-neural-networks) — downstream project. CNN's
   `idea-tree.md` already points at this project's directory (verified
   2026-05-11).
