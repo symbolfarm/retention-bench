@@ -143,7 +143,19 @@ Single JSON object. Written at run end.
 
 ## `sut-manifest.json` — SUT declarations
 
-Copied verbatim from the SUT's own `sut-manifest.json` at run start. Schema mandated by M3, but the trace contract holds these fields:
+Written by the harness at run start (copied from the SUT package's own `sut-manifest.json`) and re-written at run end with aggregated resource-accounting fields overlaid onto `resource_appendix`. SUT-declared fields (`name`, `version`, `mode`, `hardware_tier`, `strict_verbatim`, plus any non-counter fields under `resource_appendix` such as `gpu_model`) are preserved verbatim; harness-measured counters are written over the top.
+
+Aggregated by the harness at run end (M7, 2026-05-20):
+
+- `resource_appendix.tokens_in` — sum of `tokens_in` reported by the SUT on each `QUIZ` reply.
+- `resource_appendix.tokens_out` — sum of `tokens_out`.
+- `resource_appendix.api_call_count` — sum of `api_call_count`.
+- `resource_appendix.wall_clock_ms` — total run wall-clock (same value as `run-manifest.json::wall_clock_ms`).
+- `resource_appendix.model_id` — overwritten with the last `model_id` the SUT reported in a `QUIZ` reply, if any. Lets the actual model used override a stale static-manifest declaration.
+
+SUTs that don't report these fields keep the static-declared values (or zeros) — missing self-report doesn't fail the run.
+
+Schema mandated by M3, but the trace contract holds these fields:
 
 ```json
 {

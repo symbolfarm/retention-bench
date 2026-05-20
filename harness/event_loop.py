@@ -92,6 +92,12 @@ class _RunState:
     reset_count: int = 0
     sut_invocation_count: int = 0
     seen_count_by_qid: dict[str, int] = field(default_factory=dict)
+    # Best-effort resource accounting from SUT-reported fields on QUIZ replies.
+    # Aggregated into sut-manifest.json's resource_appendix at run end.
+    tokens_in_total: int = 0
+    tokens_out_total: int = 0
+    api_call_count_total: int = 0
+    sut_reported_model_id: Optional[str] = None
 
 
 def _next_event_id(idx: int) -> str:
@@ -151,6 +157,23 @@ def run(config: RunConfig) -> Path:
             ended_at = _iso_now()
             wall_ms = _ms_between(started_perf, time.perf_counter())
             final_bytes, final_files = dir_lifecycle.account_dir(dir_path)
+
+            # Overlay aggregated resource fields onto the SUT manifest's
+            # resource_appendix and rewrite. SUT-declared fields (model_id,
+            # gpu_model, etc.) are preserved; harness-measured counters
+            # (tokens_in/out, api_call_count, wall_clock_ms) are written
+            # over the top.
+            if config.sut_manifest is not None:
+                merged = dict(config.sut_manifest)
+                ra = dict(merged.get("resource_appendix") or {})
+                ra["tokens_in"] = state.tokens_in_total
+                ra["tokens_out"] = state.tokens_out_total
+                ra["api_call_count"] = state.api_call_count_total
+                ra["wall_clock_ms"] = wall_ms
+                if state.sut_reported_model_id:
+                    ra["model_id"] = state.sut_reported_model_id
+                merged["resource_appendix"] = ra
+                tw.write_sut_manifest(merged)
 
             manifest = {
                 "run_id": run_id,
@@ -254,6 +277,16 @@ def _run_quiz(
     stage_output_path = tw.write_stage_output_json(event_id, reply)
     t1_iso, t1 = _iso_now(), time.perf_counter()
 
+    # Best-effort resource accounting from SUT self-report; missing keys
+    # default to 0. Per docs/trace-schema.md, these aggregate into
+    # sut-manifest.json's resource_appendix at run end.
+    state.tokens_in_total += int(reply.get("tokens_in", 0) or 0)
+    state.tokens_out_total += int(reply.get("tokens_out", 0) or 0)
+    state.api_call_count_total += int(reply.get("api_call_count", 0) or 0)
+    reported_model = reply.get("model_id")
+    if isinstance(reported_model, str) and reported_model:
+        state.sut_reported_model_id = reported_model
+
     tw.write_event({
         "event_id": event_id,
         "event_index": state.event_index,
@@ -314,6 +347,7 @@ def _run_reset(
         dir_path=dir_path,
         invocation_index=state.sut_invocation_count,
         stderr_log=stderr_log,
+        extra_pythonpath=config.sut_pythonpath,
     )
     state.sut_invocation_count += 1
     state.reset_count += 1

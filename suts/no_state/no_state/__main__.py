@@ -91,6 +91,7 @@ def _handle_event(client, model: str, event: dict) -> dict:
             "tokens_in": getattr(usage, "input_tokens", 0) if usage else 0,
             "tokens_out": getattr(usage, "output_tokens", 0) if usage else 0,
             "api_call_count": 1,
+            "model_id": model,
         }
     return {"event_id": eid, "stage_output": "",
             "notes": f"unknown event_type: {etype}"}

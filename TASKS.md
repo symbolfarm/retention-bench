@@ -59,6 +59,7 @@ individual `.tasks/M*.md` task files after a debrief pass.
 - B6 — `docs/interface.md` rewrite to match Turn 3 five-thing contract + two-leaderboard resolution.
 - B7 — `docs/metrics.md` write-in: resolved `C` definition (text-in-context + accumulated `QUIZ` history) + storage-delta-= 0 rule for in-place training + FLOPs reporting fields.
 - B8 — Cohort-1 novella dispatch (blocked on Toby's sign-off; orthogonal to harness MVP).
+- B9 — Generic LLM-backend abstraction for the reference SUTs (e.g. OpenRouter or a `pydantic-ai`-style provider-neutral client). Decouples SUT code from any one provider's SDK so switching between Anthropic / DeepSeek / OpenAI / local-OpenAI-compatible models is a config change, not a code change. Surfaced 2026-05-20 when Haiku 4.5 was overloaded during M7 and Sonnet was the only quick fallback.
 
 ## Structure
 

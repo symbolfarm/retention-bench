@@ -13,3 +13,8 @@ runs/
 
 # Agent harness scratch
 .claude/
+
+# Local secrets
+.env
+.env.*
+!.env.example

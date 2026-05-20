@@ -23,6 +23,35 @@ Two **areas of focus** for task and reference-mode design (not protocol bifurcat
 
 Task and reference-mode design decisions resolve the way constructive-area concerns dictate, but the agent-memory area keeps its seat because (a) it's the more externally legible framing and (b) v0.1 of the spec already invested heavily in it.
 
+## Quickstart
+
+End-to-end smoke run on the no-state reference SUT:
+
+```bash
+# 1. Drop your Anthropic key in .env (gitignored):
+echo "ANTHROPIC_API_KEY=sk-..." > .env
+# Optional model override (default: claude-haiku-4-5-20251001):
+#   echo "NO_STATE_MODEL=claude-sonnet-4-6" >> .env
+
+# 2. Run the canonical smoke task end-to-end:
+./run.sh smoke
+```
+
+This drives `tasks/smoke-test/task.yaml` (a public-domain text + 5
+questions) through the harness + no-state SUT and scores the resulting
+trace, printing a `P` / `C` / `R(k)` retention table. The no-state SUT
+is the floor row — it never reads the source — so all questions are
+correctly excluded by the `C≈P` rule. See
+`tasks/smoke-test/sample-output.md` for a captured-output reference.
+
+Runs are written to `runs/<run-id>/` (gitignored). Each run dir contains
+`trace.jsonl`, `questions.jsonl`, `run-manifest.json`,
+`sut-manifest.json`, `dir/`, `snapshots/`, `stages/`, and
+`sut-stderr.log` — the full audit trail.
+
+For arbitrary tasks: `./run.sh <task.yaml> --sut <sut-pkg-dir>` (or
+`python -m harness ... && python -m scorer <run-dir>` directly).
+
 ## Entry points
 
 - `AGENTS.md` — orientation for a fresh agent resuming the project. Read first.
