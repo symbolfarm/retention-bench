@@ -12,11 +12,16 @@ def test_stage_payload_roundtrip(tmp_path: Path) -> None:
     dirs = trace_writer.RunDirs.create(tmp_path / "run")
     with trace_writer.TraceWriter(dirs) as tw:
         rel_in, n_bytes = tw.write_stage_input("evt-0001", "hello world\n")
-        rel_out = tw.write_stage_output("evt-0001", "<ANSWER id=\"q1\">x</ANSWER>")
+        rel_out = tw.write_stage_output_json(
+            "evt-0001",
+            {"event_id": "evt-0001", "answers": [{"id": "q1", "text": "x"}]},
+        )
     assert rel_in == "stages/evt-0001.in"
     assert rel_out == "stages/evt-0001.out"
     assert n_bytes == len(b"hello world\n")
     assert (dirs.root / rel_in).read_bytes() == b"hello world\n"
+    out = json.loads((dirs.root / rel_out).read_text())
+    assert out["answers"][0]["text"] == "x"
 
 
 def test_event_and_question_records_are_jsonl(tmp_path: Path) -> None:
@@ -71,20 +76,25 @@ def test_event_and_question_records_are_jsonl(tmp_path: Path) -> None:
         assert field in qrec, f"missing field {field}"
 
 
-def test_parse_sut_answers_ok_notfound_ambiguous() -> None:
-    out = (
-        '<ANSWER id="q1">first</ANSWER>\n'
-        '<ANSWER id="q2">second</ANSWER>\n'
-        '<ANSWER id="q2">again</ANSWER>\n'
-    )
-    parsed = trace_writer.parse_sut_answers(out, ["q1", "q2", "q3"])
+def test_lookup_sut_answers_ok_notfound_ambiguous() -> None:
+    answers = [
+        {"id": "q1", "text": "first"},
+        {"id": "q2", "text": "second"},
+        {"id": "q2", "text": "again"},
+    ]
+    parsed = trace_writer.lookup_sut_answers(answers, ["q1", "q2", "q3"])
     assert parsed["q1"] == {"sut_answer": "first", "parsing_status": "ok"}
     assert parsed["q2"] == {"sut_answer": "second", "parsing_status": "ambiguous"}
     assert parsed["q3"] == {"sut_answer": "", "parsing_status": "not_found"}
 
 
-def test_parse_sut_answers_multiline_body() -> None:
-    out = '<ANSWER id="q1">line one\nline two</ANSWER>'
-    parsed = trace_writer.parse_sut_answers(out, ["q1"])
-    assert parsed["q1"]["parsing_status"] == "ok"
-    assert parsed["q1"]["sut_answer"] == "line one\nline two"
+def test_lookup_sut_answers_tolerates_garbage() -> None:
+    # Non-dict entries, missing id, extra fields all ignored gracefully.
+    answers = [
+        "not-a-dict",
+        {"text": "no id here"},
+        {"id": "q1", "text": "ok", "extra": "ignored"},
+    ]
+    parsed = trace_writer.lookup_sut_answers(answers, ["q1", "q2"])
+    assert parsed["q1"] == {"sut_answer": "ok", "parsing_status": "ok"}
+    assert parsed["q2"]["parsing_status"] == "not_found"

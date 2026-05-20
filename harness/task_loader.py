@@ -60,6 +60,7 @@ class TaskDefinition:
     questions: dict[str, Question]
     events: list[Event]
     source_path: Path
+    event_timeout_seconds: Optional[int] = None  # M4: optional per-task override
 
 
 def load_task(path: str | Path) -> TaskDefinition:
@@ -82,6 +83,15 @@ def load_task(path: str | Path) -> TaskDefinition:
     questions = _load_questions(raw.get("questions", []))
     events = _load_events(raw.get("events", []))
 
+    event_timeout_seconds: Optional[int] = None
+    if "event_timeout_seconds" in raw and raw["event_timeout_seconds"] is not None:
+        v = raw["event_timeout_seconds"]
+        if not isinstance(v, int) or v <= 0:
+            raise TaskDefinitionError(
+                f"`event_timeout_seconds` must be a positive integer, got {v!r}"
+            )
+        event_timeout_seconds = v
+
     td = TaskDefinition(
         task_id=task_id,
         description=description,
@@ -90,6 +100,7 @@ def load_task(path: str | Path) -> TaskDefinition:
         questions=questions,
         events=events,
         source_path=p,
+        event_timeout_seconds=event_timeout_seconds,
     )
     _validate_semantics(td)
     return td

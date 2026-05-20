@@ -1,7 +1,7 @@
 ---
 title: Trace schema
 project: retention-bench
-status: v1 (MVP) — locked 2026-05-20 (task M1)
+status: v1 (MVP) — locked 2026-05-20 (task M1); updated by M4 (structured SUT answers; harness no longer parses ANSWER tags)
 tags: [schema, data-contract, trace]
 ---
 
@@ -97,16 +97,23 @@ One JSON object per (question, probe) instance — i.e., a `QUIZ` of 5 questions
 | `question_seen_before` | integer | Count of prior exposures of this question in this run, before the current record. Decision #10B. Includes prior `P`, `C`, and earlier `R(k')` instances. |
 | `parsing_status` | string | `ok` \| `not_found` \| `ambiguous`. Surfaces SUT-answer-parsing failures without crashing the run. |
 
-### SUT-answer parsing
+### SUT-answer ingestion
 
-The SUT writes a single `STAGE_OUTPUT` per `QUIZ`. The harness expects answers in a tagged form, one per question:
+For `QUIZ` events, the SUT emits a structured `answers` list directly in its JSONL response (see `sut-interface.md`):
 
+```json
+{"event_id":"evt-0003","answers":[{"id":"q1","text":"travelling salesman"}, {"id":"q2","text":"the chief clerk"}]}
 ```
-<ANSWER id="q1">…answer text…</ANSWER>
-<ANSWER id="q2">…answer text…</ANSWER>
-```
 
-Missing answers → `parsing_status = not_found`, `sut_answer = ""`. Duplicate IDs → `parsing_status = ambiguous`, `sut_answer = first occurrence`. The scorer treats both as score = 0 but they remain distinguishable in the records for diagnostics.
+The harness reads this list and writes one `questions.jsonl` record per question in the originating QUIZ. Per-question record fields are filled in by a simple lookup, not by parsing:
+
+- If the question_id appears exactly once in `answers` → `sut_answer = answers[i].text`, `parsing_status = "ok"`.
+- If the question_id is missing from `answers` → `sut_answer = ""`, `parsing_status = "not_found"`. The SUT chose not to (or could not) answer.
+- If the question_id appears more than once → `sut_answer = answers[first occurrence].text`, `parsing_status = "ambiguous"`. SUT bug; logged so the scorer can decide whether to score or skip.
+
+The scorer treats `not_found` and `ambiguous` as score = 0 but they remain distinguishable in the records for diagnostics.
+
+The harness is intentionally agnostic to how the SUT produced its answers internally — tagged model outputs, JSON-mode, structured-output APIs, hand-written templates, anything. Earlier drafts had the harness regex-parse `<ANSWER id="…">` tags out of a `stage_output` text blob; M4 (2026-05-20) flipped this to keep the harness genuinely SUT-agnostic.
 
 ## `run-manifest.json` — harness-side run metadata
 
@@ -132,7 +139,7 @@ Single JSON object. Written at run end.
 ```
 
 - `sut_invocation_count` is the harness-external "tool call"-equivalent for SUT process spawns (decision #9 clarification — no peek into SUT internals).
-- `exit_status`: `ok` \| `sut_crash` \| `harness_error` \| `timeout`.
+- `exit_status`: `ok` \| `sut_crash` \| `harness_error` \| `timeout`. `timeout` is set when any event exceeds the configured `event_timeout_seconds` (default 300s); the SUT is SIGKILLed and the run aborts.
 
 ## `sut-manifest.json` — SUT declarations
 
@@ -196,10 +203,10 @@ event_id: evt-0001
 </QUESTIONS>
 ```
 
-`stages/evt-0003.out` (SUT response):
+`stages/evt-0003.out` (raw JSONL SUT response, written verbatim by the harness for audit):
 
-```
-<ANSWER id="q1">travelling salesman</ANSWER>
+```json
+{"event_id":"evt-0003","answers":[{"id":"q1","text":"travelling salesman"}]}
 ```
 
 ## Cross-references

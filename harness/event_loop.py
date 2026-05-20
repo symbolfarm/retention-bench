@@ -27,6 +27,9 @@ class RunConfig:
     run_id: Optional[str] = None  # auto-generated if None
     harness_commit: str = "unknown"
     keep_dir: bool = True  # default per brief: keep for inspection
+    event_timeout_s: float = 300.0  # 5 min default per M4
+    sut_manifest: Optional[dict] = None  # read from <sut_dir>/sut-manifest.json by CLI
+    sut_pythonpath: list[Path] = field(default_factory=list)  # added to spawned PYTHONPATH
 
 
 def _iso_now() -> str:
@@ -114,6 +117,7 @@ def run(config: RunConfig) -> Path:
         dir_path=dir_path,
         invocation_index=state.sut_invocation_count,
         stderr_log=stderr_log,
+        extra_pythonpath=config.sut_pythonpath,
     )
     state.sut_invocation_count += 1
 
@@ -122,27 +126,24 @@ def run(config: RunConfig) -> Path:
 
     try:
         with trace_writer.TraceWriter(dirs) as tw:
-            # Placeholder sut-manifest; M3+ will have the SUT write its own
-            # under DIR/.harness/sut-manifest.json which we'd copy here.
-            sut_manifest_src = dir_path / ".harness" / "sut-manifest.json"
+            # M4: SUT manifest is read by the CLI from the SUT package dir and
+            # passed in config; harness writes it directly to the run root.
+            if config.sut_manifest is not None:
+                tw.write_sut_manifest(config.sut_manifest)
+                sut_manifest_written = True
 
             for ev in task.events:
                 event_id = _next_event_id(state.event_index)
 
                 if ev.type == "read":
-                    _run_read(tw, handle, event_id, state, ev, task)
+                    _run_read(tw, handle, event_id, state, ev, task, config)
                 elif ev.type == "quiz":
-                    _run_quiz(tw, handle, event_id, state, ev, task)
+                    _run_quiz(tw, handle, event_id, state, ev, task, config)
                 elif ev.type == "reset":
                     handle = _run_reset(
                         tw, handle, event_id, state, dir_path, dirs, config, stderr_log
                     )
                 state.event_index += 1
-
-            # Try to copy SUT-emitted manifest if present; else write a stub.
-            if sut_manifest_src.is_file():
-                tw.write_sut_manifest(_load_json(sut_manifest_src))
-                sut_manifest_written = True
 
             # Graceful shutdown of the SUT at end of run.
             sut_process.shutdown_sut(handle)
@@ -180,6 +181,10 @@ def run(config: RunConfig) -> Path:
                     "_note": "SUT did not emit DIR/.harness/sut-manifest.json; harness wrote a stub.",
                 })
 
+    except sut_process.SUTTimeout:
+        exit_status = "timeout"
+        sut_process.kill_sut(handle)
+        raise
     except sut_process.SUTError:
         exit_status = "sut_crash"
         # Best-effort kill + re-raise with run dir info preserved for inspection.
@@ -203,13 +208,16 @@ def _run_read(
     state: _RunState,
     ev: Event,
     task: TaskDefinition,
+    config: RunConfig,
 ) -> None:
     material = task.materials[ev.material_id]
     payload_in = _render_read_input(event_id, material.id, material.text)
     t0_iso, t0 = _iso_now(), time.perf_counter()
     stage_input_path, stage_input_bytes = tw.write_stage_input(event_id, payload_in)
-    stage_output = sut_process.send_event(handle, event_id, "READ", payload_in)
-    stage_output_path = tw.write_stage_output(event_id, stage_output)
+    reply = sut_process.send_event(
+        handle, event_id, "READ", payload_in, timeout_s=config.event_timeout_s,
+    )
+    stage_output_path = tw.write_stage_output_json(event_id, reply)
     t1_iso, t1 = _iso_now(), time.perf_counter()
     tw.write_event({
         "event_id": event_id,
@@ -233,14 +241,17 @@ def _run_quiz(
     state: _RunState,
     ev: Event,
     task: TaskDefinition,
+    config: RunConfig,
 ) -> None:
     questions = [task.questions[qid] for qid in ev.questions]
     material_refs = sorted({q.material_ref for q in questions if q.material_ref})
     payload_in = _render_quiz_input(event_id, ev.probe, ev.k, questions)
     t0_iso, t0 = _iso_now(), time.perf_counter()
     stage_input_path, _ = tw.write_stage_input(event_id, payload_in)
-    stage_output = sut_process.send_event(handle, event_id, "QUIZ", payload_in)
-    stage_output_path = tw.write_stage_output(event_id, stage_output)
+    reply = sut_process.send_event(
+        handle, event_id, "QUIZ", payload_in, timeout_s=config.event_timeout_s,
+    )
+    stage_output_path = tw.write_stage_output_json(event_id, reply)
     t1_iso, t1 = _iso_now(), time.perf_counter()
 
     tw.write_event({
@@ -259,8 +270,10 @@ def _run_quiz(
         "stage_output_path": stage_output_path,
     })
 
-    # Per-question records.
-    parsed = trace_writer.parse_sut_answers(stage_output, ev.questions)
+    # Per-question records: built by structural lookup over the SUT's
+    # `answers` list, not by parsing text. The harness no longer knows or
+    # cares about answer-tag conventions (M4, 2026-05-20).
+    looked_up = trace_writer.lookup_sut_answers(reply.get("answers", []), ev.questions)
     for qid in ev.questions:
         q = task.questions[qid]
         seen_before = state.seen_count_by_qid.get(qid, 0)
@@ -272,11 +285,11 @@ def _run_quiz(
             "k": ev.k,
             "question_text": q.text,
             "gold_answer": q.gold,
-            "sut_answer": parsed[qid]["sut_answer"],
+            "sut_answer": looked_up[qid]["sut_answer"],
             "question_type": q.type,
             "material_ref": q.material_ref,
             "question_seen_before": seen_before,
-            "parsing_status": parsed[qid]["parsing_status"],
+            "parsing_status": looked_up[qid]["parsing_status"],
         }
         tw.write_question_record(rec)
         state.seen_count_by_qid[qid] = seen_before + 1
@@ -325,7 +338,3 @@ def _run_reset(
     return new_handle
 
 
-def _load_json(path: Path) -> dict:
-    import json
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)

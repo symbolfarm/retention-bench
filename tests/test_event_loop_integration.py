@@ -85,7 +85,8 @@ def test_stub_run_end_to_end(tmp_path: Path) -> None:
     third_quiz = events[4]["sut_process_id"]
     assert first_quiz != third_quiz
 
-    # Per-question records parsed the stub's <ANSWER> tags.
+    # Per-question records built by structural lookup over the stub's
+    # `answers` list (no text parsing — M4 contract).
     qrecs = [json.loads(l) for l in q_lines]
     assert all(r["parsing_status"] == "ok" for r in qrecs)
     assert all(r["sut_answer"] == "STUB_ANSWER" for r in qrecs)

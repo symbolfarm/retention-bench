@@ -1,7 +1,7 @@
 ---
 title: SUT interface
 project: retention-bench
-status: v1 (MVP) — locked 2026-05-20 (task M3)
+status: v1 (MVP) — locked 2026-05-20 (task M3); updated by M4 (structured answers, entrypoint launch, 5-min timeout)
 tags: [spec, data-contract, sut]
 ---
 
@@ -20,7 +20,7 @@ The harness launches the SUT once per session (a "session" runs from process spa
 - Receives no positional command-line arguments by default. SUTs that need configuration knobs read them from `sut-manifest.json` or env vars.
 - Connects to the harness via stdin / stdout / stderr (see "I/O channel" below).
 
-The SUT command itself is defined by the SUT package (e.g., a `run.sh` shipped alongside `sut-manifest.json`). The harness does not impose a fixed entrypoint name.
+The SUT command is read from the manifest's `entrypoint` field as a Docker exec-form argv array (e.g., `["python", "-m", "no_state"]`). The harness invokes it via `subprocess.Popen(entrypoint, cwd=DIR, …)`. SUT developers point the harness at the SUT package directory (`--sut <dir>`); the harness reads `<dir>/sut-manifest.json` and launches what it declares.
 
 ## I/O channel
 
@@ -48,20 +48,31 @@ The harness will not send a second event line until the SUT has responded to the
 
 ### SUT → Harness (stdout)
 
-One JSON object per completed event:
+One JSON object per completed event. Shape depends on `event_type`:
+
+**For `QUIZ` events**, the SUT emits a structured `answers` list:
 
 ```json
-{"event_id":"evt-0001","stage_output":"<ANSWER id=\"q1\">...</ANSWER>"}
+{"event_id":"evt-0001","answers":[{"id":"q1","text":"travelling salesman"},{"id":"q2","text":"the chief clerk"}]}
+```
+
+**For `READ` events**, the SUT emits an acknowledgement (any content):
+
+```json
+{"event_id":"evt-0001","stage_output":""}
 ```
 
 Fields:
 
-| Field | Type | Notes |
-|---|---|---|
-| `event_id` | string | MUST equal the `event_id` of the event being responded to. |
-| `stage_output` | string | The SUT's response. For `QUIZ`, the tagged `<ANSWER id="…">…</ANSWER>` blocks per `docs/trace-schema.md`. For `READ`, conventionally empty (`""`) — a trivial ack. |
+| Field | Type | Required for | Notes |
+|---|---|---|---|
+| `event_id` | string | all | MUST equal the `event_id` of the event being responded to. |
+| `answers` | array[object] | QUIZ | One entry per answered question: `{"id": "<question_id>", "text": "<answer>"}`. Order is preserved in the trace; duplicates are recorded as "ambiguous" per-question (harness does not deduplicate). Missing question ids are recorded as "not_found" per-question; the SUT is free to omit answers it doesn't have. |
+| `stage_output` | string | READ (conventionally empty) | For READ, a trivial ack — usually `""`. Reserved for future event types that may carry free-form payloads. |
 
-Optional fields the SUT MAY include (harness logs them; absence is fine):
+**Why structured answers, not tagged text?** Earlier drafts had the SUT emit `<ANSWER id="…">…</ANSWER>` blocks inside a `stage_output` string and the harness regex-parsed them. M4 flipped this to make the harness genuinely SUT-agnostic: the harness no longer knows or cares about answer-tag conventions. SUT developers are free to use any internal convention (tagged system-prompt outputs, JSON-mode, structured-output APIs) to extract per-question answers from their underlying model — that's the SUT's business. The wire contract is structured.
+
+Optional fields the SUT MAY include on any response (harness logs them; absence is fine):
 
 | Field | Type | Notes |
 |---|---|---|
@@ -117,7 +128,7 @@ spawn → [event → response]* → (EOF on stdin → exit) | (SIGKILL on RESET)
 2. Emit unsolicited stdout lines (anything not a response to a pending event). Diagnostics belong on stderr.
 3. Pretty-print JSON responses (would break line framing).
 4. Write outside `DIR` or under `DIR/.harness/`.
-5. Block indefinitely. The harness applies a per-event timeout (implementation-defined; M2's call). Timeouts are treated as `RESET`-equivalent and the run is flagged.
+5. Block indefinitely. The harness applies a **per-event timeout (default: 300 seconds = 5 minutes)**, overridable per-task via the `event_timeout_seconds` field in the task definition. On timeout the harness SIGKILLs the SUT process and aborts the run with `exit_status: "timeout"` recorded in `run-manifest.json`.
 
 ## `sut-manifest.json`
 
@@ -165,8 +176,10 @@ Harness writes to SUT stdin:
 SUT writes to its stdout:
 
 ```
-{"event_id":"evt-0001","stage_output":"<ANSWER id=\"q1\">travelling salesman</ANSWER>","tokens_in":42,"tokens_out":7,"api_call_count":1}
+{"event_id":"evt-0001","answers":[{"id":"q1","text":"travelling salesman"}],"tokens_in":42,"tokens_out":7,"api_call_count":1}
 ```
+
+The SUT may internally have prompted its underlying model for `<ANSWER>`-tagged output and parsed those tags itself — but that's the SUT's implementation detail; the harness sees only the structured `answers` list.
 
 ## Reference implementations
 

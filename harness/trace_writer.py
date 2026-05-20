@@ -3,16 +3,16 @@
 Files written:
   - trace.jsonl          (event stream)
   - questions.jsonl      (per-question records, one per (question, probe))
-  - stages/<event_id>.in / .out (raw stage payloads)
+  - stages/<event_id>.in   (rendered STAGE_INPUT — tagged-section text)
+  - stages/<event_id>.out  (raw SUT response — JSON object written by harness)
   - snapshots/reset-<event_id>.tar.gz (handled by dir_lifecycle)
   - run-manifest.json    (harness-side run metadata)
-  - sut-manifest.json    (copied from SUT; if absent, a stub is written)
+  - sut-manifest.json    (copied from the SUT package; M4 reads it via the CLI)
 """
 
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -67,9 +67,17 @@ class TraceWriter:
         path.write_bytes(data)
         return str(path.relative_to(self.dirs.root)), len(data)
 
-    def write_stage_output(self, event_id: str, payload: str) -> str:
+    def write_stage_output_json(self, event_id: str, reply: dict[str, Any]) -> str:
+        """Persist the SUT's parsed JSON reply to stages/<event_id>.out.
+
+        Written as compact JSON (the same line the SUT emitted on stdout, modulo
+        whitespace and key ordering). Kept for audit + replay.
+        """
         path = self.dirs.stages / f"{event_id}.out"
-        path.write_bytes(payload.encode("utf-8"))
+        path.write_text(
+            json.dumps(reply, ensure_ascii=False, sort_keys=False) + "\n",
+            encoding="utf-8",
+        )
         return str(path.relative_to(self.dirs.root))
 
     # ---- event records ----
@@ -95,24 +103,32 @@ class TraceWriter:
         )
 
 
-# ----- SUT answer parsing (per docs/trace-schema.md "SUT-answer parsing") -----
-
-_ANSWER_RE = re.compile(
-    r"<ANSWER\s+id=\"([^\"]+)\">(.*?)</ANSWER>",
-    re.DOTALL,
-)
+# ----- SUT answer lookup (per docs/trace-schema.md "SUT-answer ingestion") -----
 
 
-def parse_sut_answers(stage_output: str, question_ids: list[str]) -> dict[str, dict[str, str]]:
-    """Parse SUT stage_output for <ANSWER id="..."> tags.
+def lookup_sut_answers(
+    answers: list[Any], question_ids: list[str]
+) -> dict[str, dict[str, str]]:
+    """Build per-question records from the SUT's structured `answers` list.
+
+    The SUT emits something like:
+      [{"id":"q1","text":"travelling salesman"}, {"id":"q2","text":"the chief clerk"}]
 
     Returns {question_id: {"sut_answer": str, "parsing_status": "ok"|"not_found"|"ambiguous"}}
-    for each question_id requested.
+    for each requested question_id.
+
+    No text parsing. Earlier drafts regex-parsed <ANSWER> tags out of a string
+    blob; M4 (2026-05-20) flipped this so the harness is genuinely format-agnostic.
     """
     found: dict[str, list[str]] = {}
-    for m in _ANSWER_RE.finditer(stage_output):
-        qid, body = m.group(1), m.group(2).strip()
-        found.setdefault(qid, []).append(body)
+    for entry in answers:
+        if not isinstance(entry, dict):
+            continue
+        qid = entry.get("id")
+        text = entry.get("text", "")
+        if qid is None:
+            continue
+        found.setdefault(str(qid), []).append(str(text))
 
     out: dict[str, dict[str, str]] = {}
     for qid in question_ids:

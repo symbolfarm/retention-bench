@@ -32,6 +32,7 @@ task_id: smoke-test
 description: |
   Multi-line free text. What this task is, what it tests.
 schema_version: 1
+event_timeout_seconds: 300       # optional; default 300 (5 min)
 
 materials:
   - id: <material_id>
@@ -50,6 +51,12 @@ events:
   - type: quiz | read | reset
     # type-specific fields below
 ```
+
+## Top-level optional fields
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| `event_timeout_seconds` | integer | 300 | Per-event timeout in seconds. If the SUT does not respond within this window, the harness SIGKILLs it and aborts the run with `exit_status: "timeout"` in `run-manifest.json`. |
 
 ## `materials` entries
 

@@ -18,6 +18,9 @@ dependencies = [
 dev = [
     "pytest>=7.4",
 ]
+no-state-sut = [
+    "anthropic>=0.39.0",
+]
 
 [project.scripts]
 retention-bench = "harness.__main__:main"

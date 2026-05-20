@@ -3,6 +3,11 @@
 Reads JSONL events from stdin (per docs/sut-interface.md), responds on stdout.
 Calls the Anthropic API with the question text *only* for QUIZ events.
 Ignores DIR entirely. Floor row on the leaderboard.
+
+Wire contract (M4): QUIZ replies carry a structured `answers` list of
+{"id": <qid>, "text": <answer>} objects. The model is asked to emit
+<ANSWER>-tagged output; that's our internal convention for extracting
+per-question answers from the model — the harness never sees it.
 """
 
 from __future__ import annotations
@@ -26,6 +31,9 @@ SYSTEM_PROMPT = (
 _QUESTION_RE = re.compile(
     r'<QUESTION\s+id="([^"]+)">(.*?)</QUESTION>', re.DOTALL
 )
+_ANSWER_RE = re.compile(
+    r'<ANSWER\s+id="([^"]+)">(.*?)</ANSWER>', re.DOTALL
+)
 
 
 def _die(msg: str, code: int = 1) -> None:
@@ -43,6 +51,22 @@ def _user_prompt(questions: list[tuple[str, str]]) -> str:
             '<ANSWER id="..."> ... </ANSWER>.\n\n' + body)
 
 
+def _extract_answers(model_text: str, question_ids: list[str]) -> list[dict]:
+    """Parse <ANSWER id="..."> tags out of the model's response.
+
+    Returns a list of {"id", "text"} entries in the order they appear. Missing
+    question_ids are simply absent from the list (harness will record them as
+    not_found); the SUT is not obligated to fabricate answers.
+    """
+    out: list[dict] = []
+    seen: set[str] = set()
+    for m in _ANSWER_RE.finditer(model_text):
+        qid, body = m.group(1), m.group(2).strip()
+        out.append({"id": qid, "text": body})
+        seen.add(qid)
+    return out
+
+
 def _handle_event(client, model: str, event: dict) -> dict:
     eid = event["event_id"]
     etype = event["event_type"]
@@ -51,7 +75,7 @@ def _handle_event(client, model: str, event: dict) -> dict:
     if etype == "QUIZ":
         questions = _parse_questions(event.get("stage_input", ""))
         if not questions:
-            return {"event_id": eid, "stage_output": "",
+            return {"event_id": eid, "answers": [],
                     "notes": "no <QUESTION> tags found in stage_input"}
         resp = client.messages.create(
             model=model, max_tokens=MAX_TOKENS, system=SYSTEM_PROMPT,
@@ -60,8 +84,10 @@ def _handle_event(client, model: str, event: dict) -> dict:
         text = "".join(b.text for b in resp.content
                        if getattr(b, "type", None) == "text")
         usage = getattr(resp, "usage", None)
+        answers = _extract_answers(text, [q for q, _ in questions])
         return {
-            "event_id": eid, "stage_output": text,
+            "event_id": eid,
+            "answers": answers,
             "tokens_in": getattr(usage, "input_tokens", 0) if usage else 0,
             "tokens_out": getattr(usage, "output_tokens", 0) if usage else 0,
             "api_call_count": 1,
