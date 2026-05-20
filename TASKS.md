@@ -60,6 +60,7 @@ individual `.tasks/M*.md` task files after a debrief pass.
 - B7 — `docs/metrics.md` write-in: resolved `C` definition (text-in-context + accumulated `QUIZ` history) + storage-delta-= 0 rule for in-place training + FLOPs reporting fields.
 - B8 — Cohort-1 novella dispatch (blocked on Toby's sign-off; orthogonal to harness MVP).
 - B9 — Generic LLM-backend abstraction for the reference SUTs (e.g. OpenRouter or a `pydantic-ai`-style provider-neutral client). Decouples SUT code from any one provider's SDK so switching between Anthropic / DeepSeek / OpenAI / local-OpenAI-compatible models is a config change, not a code change. Surfaced 2026-05-20 when Haiku 4.5 was overloaded during M7 and Sonnet was the only quick fallback.
+- B10 — Harness integration tests against a fake-anthropic client. The unit-test suite uses the stub SUT, so it doesn't exercise the real subprocess + SDK + token-accounting path. M7 surfaced two harness bugs (`_run_reset` PYTHONPATH-drop; SUT-reported resource fields dropped on the floor) that no test currently catches. A fake `anthropic.Anthropic` (returns canned responses, reports synthetic token counts) driving the real no-state SUT through the real harness would catch this class of bug and protect the audit-trail fidelity that future published retention curves rely on. Higher priority once we start producing real curves (B1 / B2). Surfaced 2026-05-20 during M7 wrap-up.
 
 ## Structure
 
