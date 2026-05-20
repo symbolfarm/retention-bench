@@ -1,0 +1,15 @@
+[project]
+name = "retention-bench-sut-no-state"
+version = "0.1.0"
+description = "No-state reference SUT for retention-bench. Floor row on the leaderboard."
+requires-python = ">=3.10"
+dependencies = [
+  "anthropic>=0.39.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["no_state*"]

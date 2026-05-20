@@ -1,0 +1,13 @@
+{
+  "name": "no-state",
+  "version": "0.1.0",
+  "mode": "in-context",
+  "hardware_tier": "API",
+  "strict_verbatim": true,
+  "entrypoint": ["python", "-m", "no_state"],
+  "env": ["ANTHROPIC_API_KEY", "NO_STATE_MODEL"],
+  "resource_appendix": {
+    "kind": "api",
+    "model_id": "claude-haiku-4-5-20251001"
+  }
+}

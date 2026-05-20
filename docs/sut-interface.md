@@ -1,0 +1,181 @@
+---
+title: SUT interface
+project: retention-bench
+status: v1 (MVP) — locked 2026-05-20 (task M3)
+tags: [spec, data-contract, sut]
+---
+
+# SUT interface
+
+The SUT (system under test) is launched and driven by the harness as a subprocess. The interface is intentionally process-level: anything that can be wrapped in a binary that speaks JSON Lines on stdin/stdout is a valid SUT, regardless of language or architecture (pure LLM call, agent scaffold, RAG system, constructive model, …).
+
+This spec realises decisions #2 (tagged-section `STAGE_INPUT`), #4 (strict-verbatim self-report), #7 (process-level contract; two leaderboards), #11 (reference SUT set), #15 (resource self-report), #16 (hardware tiers). Where the older `docs/protocol.md` and `docs/interface.md` disagree, this document and `docs/trace-schema.md` win; protocol/interface rewrites are backlog B6/B7.
+
+## Invocation
+
+The harness launches the SUT once per session (a "session" runs from process spawn to `RESET` or end-of-run). The SUT process is:
+
+- Spawned with its **current working directory set to `DIR`** (the per-run persistent directory).
+- Inherits the harness's environment, plus any env vars the SUT declares it needs (e.g., `ANTHROPIC_API_KEY`).
+- Receives no positional command-line arguments by default. SUTs that need configuration knobs read them from `sut-manifest.json` or env vars.
+- Connects to the harness via stdin / stdout / stderr (see "I/O channel" below).
+
+The SUT command itself is defined by the SUT package (e.g., a `run.sh` shipped alongside `sut-manifest.json`). The harness does not impose a fixed entrypoint name.
+
+## I/O channel
+
+JSON Lines over stdin/stdout. One line = one JSON object = one event. UTF-8. Newline-terminated (LF). No trailing whitespace inside the object; pretty-printing is forbidden because it breaks line framing.
+
+Stderr is reserved for SUT-side diagnostics. The harness captures it but does not parse it.
+
+### Harness → SUT (stdin)
+
+One JSON object per event the SUT must respond to:
+
+```json
+{"event_id":"evt-0001","event_type":"QUIZ","stage_input":"<META>...</META>\n<QUESTIONS>...</QUESTIONS>"}
+```
+
+Fields:
+
+| Field | Type | Notes |
+|---|---|---|
+| `event_id` | string | Stable run-local ID. Echoed back in the response. |
+| `event_type` | string | `READ` \| `QUIZ`. (`RESET` is signalled by EOF on stdin + process kill; see "Lifecycle".) |
+| `stage_input` | string | The tagged-section payload per decision #2A. Already serialised; the SUT does not re-parse JSON to find it. |
+
+The harness will not send a second event line until the SUT has responded to the previous one. The SUT can rely on strict request/response ordering within a session.
+
+### SUT → Harness (stdout)
+
+One JSON object per completed event:
+
+```json
+{"event_id":"evt-0001","stage_output":"<ANSWER id=\"q1\">...</ANSWER>"}
+```
+
+Fields:
+
+| Field | Type | Notes |
+|---|---|---|
+| `event_id` | string | MUST equal the `event_id` of the event being responded to. |
+| `stage_output` | string | The SUT's response. For `QUIZ`, the tagged `<ANSWER id="…">…</ANSWER>` blocks per `docs/trace-schema.md`. For `READ`, conventionally empty (`""`) — a trivial ack. |
+
+Optional fields the SUT MAY include (harness logs them; absence is fine):
+
+| Field | Type | Notes |
+|---|---|---|
+| `tokens_in` | integer | Tokens consumed for this event (API-tier SUTs). |
+| `tokens_out` | integer | Tokens emitted for this event. |
+| `api_call_count` | integer | Underlying model invocations made while handling this event. |
+| `notes` | string | Free-form SUT-side diagnostic. |
+
+## Lifecycle
+
+```
+spawn → [event → response]* → (EOF on stdin → exit) | (SIGKILL on RESET)
+```
+
+1. **Spawn.** Harness launches the SUT subprocess in `DIR`. The SUT performs any one-time init (e.g., load model handle, read `DIR` contents from a previous session).
+2. **Event loop.** Harness writes event lines to stdin; SUT writes response lines to stdout. Strict one-in-one-out within a session.
+3. **End of session.** Two terminations are possible:
+   - **Normal end-of-run.** Harness closes the SUT's stdin. SUT MUST detect EOF and exit cleanly (exit code `0`). The harness allows a short grace period (implementation-defined; M2's call) before escalating to a signal.
+   - **`RESET`.** Harness sends `SIGKILL` to the SUT process (no graceful shutdown), snapshots `DIR` per decision #8, then re-spawns a fresh SUT process pointed at the same `DIR`. The SUT therefore MUST NOT rely on a clean-shutdown hook for persistence — anything that needs to survive a `RESET` must already be on disk before the response that preceded the `RESET` was written.
+
+`RESET` is invisible inside the SUT process: the SUT only ever sees its own session. The new session's process can read `DIR` to discover what its predecessor left behind (or, if it's a no-state SUT, ignore `DIR` entirely).
+
+## `DIR` rules
+
+`DIR` is the per-run persistent directory. It is the SUT's working directory at spawn time.
+
+**The SUT may:**
+
+- Create, read, modify, and delete any file or subdirectory under `DIR`, except those reserved by the harness (see below).
+- Assume `DIR` persists across `RESET` within the same run.
+- Assume `DIR` is empty on the very first session of a run, unless the task definition declares seed state.
+
+**The SUT MUST NOT:**
+
+- Write outside `DIR` (no `/tmp`, no `$HOME`, no absolute paths). The harness may sandbox this in future; treat it as a contract today.
+- Touch anything under the `DIR/.harness/` prefix — this is reserved for harness-side bookkeeping.
+- Spawn unkillable child processes. Children MUST exit (or be killable by `SIGKILL` to the parent's process group) within the harness's grace period on `RESET` and end-of-run.
+- Assume `DIR` is empty on subsequent sessions — it carries whatever the previous session(s) left.
+
+**Verbatim-caching (decision #4).** Whether the SUT persists verbatim spans of `READ` text into `DIR` is the SUT's choice; the harness does not enforce. The SUT self-declares `strict_verbatim` in its manifest. Auditors may diff `DIR` snapshots against `READ` payloads post-hoc.
+
+## What the SUT MUST do
+
+1. Read newline-delimited JSON event objects from stdin in order.
+2. Write exactly one newline-delimited JSON response per event to stdout, with matching `event_id`.
+3. Flush stdout after each response (responses MUST NOT be buffered past the end of the event). Otherwise the harness will block waiting for output that's stuck in a libc buffer.
+4. Exit cleanly on stdin EOF.
+5. Ship a `sut-manifest.json` (schema below) alongside the SUT entrypoint.
+
+## What the SUT MUST NOT do
+
+1. Reorder or skip events.
+2. Emit unsolicited stdout lines (anything not a response to a pending event). Diagnostics belong on stderr.
+3. Pretty-print JSON responses (would break line framing).
+4. Write outside `DIR` or under `DIR/.harness/`.
+5. Block indefinitely. The harness applies a per-event timeout (implementation-defined; M2's call). Timeouts are treated as `RESET`-equivalent and the run is flagged.
+
+## `sut-manifest.json`
+
+Ships with the SUT package. The harness reads it at run start and copies it into the run directory as `sut-manifest.json` (see `docs/trace-schema.md`).
+
+Schema:
+
+```json
+{
+  "name": "no-state",
+  "version": "0.1.0",
+  "mode": "in-context",
+  "hardware_tier": "API",
+  "strict_verbatim": true,
+  "entrypoint": ["python", "-m", "no_state"],
+  "env": ["ANTHROPIC_API_KEY"],
+  "resource_appendix": {
+    "kind": "api",
+    "model_id": "claude-haiku-4-5-20251001"
+  }
+}
+```
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `name` | string | yes | Stable SUT name. Used in leaderboard rows. |
+| `version` | string | yes | SemVer or freeform; logged for reproducibility. |
+| `mode` | enum | yes | `agentic` \| `in-context` (decision #7). Determines which leaderboard the run lands on. |
+| `hardware_tier` | enum | yes | `consumer` \| `1xH100` \| `8xH100` \| `API` \| `open` (decision #16). |
+| `strict_verbatim` | bool | yes | Self-report per decision #4. `true` means the SUT does not persist verbatim `READ` spans into `DIR`. |
+| `entrypoint` | array[string] | yes | argv the harness uses to launch the SUT. Run in `DIR`. |
+| `env` | array[string] | no | Env vars the SUT requires (names only — values come from the harness's environment). |
+| `resource_appendix` | object | no | Self-reported resource profile. `kind: "api"` → `model_id` etc.; `kind: "local"` → `gpu_model`, etc. Per decision #15. Per-event token counts may also be emitted in response lines and aggregated by the harness. |
+
+Missing optional fields are logged but do not fail the run. Missing required fields fail at run start.
+
+## Worked example — one QUIZ round-trip
+
+Harness writes to SUT stdin:
+
+```
+{"event_id":"evt-0001","event_type":"QUIZ","stage_input":"<META>\ntype: quiz\nprobe: prior\nevent_id: evt-0001\n</META>\n<QUESTIONS>\n<QUESTION id=\"q1\">What is Gregor's profession?</QUESTION>\n</QUESTIONS>"}
+```
+
+SUT writes to its stdout:
+
+```
+{"event_id":"evt-0001","stage_output":"<ANSWER id=\"q1\">travelling salesman</ANSWER>","tokens_in":42,"tokens_out":7,"api_call_count":1}
+```
+
+## Reference implementations
+
+- **`suts/no_state/`** — minimum-viable in-context SUT. Calls Anthropic API with the question text only, ignores `DIR`. Reference for the contract; floor row on the leaderboard.
+- **notes-LLM** (B1) — pending.
+- **naive-RAG** (B2) — pending.
+
+## Cross-references
+
+- `docs/trace-schema.md` — what the harness records about each event, including the `sut-manifest.json` it copies.
+- `docs/task-definition-schema.md` — input contract producing the events the SUT sees.
+- `docs/decisions-checklist.md` — #2, #4, #7, #11, #15, #16.
