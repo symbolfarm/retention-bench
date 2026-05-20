@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retention-bench"
+version = "0.1.0"
+description = "Benchmark measuring LLM-agent retention across working-state discontinuities."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Symbol Farm" }]
+dependencies = [
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+]
+
+[project.scripts]
+retention-bench = "harness.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["harness*"]
+exclude = ["tests*", "runs*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
