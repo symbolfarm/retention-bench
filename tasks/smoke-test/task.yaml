@@ -1,0 +1,65 @@
+task_id: smoke-test
+schema_version: 1
+description: |
+  End-to-end smoke-test task for the book-track harness. Public-domain
+  source (Poe, "The Tell-Tale Heart", 1843). Five short-answer questions
+  covering surface-factual, entity-tracking, and multi-hop types. One
+  RESET, so the event sequence exercises all three probes
+  (prior / ceiling / retention@1).
+
+  Explicitly NOT a cohort-1 asset. Quality bar is "exercises the
+  pipeline," not "produces publishable retention data." See README.md.
+
+materials:
+  - id: source
+    path: source.md
+
+questions:
+  - id: q1
+    text: "What color is the old man's eye that troubles the narrator?"
+    gold: "pale blue"
+    type: surface_factual
+    material_ref: source
+
+  - id: q2
+    text: "For how many nights does the narrator watch the old man before killing him? Answer with a single word."
+    gold: "seven"
+    type: surface_factual
+    material_ref: source
+
+  - id: q3
+    text: "Who arrives at the narrator's house after the murder? Answer with a single noun phrase."
+    gold: "the police"
+    type: entity_tracking
+    material_ref: source
+
+  - id: q4
+    text: "What sound does the narrator hear at the end of the story that drives him to confess? Answer with a single noun phrase."
+    gold: "a heartbeat"
+    type: surface_factual
+    material_ref: source
+
+  - id: q5
+    text: "On which night, counting from the first night the narrator began watching, does the murder take place? Answer with a single ordinal word."
+    gold: "eighth"
+    type: multi_hop
+    material_ref: source
+
+events:
+  - type: quiz
+    questions: [q1, q2, q3, q4, q5]
+    probe: prior
+
+  - type: read
+    material_id: source
+
+  - type: quiz
+    questions: [q1, q2, q3, q4, q5]
+    probe: ceiling
+
+  - type: reset
+
+  - type: quiz
+    questions: [q1, q2, q3, q4, q5]
+    probe: retention
+    k: 1
