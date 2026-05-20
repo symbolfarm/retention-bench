@@ -25,11 +25,14 @@ Task and reference-mode design decisions resolve the way constructive-area conce
 
 ## Entry points
 
-- [[spec]] — the existing v0.1 design spec, promoted from `scratch/`. Effectively the agent-memory track in current form. **Read for the protocol shape, not as a final commitment to scope.**
-- [[design-dialogue]] — joint-scoping conversation. Turn 1 reopens the v1-vs-extension scoping question and surfaces the two-track reframing.
-- [[handover]] — short read-order guide for a fresh Claude resuming this project.
+- `AGENTS.md` — orientation for a fresh agent resuming the project. Read first.
+- `TASKS.md` + `.tasks/` — current MVP task queue (task-cycle skill).
+- `docs/decisions-checklist.md` — resolved design decisions. Load-bearing for what we're building.
+- `docs/spec.md` — the v0.1 design spec, promoted from `scratch/`. **Read for the protocol shape, not as a final commitment to scope.**
+- `history/design-dialogue.md` — joint-scoping conversation, all turns. Superseded by the decisions checklist; consult for "why" archaeology.
+- `history/handover.md` — earlier read-order guide; predates Turn 5/6, superseded by `AGENTS.md`.
 
-The other 7 spec documents (`protocol.md`, `interface.md`, `metrics.md`, `tasks.md`, `topology.md`, `validity.md`, `extensions.md`, `open-questions.md`) are reference material under joint-scoping treatment — they are *v0.1 starting points*, not stable specifications.
+The other spec documents under `docs/` (`protocol.md`, `interface.md`, `metrics.md`, `tasks.md`, `topology.md`, `validity.md`, `extensions.md`, `open-questions.md`) are reference material — *v0.1 starting points*, not stable specifications. `docs/interface.md` in particular is slated for rewrite.
 
 ## What this project owes other projects
 
@@ -41,4 +44,6 @@ This project uses the **echo-back / design-dialogue / idea-tree** joint-scoping 
 
 ## Status
 
-Scoping. No `plan.md`. Through Turn 5 of [[design-dialogue]] (2026-05-13): the agnostic five-thing interface (Turn 3) survived a book-episodic pressure-test in Turn 4. Turn 5 extended the design with the **atomic-event model** (`READ` / `QUIZ` / `RESET` events) and the **three-probe baselines** (prior / ceiling / retention), locking cross-reset purity as the eval's load-bearing rule (Agreed #9–#12 in [[design-dialogue]]). v0.1 docs ([[tasks]], [[metrics]], [[validity]]) updated in step with Turn 5; [[interface]] and [[extensions]] rewrites remain pending. Turn 6 candidates: (1) sign off on first-book asset choice (AI-written novella to spec, Claude's pick) and proceed to first-book drafting; (2) rewrite [[interface]] and affected parts of [[extensions]] to match the now-Agreed event-typed contract.
+**MVP implementation cleared (2026-05-20).** All 16 active decisions in `docs/decisions-checklist.md` resolved; #17 (train/no-train lane) deferred. Headline resolutions: atomic-event model (`READ`/`QUIZ`/`RESET`) with three-probe baselines (`P`/`C`/`R(k)`) and `(R−P)/(C−P)` normalised retention; thin test harness + SUT-internal scaffolding; two leaderboards (agentic vs. in-context with mock tool-call transcripts); constructive-SUT weights accounted as a delta in `DIR` (in-place training → storage delta = 0, FLOPs becomes the load-bearing cost signal); five hardware tiers (Consumer / 1×H100 / 8×H100 / API / Open).
+
+Build order tracked in `TASKS.md` + `.tasks/LOG.jsonl` under the `task-cycle` skill.

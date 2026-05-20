@@ -9,7 +9,7 @@ tags: [checklist, decisions, scoping]
 
 Decisions to lock before coding the first runnable book-track task. Each item lists 2–3 options and a recommendation. Options are starting points; reframings welcome.
 
-Origin: discussion 2026-05-17 (Claude review of the v0.1 spec set, post-Turn-6). See `AGENTS.md` for context.
+Origin: discussion 2026-05-17 (Claude review of the v0.1 spec set, post-Turn-6). See `../AGENTS.md` for context.
 
 ---
 

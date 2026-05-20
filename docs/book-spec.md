@@ -8,7 +8,7 @@ tags: [spec, book-track, farming-brief]
 
 # Book spec
 
-This document is the brief handed to an **author model** that produces one novella for the [continual-learning-eval](./README.md) book track. The output is two files: `novella.md` and `memory-targets.md` (the latter per [`memory-targets-spec.md`](./memory-targets-spec.md)). The question set is generated *separately*, by a different model, from the novella + memory-targets only — see [`question-set-spec.md`](./question-set-spec.md). The author model **must not** generate the question set.
+This document is the brief handed to an **author model** that produces one novella for the [continual-learning-eval](../README.md) book track. The output is two files: `novella.md` and `memory-targets.md` (the latter per [`memory-targets-spec.md`](./memory-targets-spec.md)). The question set is generated *separately*, by a different model, from the novella + memory-targets only — see [`question-set-spec.md`](./question-set-spec.md). The author model **must not** generate the question set.
 
 A first cohort of N=3–4 novellas is run in parallel across different model families to give cross-asset stratification (per [`validity.md`](./validity.md) Confound 1). Each author model receives the same `book-spec.md` plus a per-novella **diversity seed** (below).
 
@@ -112,7 +112,7 @@ A reviewer pass will check structural requirements against `memory-targets.md` c
 
 ## Cross-references
 
-- [`README.md`](./README.md) — project overview, eval philosophy.
+- [`README.md`](../README.md) — project overview, eval philosophy.
 - [`tasks.md`](./tasks.md) — Track 1 (book-episodic) structure that this asset serves.
 - [`memory-targets-spec.md`](./memory-targets-spec.md) — companion-doc format.
 - [`question-set-spec.md`](./question-set-spec.md) — downstream consumer of the novella + memory-targets.
