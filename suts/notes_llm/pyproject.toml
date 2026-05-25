@@ -1,0 +1,15 @@
+[project]
+name = "retention-bench-sut-notes-llm"
+version = "0.1.0"
+description = "Notes-LLM reference SUT for retention-bench. Takes freeform notes on READ, answers from notes on QUIZ."
+requires-python = ">=3.10"
+dependencies = [
+  "anthropic>=0.39.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["notes_llm*"]

@@ -1,0 +1,44 @@
+task_id: two_chapter
+schema_version: 1
+description: |
+  Two-chapter fixture for the notes-llm SUT. Exercises the cumulative-notes
+  path: READ ch1, READ ch2 (SUT must see ch1's notes when writing ch2's),
+  ceiling QUIZ across both chapters, RESET, retention QUIZ k=1 (notes must
+  survive RESET on disk for retention to be non-zero).
+
+materials:
+  - id: chapter_one
+    text: |
+      The capital of Atlantis is Coral City. Its founder was Mira Vexin in
+      the year 1842, after she sailed east from the Iron Coast.
+  - id: chapter_two
+    text: |
+      Atlantis's second city, Pearl Harbor, was founded in 1851 by Halton
+      Reeve, a cartographer from Coral City. Pearl Harbor's lighthouse, the
+      Verdant Beacon, was completed in 1860.
+
+questions:
+  - id: q1
+    text: "Who founded the capital of Atlantis?"
+    gold: "Mira Vexin"
+    type: surface_factual
+    material_ref: chapter_one
+  - id: q2
+    text: "Who founded Atlantis's second city?"
+    gold: "Halton Reeve"
+    type: surface_factual
+    material_ref: chapter_two
+
+events:
+  - type: read
+    material_id: chapter_one
+  - type: read
+    material_id: chapter_two
+  - type: quiz
+    questions: [q1, q2]
+    probe: ceiling
+  - type: reset
+  - type: quiz
+    questions: [q1, q2]
+    probe: retention
+    k: 1

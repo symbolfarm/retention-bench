@@ -100,6 +100,22 @@ class _RunState:
     sut_reported_model_id: Optional[str] = None
 
 
+def _accumulate_resources(state: "_RunState", reply: dict) -> None:
+    """Pull SUT-reported resource fields off a reply into the run state.
+
+    Called on every event reply that may carry resource self-report
+    (READ and QUIZ). Missing keys default to 0; non-string model_ids
+    are ignored. Per docs/trace-schema.md these aggregate into
+    sut-manifest.json::resource_appendix at run end.
+    """
+    state.tokens_in_total += int(reply.get("tokens_in", 0) or 0)
+    state.tokens_out_total += int(reply.get("tokens_out", 0) or 0)
+    state.api_call_count_total += int(reply.get("api_call_count", 0) or 0)
+    reported_model = reply.get("model_id")
+    if isinstance(reported_model, str) and reported_model:
+        state.sut_reported_model_id = reported_model
+
+
 def _next_event_id(idx: int) -> str:
     return f"evt-{idx + 1:04d}"
 
@@ -242,6 +258,7 @@ def _run_read(
     )
     stage_output_path = tw.write_stage_output_json(event_id, reply)
     t1_iso, t1 = _iso_now(), time.perf_counter()
+    _accumulate_resources(state, reply)
     tw.write_event({
         "event_id": event_id,
         "event_index": state.event_index,
@@ -280,12 +297,7 @@ def _run_quiz(
     # Best-effort resource accounting from SUT self-report; missing keys
     # default to 0. Per docs/trace-schema.md, these aggregate into
     # sut-manifest.json's resource_appendix at run end.
-    state.tokens_in_total += int(reply.get("tokens_in", 0) or 0)
-    state.tokens_out_total += int(reply.get("tokens_out", 0) or 0)
-    state.api_call_count_total += int(reply.get("api_call_count", 0) or 0)
-    reported_model = reply.get("model_id")
-    if isinstance(reported_model, str) and reported_model:
-        state.sut_reported_model_id = reported_model
+    _accumulate_resources(state, reply)
 
     tw.write_event({
         "event_id": event_id,
