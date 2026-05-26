@@ -8,6 +8,19 @@ Follows ``docs/metrics.md``:
 - ``normalised_retention(k, q) = (R(k, q) − P(q)) / max(C(q) − P(q), ε)``.
 - Questions where ``C(q) − P(q) < ε`` are reported but excluded from the
   aggregate, per the metrics.md exclusion rule.
+
+Scorer dispatch
+---------------
+By default (``scorer_mode="exact-match"``) all records are scored with
+:class:`scorer.protocols.ExactMatchScorer`, reproducing M6 behavior exactly.
+
+When ``scorer_mode="judge"`` is passed, judge-eligible question types
+(``entity_tracking``, ``multi_hop``) are routed to :class:`scorer.judge.JudgeScorer`
+while ``surface_factual`` still uses exact-match.  Per-record results gain
+``scorer_kind`` (always) and — for judge-scored records — ``judge_rationale``.
+
+Judge rationales are NOT written to ``questions.jsonl`` here; the CLI
+(__main__.py) writes them to a sibling ``scoring.jsonl``.
 """
 
 from __future__ import annotations
@@ -15,7 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from scorer.exact_match import score_record
+from scorer.protocols import get_scorer
 
 # Default epsilon for the "no learnable signal" exclusion. The metrics doc
 # suggests "typical ε = 0.05 of the score range"; exact-match scores live
@@ -68,43 +81,61 @@ def normalised_retention(
 
 def aggregate_records(
     records: Iterable[Dict[str, Any]],
+    scorer_mode: str = "exact-match",
 ) -> Tuple[List[Dict[str, Any]], Dict[str, QuestionAggregate]]:
     """Score and aggregate a stream of ``questions.jsonl`` records.
 
+    Parameters
+    ----------
+    records:
+        Iterable of ``questions.jsonl`` records.
+    scorer_mode:
+        ``"exact-match"`` (default) — exact-match for all types,
+        reproducing M6 behavior exactly.
+        ``"judge"`` — routes judge-eligible types to the LLM judge.
+
     Returns ``(scored_records, per_question)`` where:
 
-    - ``scored_records`` is the input list with a ``score`` field added.
+    - ``scored_records`` is the input list with ``score`` and ``scorer_kind``
+      fields added (and ``judge_rationale`` for judge-scored records).
     - ``per_question`` maps ``question_id`` to its ``QuestionAggregate``.
     """
     scored: List[Dict[str, Any]] = []
     per_question: Dict[str, QuestionAggregate] = {}
 
     for record in records:
-        s = score_record(record)
+        question_type = record.get("question_type", "surface_factual")
+        scorer = get_scorer(question_type, scorer_mode=scorer_mode)
+        score_val_f, scorer_kind, rationale = scorer.score(record)
+
+        s = dict(record)
+        s["score"] = score_val_f
+        s["scorer_kind"] = scorer_kind
+        if rationale is not None:
+            s["judge_rationale"] = rationale
         scored.append(s)
 
         qid = s.get("question_id")
         if qid is None:
             continue
         agg = per_question.setdefault(qid, QuestionAggregate(question_id=qid))
-        score_val = float(s["score"])
         probe = s.get("probe_type")
 
         if probe == "prior":
             # If multiple priors land for the same question (shouldn't happen
             # in a well-formed run, but be defensive), keep the first.
             if agg.prior is None:
-                agg.prior = score_val
+                agg.prior = score_val_f
         elif probe == "ceiling":
             if agg.ceiling is None:
-                agg.ceiling = score_val
+                agg.ceiling = score_val_f
         elif probe == "retention":
             k = s.get("k")
             if k is None:
                 # Malformed: retention probe without k. Skip — metrics.md
                 # treats k as load-bearing for the curve axis.
                 continue
-            agg.retention.setdefault(int(k), []).append(score_val)
+            agg.retention.setdefault(int(k), []).append(score_val_f)
         # Unknown probe types are ignored (forward-compat).
 
     return scored, per_question

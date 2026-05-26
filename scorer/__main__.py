@@ -2,8 +2,23 @@
 
 Reads ``<run-dir>/questions.jsonl`` (the per-question records file from the
 M2/M4 harness — see ``docs/trace-schema.md``), scores each record with the
-exact-match scorer, aggregates per-question, and prints the retention table
+configured scorer, aggregates per-question, and prints the retention table
 to stdout.
+
+Scorer modes
+------------
+``--scorer exact-match`` (default)
+    Uses the exact-match scorer for all question types.  Reproduces M6
+    behavior exactly; past smoke runs re-score identically under this mode.
+
+``--scorer judge``
+    Routes judge-eligible question types (``entity_tracking``,
+    ``multi_hop``) to the LLM judge (Anthropic API).  ``surface_factual``
+    questions still use exact-match regardless of this flag.
+
+    Requires ``ANTHROPIC_API_KEY`` in the environment.  Judge rationales are
+    written to a sibling ``scoring.jsonl`` file in the run directory.  Judge
+    token usage is written to a sibling ``judge_resource_appendix.jsonl``.
 
 Note: the M6 task brief originally specified ``<run-dir>/trace.jsonl`` as
 the argument. That predates the M1 file-split decision (``trace.jsonl`` is
@@ -38,6 +53,24 @@ def _load_records(questions_path: Path) -> Iterator[dict]:
                 )
 
 
+def _write_scoring_jsonl(run_dir: Path, scored_records: list[dict]) -> None:
+    """Write judge rationales to ``scoring.jsonl`` keyed by ``record_id``."""
+    path = run_dir / "scoring.jsonl"
+    with path.open("w", encoding="utf-8") as f:
+        for rec in scored_records:
+            if "judge_rationale" not in rec:
+                continue
+            entry = {
+                "record_id": rec.get("record_id"),
+                "question_id": rec.get("question_id"),
+                "probe_type": rec.get("probe_type"),
+                "scorer_kind": rec.get("scorer_kind"),
+                "score": rec.get("score"),
+                "judge_rationale": rec["judge_rationale"],
+            }
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m scorer",
@@ -54,6 +87,16 @@ def main(argv: list[str] | None = None) -> int:
         default=EPSILON,
         help=f"ε floor for the C−P exclusion rule (default: {EPSILON}).",
     )
+    parser.add_argument(
+        "--scorer",
+        choices=["exact-match", "judge"],
+        default="exact-match",
+        help=(
+            "Scoring mode. 'exact-match' (default) reproduces M6 behavior. "
+            "'judge' routes entity_tracking and multi_hop questions to the "
+            "LLM judge (requires ANTHROPIC_API_KEY)."
+        ),
+    )
     args = parser.parse_args(argv)
 
     run_dir: Path = args.run_dir
@@ -66,7 +109,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     records = list(_load_records(questions_path))
-    _, per_question = aggregate_records(records)
+    scored_records, per_question = aggregate_records(records, scorer_mode=args.scorer)
+
+    # Write scoring.jsonl sibling when running in judge mode.
+    if args.scorer == "judge":
+        _write_scoring_jsonl(run_dir, scored_records)
+
     sys.stdout.write(render_curve(per_question, epsilon=args.epsilon))
     return 0
 

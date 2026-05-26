@@ -6,21 +6,23 @@ a YAML fixture pointed to by env var.
 
 Env contract:
   FAKE_ANTHROPIC_FIXTURE  Path to YAML file with a `responses` list, each
-                          entry having `text`, `input_tokens`, `output_tokens`.
+                          entry having either:
+                            - `text`, `input_tokens`, `output_tokens`
+                              (text response — existing format)
+                            - `tool_use`, `input_tokens`, `output_tokens`
+                              where `tool_use` has `name` and `input` keys
+                              (tool-use response — for judge scorer tests)
   FAKE_ANTHROPIC_COUNTER  Path to a file storing the next call index as
                           ASCII int. Shared across SUT subprocesses within
                           a single test run; lets us prove that respawned
                           SUTs (after RESET) successfully imported this
                           shim and continued the sequence.
-
-Out of scope: streaming, async, tool use, multi-turn, anything beyond
-`client.messages.create(...)` with the small surface no-state SUT uses.
 """
 
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +36,14 @@ class _TextBlock:
 
 
 @dataclass
+class _ToolUseBlock:
+    name: str
+    input: dict
+    id: str = "fake-tool-use-id"
+    type: str = "tool_use"
+
+
+@dataclass
 class _Usage:
     input_tokens: int
     output_tokens: int
@@ -41,7 +51,7 @@ class _Usage:
 
 @dataclass
 class _Response:
-    content: list[_TextBlock]
+    content: list
     usage: _Usage
     model: str
 
@@ -78,14 +88,16 @@ class _Messages:
                 f"{len(responses)} responses"
             )
         r = responses[i]
-        return _Response(
-            content=[_TextBlock(text=r["text"])],
-            usage=_Usage(
-                input_tokens=int(r["input_tokens"]),
-                output_tokens=int(r["output_tokens"]),
-            ),
-            model=model,
+        usage = _Usage(
+            input_tokens=int(r["input_tokens"]),
+            output_tokens=int(r["output_tokens"]),
         )
+        if "tool_use" in r:
+            tu = r["tool_use"]
+            content = [_ToolUseBlock(name=tu["name"], input=tu["input"])]
+        else:
+            content = [_TextBlock(text=r["text"])]
+        return _Response(content=content, usage=usage, model=model)
 
 
 class Anthropic:
