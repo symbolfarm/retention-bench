@@ -51,16 +51,18 @@ individual `.tasks/M*.md` task files after a debrief pass.
 
 ## Backlog (post-MVP, not yet ordered)
 
-- B1 — notes-LLM reference SUT (decision #11).
-- B2 — naive-RAG reference SUT (decision #11).
-- B3 — LLM-as-judge scorer integration via DeepEval or Inspect (decision #6).
-- B4 — Docker container packaging + tier-declaration scaffolding (decision #16).
+- B1 — notes-LLM reference SUT (decision #11). ✓ **Done** (2026-05-25).
+- B2 — naive-RAG reference SUT (decision #11). ✓ **Done** (2026-05-26; pluggable embedder seam, interim `sentence-transformers` default, llama-cpp wired).
+- B3 — LLM-as-judge scorer (decision #6). ✓ **Done** (2026-05-26; **hand-rolled** judge behind a `Scorer` seam — *not* a library; see decisions-checklist #6).
+- B4 — Docker container packaging + tier-declaration scaffolding (decision #16). **Unblocked** (B2 landed); now spans 3 SUTs incl. naive-RAG. Also the point to flip naive-RAG's default embedder to llama-cpp.
 - B5 — Mock tool-call transcript authorship strategy + first in-context-leaderboard variant (decision #7 deferred sub-decision).
 - B6 — `docs/interface.md` rewrite to match Turn 3 five-thing contract + two-leaderboard resolution.
 - B7 — `docs/metrics.md` write-in: resolved `C` definition (text-in-context + accumulated `QUIZ` history) + storage-delta-= 0 rule for in-place training + FLOPs reporting fields.
 - B8 — Cohort-1 novella dispatch (blocked on Toby's sign-off; orthogonal to harness MVP).
-- B9 — Generic LLM-backend abstraction for the reference SUTs (e.g. OpenRouter or a `pydantic-ai`-style provider-neutral client). Decouples SUT code from any one provider's SDK so switching between Anthropic / DeepSeek / OpenAI / local-OpenAI-compatible models is a config change, not a code change. Surfaced 2026-05-20 when Haiku 4.5 was overloaded during M7 and Sonnet was the only quick fallback.
+- B9 — Generic LLM-backend abstraction for the reference SUTs (e.g. OpenRouter or a `pydantic-ai`-style provider-neutral client). Decouples SUT code from any one provider's SDK so switching between Anthropic / DeepSeek / OpenAI / local-OpenAI-compatible models is a config change, not a code change. Surfaced 2026-05-20 when Haiku 4.5 was overloaded during M7 and Sonnet was the only quick fallback. **Scope grew (2026-05-26):** there are now *four* copies of the hardcoded `anthropic.Anthropic(...)` idiom — `no_state`, `notes_llm`, `naive_rag`, and the B3 judge (`scorer/judge.py`) — all deliberately sharing one env-var-model + direct-client shape so B9 can replace them uniformly. B9 should also subsume embedder-backend selection (naive-RAG's `NAIVE_RAG_EMBEDDER` seam) under the same provider-neutral config story. Now clearly worth more than its original one-liner.
 - B10 — Harness integration tests against a fake-anthropic client. The unit-test suite uses the stub SUT, so it doesn't exercise the real subprocess + SDK + token-accounting path. M7 surfaced two harness bugs (`_run_reset` PYTHONPATH-drop; SUT-reported resource fields dropped on the floor) that no test currently catches. A fake `anthropic.Anthropic` (returns canned responses, reports synthetic token counts) driving the real no-state SUT through the real harness would catch this class of bug and protect the audit-trail fidelity that future published retention curves rely on. Higher priority once we start producing real curves (B1 / B2). Surfaced 2026-05-20 during M7 wrap-up.
+- B11 — Wire judge token usage into a separate `judge_resource_appendix` (decision #6). B3 documented the architecture but `JudgeScorer.score()` currently drops `response.usage`. Surfaced 2026-05-26 during B3 wrap-up.
+- B12 — Smoke-task gold-answer quality pass: q4 gold "a heartbeat" is too terse, so substance-correct answers fail exact-match and (being `surface_factual`) aren't rescued by the judge. Asset fix, not a scorer fix. Surfaced 2026-05-26 during B3 wrap-up.
 
 ## Structure
 
