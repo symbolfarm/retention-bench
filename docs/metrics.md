@@ -107,6 +107,82 @@ A CL-N result for one SUT on one task should include:
 
 Leaderboards, if they exist, should publish all of the above, not just a single score.
 
+## Scorer integration (B3)
+
+### Scorer seam
+
+The scorer exposes a small `Scorer` protocol (defined in `scorer/protocols.py`):
+
+```
+score(record: dict) -> (score: float, scorer_kind: str, rationale: str | None)
+```
+
+Two implementations ship:
+
+- `ExactMatchScorer` — case-insensitive, whitespace-normalised exact match.
+  Never calls an API. Default for all question types under `--scorer exact-match`.
+- `JudgeScorer` — LLM-as-judge via the Anthropic SDK's tool-use / structured
+  output. Returns a `{score, rationale}` verdict without free-text parsing.
+
+A future `DeepEvalScorer` (or other framework adapter) slots in as a third
+implementation against the same protocol, without touching the harness or
+curve renderer.
+
+### Dispatch rules
+
+Dispatch is keyed by `question_type` in the `questions.jsonl` record:
+
+| `question_type`     | Default (`--scorer exact-match`) | `--scorer judge`  |
+|---------------------|----------------------------------|-------------------|
+| `surface_factual`   | exact-match                      | exact-match       |
+| `entity_tracking`   | exact-match                      | judge             |
+| `multi_hop`         | exact-match                      | judge             |
+| unknown / unmapped  | hard error (fail loud)           | hard error        |
+
+`surface_factual` bypasses the judge in all modes by design — these
+questions are amenable to exact-match and routing them through a judge
+wastes variance budget. Unknown types raise `ValueError` immediately (no
+silent fallback), forcing the type to be explicitly assigned to a scorer
+before it can be used.
+
+### Output fields
+
+Per-record output gains:
+
+- `scorer_kind` — `"exact_match"` or `"judge"`.  Always present.
+- `judge_rationale` — the judge's brief reasoning.  Present only for
+  judge-scored records; absent for exact-match records (keeps
+  `questions.jsonl` lean).
+
+Judge rationales are persisted to a sibling `scoring.jsonl` file in the
+run directory, keyed by `record_id`.  This keeps `questions.jsonl`
+machine-readable and lean while making rationales auditable.
+
+### Judge implementation
+
+- Model: read from `RETENTION_BENCH_JUDGE_MODEL` env var; falls back to
+  `claude-sonnet-4-6`.  Same idiom as the SUT implementations — a future
+  task (B9) replaces all hardcoded Anthropic call sites uniformly.
+- Prompt: reason-then-score structure.  The model produces a brief
+  rationale before the verdict, which improves reliability on borderline
+  cases.  Verdict is extracted via a tool call (`judge_verdict`), so no
+  fragile free-text JSON parsing.
+- Temperature: 0.  Single judge; multi-judge / ensemble is out of scope
+  (revisit if single-judge variance is too high).
+- Cost accounting: judge token usage is separate from SUT token usage.
+  Judge costs appear in a sibling `judge_resource_appendix.jsonl` (distinct
+  from the SUT's `resource_appendix`).
+
+### Backward compatibility
+
+`--scorer exact-match` (default) reproduces M6 behavior exactly — past smoke
+runs re-score identically under the default.  The judge is strictly opt-in
+via `--scorer judge`.
+
+**Note:** this section partially addresses backlog B7 (metrics documentation
+of scorer integration shape).  B7 is not fully closed — it also covers
+multi-question-type weighting and the full reporting format update.
+
 ## What is deliberately not measured in v1
 
 - **Failure-mode diagnostics** (was memory not stored, stored but not retrieved, retrieved but misapplied, corrupted across clears?). This is important for the benchmark's long-term diagnostic value but is deferred to task-level question design in v2. See [`extensions.md`](./extensions.md).
