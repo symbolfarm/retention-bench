@@ -1,0 +1,32 @@
+[project]
+name = "retention-bench-sut-naive-rag"
+version = "0.1.0"
+description = "Naive-RAG reference SUT for retention-bench. Chunks + embeds on READ, retrieves + answers on QUIZ."
+requires-python = ">=3.10"
+dependencies = [
+  "anthropic>=0.39.0",
+]
+
+[project.optional-dependencies]
+# Real dense retrieval via sentence-transformers (pulls in torch)
+sentence-transformers = [
+  "sentence-transformers>=2.7.0",
+]
+# Real dense retrieval via llama-cpp-python + GGUF model (no torch required)
+llama-cpp = [
+  "llama-cpp-python>=0.2.0",
+  "numpy>=1.24.0",
+]
+# Convenience: install all real backends
+all = [
+  "sentence-transformers>=2.7.0",
+  "llama-cpp-python>=0.2.0",
+  "numpy>=1.24.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["naive_rag*"]

@@ -1,0 +1,13 @@
+{
+  "name": "naive-rag",
+  "version": "0.1.0",
+  "mode": "in-context",
+  "hardware_tier": "API",
+  "strict_verbatim": true,
+  "entrypoint": ["python", "-m", "naive_rag"],
+  "env": ["ANTHROPIC_API_KEY", "NAIVE_RAG_MODEL", "NAIVE_RAG_EMBEDDER", "NAIVE_RAG_LLAMA_MODEL"],
+  "resource_appendix": {
+    "kind": "api",
+    "model_id": "claude-haiku-4-5-20251001"
+  }
+}
