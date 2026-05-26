@@ -75,6 +75,19 @@ Origin: discussion 2026-05-17 (Claude review of the v0.1 spec set, post-Turn-6).
 
 **Toby**: Agreed - A+C combination.
 
+**Implementation update (B3, 2026-05-26):** shipped **A, but hand-rolled the
+judge rather than via a library** — revising the "C where possible" half.
+Dispatch is per-question-type (`surface_factual` → exact-match;
+`entity_tracking` / `multi_hop` → LLM-as-judge; unknown type → hard error).
+The judge is a single hand-rolled Anthropic tool-use call (schema-validated
+`{score, rationale}`, reason-then-score, temp 0). Rationale for dropping the
+library: the custom harness already owns orchestration + the P/C/R(k) curve,
+so a framework (DeepEval/Inspect) would contribute only its judge-prompt
+scaffold (~5%) at full dependency weight and impose its own loop assumptions.
+A `Scorer` protocol seam (`scorer/protocols.py`) keeps a library swappable in
+later as another `Scorer` implementation if the metric battery expands.
+Multi-judge remains out of scope. See `.tasks/debriefs/B3.md`.
+
 ### 7. Stage-dependency surfacing default
 
 - **A.** Always explicit pointer ("your earlier work is at `./notes.md`, `./summary.md`").
@@ -132,6 +145,16 @@ Origin: discussion 2026-05-17 (Claude review of the v0.1 spec set, post-Turn-6).
 **Recommend: B.** Naive-RAG is "the thing to beat" — having it as a reference makes any new memory architecture's value immediately legible. All three are cheap to implement and together span the interesting baseline frontier.
 
 **Toby**: Agreed - B.
+
+**Implementation update (B2, 2026-05-26):** naive-RAG ships with a **pluggable
+embedder seam** (`NAIVE_RAG_EMBEDDER=fake|sentence-transformers|llama-cpp`).
+The **target default is llama-cpp** (lean GGUF backend, best fit for B4's
+consumer-tier container story), but B2 shipped **sentence-transformers as the
+interim default** because the `llama-cpp-python` native build was out of scope
+for B2. Flip to llama-cpp once B4's Dockerfile builds it. The embedder
+backend/model is SUT "code"/asset, not `DIR` content (cf. #8 DIR accounting);
+the vector index (`DIR/index.jsonl`) is the `DIR`-resident artifact. See
+`.tasks/debriefs/B2.md`.
 
 ### 12. Replayability minimum
 
