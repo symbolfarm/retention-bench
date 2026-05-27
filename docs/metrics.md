@@ -171,7 +171,17 @@ machine-readable and lean while making rationales auditable.
   (revisit if single-judge variance is too high).
 - Cost accounting: judge token usage is separate from SUT token usage.
   Judge costs appear in a sibling `judge_resource_appendix.jsonl` (distinct
-  from the SUT's `resource_appendix`).
+  from the SUT's `resource_appendix`), written only when the judge is
+  actually engaged (judge mode with ≥1 judge-eligible record). It is a
+  single aggregate record (one JSONL line) accumulated across the run,
+  mirroring the SUT `resource_appendix` conventions plus judge totals:
+
+  ```json
+  {"kind": "api", "model_id": "claude-sonnet-4-6", "api_call_count": 3, "input_tokens": 380, "output_tokens": 145}
+  ```
+
+  Per decision #6 (open-Q6): the SUT budget and the scoring budget are
+  different, so judge spend must never roll into the SUT's appendix.
 
 ### Backward compatibility
 

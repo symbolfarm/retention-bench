@@ -97,6 +97,16 @@ class JudgeScorer:
         self._model = os.environ.get("RETENTION_BENCH_JUDGE_MODEL", DEFAULT_JUDGE_MODEL)
         self._client = anthropic.Anthropic(api_key=api_key)
 
+        # Side-channel accumulators for the judge_resource_appendix (B11).
+        # Kept off the Scorer.score() return tuple so ExactMatchScorer stays
+        # clean. Read back after a scoring run via resource_appendix().
+        self._api_call_count: int = 0
+        self._input_tokens: int = 0
+        self._output_tokens: int = 0
+        # model_id is captured from each response (response.model is the
+        # resolved model id); falls back to the requested model.
+        self._resolved_model_id: str = self._model
+
     def score(self, record: Dict[str, Any]) -> Tuple[float, str, Optional[str]]:
         """Score a single record via the LLM judge.
 
@@ -140,11 +150,45 @@ class JudgeScorer:
             temperature=0,
         )
 
+        # Accumulate judge spend for the judge_resource_appendix (B11). Only
+        # reached when an API call actually happened (the parsing_status != "ok"
+        # path returns above without calling the judge).
+        self._accumulate_usage(response)
+
         # Extract the tool_use block.
         tool_input = _extract_tool_input(response)
         score = float(tool_input["score"])
         rationale = str(tool_input["rationale"])
         return score, "judge", rationale
+
+    def _accumulate_usage(self, response: Any) -> None:
+        """Add one judge response's token usage to the run accumulators."""
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            self._input_tokens += int(getattr(usage, "input_tokens", 0) or 0)
+            self._output_tokens += int(getattr(usage, "output_tokens", 0) or 0)
+        # response.model is the resolved model id from the API; keep it as the
+        # appendix's model_id (constant across a run, last write wins).
+        resolved = getattr(response, "model", None)
+        if resolved:
+            self._resolved_model_id = str(resolved)
+        self._api_call_count += 1
+
+    def resource_appendix(self) -> Dict[str, Any]:
+        """Accumulated judge spend for the run.
+
+        Mirrors the SUT ``resource_appendix`` conventions (``kind: "api"`` +
+        ``model_id``; see ``docs/sut-interface.md``) and adds judge-specific
+        totals. Written to a sibling ``judge_resource_appendix.jsonl`` by the
+        CLI — distinct from the SUT's budget (decision #6 open-Q6).
+        """
+        return {
+            "kind": "api",
+            "model_id": self._resolved_model_id,
+            "api_call_count": self._api_call_count,
+            "input_tokens": self._input_tokens,
+            "output_tokens": self._output_tokens,
+        }
 
 
 def _extract_tool_input(response: Any) -> Dict[str, Any]:

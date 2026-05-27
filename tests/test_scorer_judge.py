@@ -392,6 +392,85 @@ def test_q4_surface_factual_stays_exact_match_under_judge_mode(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# B11: judge_resource_appendix accumulation
+#
+# Judge token usage is accumulated across the run and written to a sibling
+# judge_resource_appendix.jsonl, distinct from the SUT's resource_appendix.
+# ---------------------------------------------------------------------------
+
+
+def test_judge_resource_appendix_accumulates(tmp_path):
+    """Judge mode writes judge_resource_appendix.jsonl with accumulated usage.
+
+    The shared fake fixture has three judge calls:
+      120+45, 130+50, 130+50  →  input=380, output=145, api_call_count=3.
+    """
+    run_dir = tmp_path / "run-appendix"
+    records = [
+        _rec("q3", "prior", "Unknown", "the police",
+             question_type="entity_tracking", record_id="rec-q3-prior"),
+        _rec("q3", "ceiling", "Three police officers", "the police",
+             question_type="entity_tracking", record_id="rec-q3-ceiling"),
+        _rec("q3", "retention", "Three police officers", "the police",
+             question_type="entity_tracking", k=1, record_id="rec-q3-retention"),
+    ]
+    _write_records(run_dir, records)
+
+    fixture = FIXTURE_DIR / "fake_judge_responses.yaml"
+    result = _run_scorer(run_dir, scorer="judge", fake_fixture=fixture)
+    assert result.returncode == 0, result.stderr
+
+    appendix_path = run_dir / "judge_resource_appendix.jsonl"
+    assert appendix_path.exists(), "judge_resource_appendix.jsonl not written"
+
+    lines = [l for l in appendix_path.read_text().splitlines() if l.strip()]
+    assert len(lines) == 1, "expected a single aggregate appendix record"
+    appendix = json.loads(lines[0])
+
+    assert appendix["kind"] == "api"
+    assert appendix["api_call_count"] == 3
+    assert appendix["input_tokens"] == 380
+    assert appendix["output_tokens"] == 145
+    assert appendix["model_id"]  # non-empty resolved model id
+
+
+def test_no_judge_appendix_in_exact_match_mode(tmp_path):
+    """exact-match mode never writes a judge_resource_appendix."""
+    run_dir = tmp_path / "run-exact-no-appendix"
+    records = [
+        _rec("q1", "prior", "wrong", "right", question_type="surface_factual"),
+        _rec("q1", "ceiling", "right", "right", question_type="surface_factual"),
+        _rec("q1", "retention", "right", "right",
+             question_type="surface_factual", k=1),
+    ]
+    _write_records(run_dir, records)
+    result = _run_scorer(run_dir, scorer="exact-match")
+    assert result.returncode == 0, result.stderr
+    assert not (run_dir / "judge_resource_appendix.jsonl").exists()
+
+
+def test_no_judge_appendix_when_judge_never_engaged(tmp_path):
+    """Judge mode with only surface_factual records writes no appendix.
+
+    surface_factual bypasses the judge, so the judge singleton is never
+    instantiated and there is no spend to report.
+    """
+    run_dir = tmp_path / "run-judge-surface-only"
+    records = [
+        _rec("q4", "prior", "Unknown", "a heartbeat",
+             question_type="surface_factual"),
+        _rec("q4", "ceiling", "The old man's heartbeat", "a heartbeat",
+             question_type="surface_factual"),
+    ]
+    _write_records(run_dir, records)
+    empty_fixture = tmp_path / "empty.yaml"
+    empty_fixture.write_text("responses: []\n")
+    result = _run_scorer(run_dir, scorer="judge", fake_fixture=empty_fixture)
+    assert result.returncode == 0, result.stderr
+    assert not (run_dir / "judge_resource_appendix.jsonl").exists()
+
+
 def test_judge_mode_mixed_types(tmp_path):
     """surface_factual stays exact-match; entity_tracking gets judge."""
     run_dir = tmp_path / "run-mixed"

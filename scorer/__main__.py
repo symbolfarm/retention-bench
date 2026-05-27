@@ -53,6 +53,18 @@ def _load_records(questions_path: Path) -> Iterator[dict]:
                 )
 
 
+def _write_judge_resource_appendix(run_dir: Path, appendix: dict) -> None:
+    """Write the accumulated judge spend to ``judge_resource_appendix.jsonl``.
+
+    A single aggregate record (one JSONL line), kept separate from the SUT's
+    ``resource_appendix`` so scoring spend never contaminates the SUT budget
+    (decision #6 open-Q6).
+    """
+    path = run_dir / "judge_resource_appendix.jsonl"
+    with path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(appendix, ensure_ascii=False) + "\n")
+
+
 def _write_scoring_jsonl(run_dir: Path, scored_records: list[dict]) -> None:
     """Write judge rationales to ``scoring.jsonl`` keyed by ``record_id``."""
     path = run_dir / "scoring.jsonl"
@@ -111,9 +123,15 @@ def main(argv: list[str] | None = None) -> int:
     records = list(_load_records(questions_path))
     scored_records, per_question = aggregate_records(records, scorer_mode=args.scorer)
 
-    # Write scoring.jsonl sibling when running in judge mode.
+    # Write scoring.jsonl + judge_resource_appendix.jsonl siblings when running
+    # in judge mode (the latter only if the judge was actually engaged).
     if args.scorer == "judge":
         _write_scoring_jsonl(run_dir, scored_records)
+        from scorer.protocols import get_judge_appendix
+
+        appendix = get_judge_appendix()
+        if appendix is not None:
+            _write_judge_resource_appendix(run_dir, appendix)
 
     sys.stdout.write(render_curve(per_question, epsilon=args.epsilon))
     return 0

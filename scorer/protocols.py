@@ -144,3 +144,16 @@ def reset_judge_singleton() -> None:
     """Reset the cached judge singleton — used in tests to inject a fresh scorer."""
     global _judge_scorer_instance
     _judge_scorer_instance = None
+
+
+def get_judge_appendix() -> "Optional[Dict[str, Any]]":
+    """Return the judge's accumulated ``resource_appendix`` for the run, or
+    ``None`` if the judge was never engaged (e.g. exact-match mode, or a judge
+    run that only contained ``surface_factual`` records).
+
+    The CLI calls this after :func:`scorer.aggregate.aggregate_records` to
+    write the ``judge_resource_appendix.jsonl`` sibling (B11).
+    """
+    if _judge_scorer_instance is None:
+        return None
+    return _judge_scorer_instance.resource_appendix()
