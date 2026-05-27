@@ -49,10 +49,15 @@ train-and-grow model integrates with the harness.
       (`mode: in-context`, `hardware_tier: open`, `strict_verbatim: true`,
       `resource_appendix.kind: "local"`, `entrypoint:
       ["python","-m","constructive"]`).
-- [ ] **Train on READ:** each READ performs a real gradient update on
-      the READ text (LM loss), then **flushes an updated checkpoint to
-      `DIR` before writing the READ ack** (so it survives a RESET that
-      immediately follows).
+- [ ] **Train on READ:** each READ performs a **bounded** gradient
+      update on the READ text (LM loss) — a fixed small number of steps,
+      *not* train-to-convergence (keeps within the 300s timeout and is
+      the honest continual-learning shape) — then **flushes an updated
+      checkpoint to `DIR` before writing the READ ack** (so it survives
+      a RESET that immediately follows).
+- [ ] **Cold vs. resume:** on spawn the SUT detects whether `DIR` holds
+      a checkpoint (resume) or is empty (cold init) and branches
+      accordingly.
 - [ ] **Grow:** at least one growth event over a session adds capacity
       (e.g. an adapter block / widened layer / grown embedding),
       producing `storage-delta > 0` and a **variable-size checkpoint**
@@ -132,9 +137,11 @@ train-and-grow model integrates with the harness.
    size/loss threshold? Suggest a simple, deterministic, auditable
    policy (e.g. "grow once after READ #1" or "every N READs").
 2. **Checkpoint format + cadence.** Flush every READ (RESET can come at
-   any time). `torch.save` of the whole model is fine; keep it simple
-   and reload-robust across a changed architecture (growth means the
-   reloaded shape differs).
+   any time). `torch.save` of the whole model is fine, but it must
+   **serialize the (grown) architecture config alongside the weights**:
+   after a growth event the reloaded shape differs from a default-shaped
+   model, so a fresh process has to rebuild the right architecture
+   *before* `load_state_dict`. Keep it simple and reload-robust.
 3. **Tokenizer.** Byte-level to avoid dependencies.
 4. **Sizing.** Defaults small enough that a smoke run completes well
    inside the 300s/event timeout on CPU.
