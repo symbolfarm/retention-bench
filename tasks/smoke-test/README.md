@@ -58,10 +58,10 @@ Yields 5 events + 15 per-question records (5 questions × 3 probes).
 
 | ID | Type | Notes |
 |---|---|---|
-| q1 | surface_factual | The vulture eye — single short phrase gold |
+| q1 | surface_factual | The vulture eye — two-word colour gold (`pale blue`) |
 | q2 | surface_factual | Number of nights of watching — single-word gold |
 | q3 | entity_tracking | Who arrives at the end — single noun phrase |
-| q4 | surface_factual | The sound that drives the confession — single noun phrase |
+| q4 | surface_factual | The sound that drives the confession — single-word gold (`heartbeat`) |
 | q5 | multi_hop | Combines "seven nights of watching" + "the next night" → "eighth" |
 
 Thematic and retroactive question types are out of scope for the smoke

@@ -16,7 +16,10 @@ materials:
 
 questions:
   - id: q1
-    text: "What color is the old man's eye that troubles the narrator?"
+    # surface_factual → exact-match. Constrain answer form so the canonical
+    # two-word colour is the only natural answer (avoids "blue" / "pale blue
+    # film" false-negatives that exact-match can't rescue). See B12 debrief.
+    text: "What color is the old man's eye that troubles the narrator? Answer with a two-word color."
     gold: "pale blue"
     type: surface_factual
     material_ref: source
@@ -34,8 +37,14 @@ questions:
     material_ref: source
 
   - id: q4
-    text: "What sound does the narrator hear at the end of the story that drives him to confess? Answer with a single noun phrase."
-    gold: "a heartbeat"
+    # surface_factual → exact-match. Was gold "a heartbeat" with a "single
+    # noun phrase" instruction, which let substance-correct answers ("the old
+    # man's heartbeat") vary in phrasing and fail exact-match — and, being
+    # surface_factual, they're not rescued by the judge. Tightened to a single
+    # word with the sound-naming gold "heartbeat" ("sound" favours "heartbeat"
+    # over the organ "heart"). See B12 debrief.
+    text: "What single word names the sound the narrator becomes convinced he hears growing louder, driving him to confess?"
+    gold: "heartbeat"
     type: surface_factual
     material_ref: source
 

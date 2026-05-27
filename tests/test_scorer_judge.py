@@ -356,9 +356,10 @@ def test_judge_mode_scoring_jsonl_keyed_by_record_id(tmp_path):
 #
 # q4 ("a heartbeat") is surface_factual — exact-match by locked dispatch.
 # The SUT answered "The old man's heartbeat" → exact-match fails → C=0.
-# This is BY DESIGN. The gold answer "a heartbeat" is too terse and is a
-# candidate for a follow-up task (gold-answer quality improvement), but it
-# is NOT fixed in the scorer.
+# This is BY DESIGN: the scorer does not paraphrase-rescue surface_factual.
+# These hand-built records reproduce the original false-negative to lock that
+# behaviour; the *smoke asset itself* was since fixed in B12 (q4 tightened to
+# a single-word "heartbeat" gold), which is an asset fix, not a scorer fix.
 # ---------------------------------------------------------------------------
 
 
