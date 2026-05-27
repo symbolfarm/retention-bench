@@ -184,8 +184,11 @@ The SUT may internally have prompted its underlying model for `<ANSWER>`-tagged 
 ## Reference implementations
 
 - **`suts/no_state/`** — minimum-viable in-context SUT. Calls Anthropic API with the question text only, ignores `DIR`. Reference for the contract; floor row on the leaderboard.
-- **notes-LLM** (B1) — pending.
-- **naive-RAG** (B2) — pending.
+- **`suts/notes_llm/`** (B1) — cumulative-notes SUT; persists running notes to `DIR` and survives `RESET` via them.
+- **`suts/naive_rag/`** (B2) — naive dense-retrieval RAG SUT; embeds chunks into a `DIR/index.jsonl` index and retrieves at QUIZ time.
+- **`suts/constructive/`** (B13) — train-and-grow SUT. The only reference that learns by **mutating its own weights** as it reads: each READ takes a bounded next-token gradient step on the READ text and (deterministically, once) grows capacity by adding a transformer block; it flushes a `DIR/checkpoint.pt` (config + weights) *before* each READ ack so the grown model survives `RESET`, and answers QUIZ by generating from current weights. Integration example, not a quality baseline — gibberish answers are expected. Reports `param_count` / `train_steps` / `train_flops` / `growth_count` via the `notes` field.
+
+**A weights-mutating SUT is still a valid `in-context` SUT.** The `agentic | in-context` enum (decision #7) is about *how files reach the model* — the SUT's own scaffold (`agentic`) versus handed to it in context (`in-context`) — not about whether training happens. A SUT that folds `READ` text into its weights and grows its architecture is `in-context` and raises no leaderboard or contract problem: it speaks the same JSONL process contract, persists across `RESET` through `DIR`, and self-declares `strict_verbatim` honestly (weights, not cached verbatim spans). Such a SUT typically declares `hardware_tier: open` and `resource_appendix.kind: "local"`, and produces a **variable-size** `DIR` (storage grows on a growth event) — which the harness already accounts for via the per-`RESET` `DIR` snapshot.
 
 ## Cross-references
 

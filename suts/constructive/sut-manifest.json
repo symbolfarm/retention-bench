@@ -1,0 +1,20 @@
+{
+  "name": "constructive",
+  "version": "0.1.0",
+  "mode": "in-context",
+  "hardware_tier": "open",
+  "strict_verbatim": true,
+  "entrypoint": ["python", "-m", "constructive"],
+  "env": [
+    "CONSTRUCTIVE_SEED",
+    "CONSTRUCTIVE_BLOCK_SIZE",
+    "CONSTRUCTIVE_D_MODEL",
+    "CONSTRUCTIVE_N_HEADS",
+    "CONSTRUCTIVE_N_LAYERS"
+  ],
+  "resource_appendix": {
+    "kind": "local",
+    "model_id": "byte-transformer-from-scratch",
+    "gpu_model": null
+  }
+}
