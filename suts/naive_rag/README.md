@@ -96,3 +96,29 @@ pip install -e "suts/naive_rag/[sentence-transformers]"
 # With llama-cpp:
 pip install -e "suts/naive_rag/[llama-cpp]"
 ```
+
+In a shared/system Python (e.g. inside the dev container) these may require
+`--break-system-packages`. The container image below is the reproducible
+packaging path and avoids that workaround entirely.
+
+## Container image (preferred packaging)
+
+Extends the shared API base (`retention-bench/sut-python-base`, carrying the
+`anthropic` SDK). The image bakes in the **`sentence-transformers`** embedder
+(the SUT's default) and pre-fetches the `all-MiniLM-L6-v2` model so the
+container runs offline:
+
+```bash
+# Build the shared base once:
+docker build -f suts/sut-python-base.Dockerfile \
+  -t retention-bench/sut-python-base:0.1 suts/
+# Then this SUT's image:
+docker build -t retention-bench/sut-naive-rag:0.1 suts/naive_rag/
+```
+
+The originally-floated flip to a llama-cpp *default* was not baked into the
+image (it needs a native build toolchain + a GGUF model file not in the repo);
+it remains available as a one-line `NAIVE_RAG_EMBEDDER=llama-cpp` override for
+anyone who provides those. The harness launches a SUT in its image when the
+manifest declares an `image` field; that wiring (plus the smoke tests) lands in
+task **B4c**. See `docs/sut-interface.md` → "Launch modes".

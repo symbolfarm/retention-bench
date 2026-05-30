@@ -1,0 +1,5 @@
+# Build context hygiene for the base-image builds (context = suts/).
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/
+**/.gitignore

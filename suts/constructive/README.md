@@ -58,6 +58,30 @@ pip install --index-url https://download.pytorch.org/whl/cpu torch
 pip install -e .
 ```
 
+In a shared/system Python (e.g. inside the dev container) this may require
+`--break-system-packages`. The container image below is the reproducible
+packaging path and avoids that workaround entirely.
+
+## Container image (preferred packaging)
+
+Unlike the API SUTs, this one extends a **separate CPU-only torch base**
+(`retention-bench/sut-torch-cpu-base`) — torch is heavy and only this SUT
+needs it, so it is kept out of the slim shared API base:
+
+```bash
+# Build the torch-CPU base once:
+docker build -f suts/sut-torch-cpu-base.Dockerfile \
+  -t retention-bench/sut-torch-cpu-base:0.1 suts/
+# Then this SUT's image:
+docker build -t retention-bench/sut-constructive:0.1 suts/constructive/
+```
+
+The model is from-scratch and offline (no HF downloads); the checkpoint lands
+in the bind-mounted `/dir` and survives RESET. The harness launches a SUT in
+its image when the manifest declares an `image` field; that wiring (plus the
+smoke tests) lands in task **B4c**. See `docs/sut-interface.md` → "Launch
+modes".
+
 ## Run standalone (smoke check, outside the harness)
 
 ```bash

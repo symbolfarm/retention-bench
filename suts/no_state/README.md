@@ -16,6 +16,27 @@ cd suts/no_state
 pip install -e .
 ```
 
+In a shared/system Python (e.g. inside the dev container) this may require
+`--break-system-packages`. The container image below is the reproducible
+packaging path and avoids that workaround entirely.
+
+## Container image (preferred packaging)
+
+This SUT ships a Dockerfile that extends the shared API base
+(`retention-bench/sut-python-base`, which carries the `anthropic` SDK):
+
+```bash
+# Build the shared base once:
+docker build -f suts/sut-python-base.Dockerfile \
+  -t retention-bench/sut-python-base:0.1 suts/
+# Then this SUT's image:
+docker build -t retention-bench/sut-no-state:0.1 suts/no_state/
+```
+
+The harness launches a SUT in its image when the manifest declares an `image`
+field; that wiring (plus the bare-host / dev-container smoke tests) lands in
+task **B4c**. See `docs/sut-interface.md` → "Launch modes".
+
 ## Run standalone (smoke check, outside the harness)
 
 ```bash
