@@ -15,6 +15,18 @@ engine, B4b built the images; this task proves the whole thing works
 end-to-end from both entry points and lands the audit-trail half of
 decision #16 (hardware-tier metadata flowing into the run manifest).
 
+### Inherited from B4b (2026-05-30)
+
+B4b deliberately did **not** add the `image` field to the manifests.
+Reason: B4a's harness routes to `docker run` on the mere presence of
+`image` (`event_loop._make_container_spec`), with no opt-out — so adding
+`image` turns the always-on fake-anthropic integration tests red in any
+daemonless environment (`FileNotFoundError: docker`). The fix (the
+force-subprocess opt-out) lives in this task's scope, so the `image`
+additions were moved here to land atomically with it. B4b also could not
+run `docker build` (no daemon), so image-build verification is inherited
+here too. See `.tasks/debriefs/B4b.md`.
+
 ## Goal
 
 `./run.sh smoke` works end-to-end both from a bare host (Docker only,
@@ -25,10 +37,24 @@ bare-host path.
 
 ## Acceptance criteria
 
+- [ ] **Add the `image` field to all four `sut-manifest.json` files**
+      (`no_state`, `notes_llm`, `naive_rag`, `constructive`), pointing at
+      the tags B4b's Dockerfiles produce (`retention-bench/sut-*:0.1`).
+      *Moved here from B4b* — see "Inherited from B4b" below; in B4b it
+      would have reddened the suite.
+- [ ] **Harness force-subprocess opt-out.** Adding `image` routes the
+      always-on fake-anthropic integration tests onto the docker path,
+      which fails with no daemon. Add a mechanism so those tests keep
+      running on the subprocess path (e.g. a `RETENTION_BENCH_FORCE_SUBPROCESS`
+      env var honoured in `event_loop._make_container_spec`, or point the
+      existing tests at a no-`image` launch). Required for "all existing
+      tests still pass" once `image` is declared.
 - [ ] **Bare-host smoke test:** `./run.sh smoke` works on a host with
       only Docker installed — no Python venv on the host, no dev
       container. Verified end-to-end at least once and documented in
       `docs/QUICKSTART.md`.
+- [ ] **Verify the B4b images actually build** (`docker build` for both
+      bases + all four SUT images) — B4b could not, lacking a daemon.
 - [ ] **Dev-container smoke test:** `./run.sh smoke` works from inside
       this dev container with DooD (host docker.sock mounted). No
       regression vs. today's run. `HOST_WORKSPACE` translation (defined
