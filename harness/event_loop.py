@@ -120,6 +120,42 @@ def _next_event_id(idx: int) -> str:
     return f"evt-{idx + 1:04d}"
 
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _make_container_spec(
+    config: RunConfig,
+    run_id: str,
+    dir_path: Path,
+    invocation_index: int,
+) -> Optional[sut_process.ContainerSpec]:
+    """Build a ContainerSpec from the SUT manifest, or None for the subprocess
+    path. A manifest with an `image` field launches via docker; without one we
+    fall back to today's bare-subprocess launch (used by stubs and tests).
+
+    The container name is unique per invocation (run_id + invocation index) so
+    a RESET's fresh container never collides with the one being torn down. The
+    test-shim mount is opt-in via $RETENTION_BENCH_SHIM_DIR — the container
+    analogue of the PYTHONPATH-shim trick the subprocess tests use.
+    """
+    manifest = config.sut_manifest
+    if not manifest or not manifest.get("image"):
+        return None
+    shim_dir = os.environ.get("RETENTION_BENCH_SHIM_DIR")
+    shim_host = (
+        sut_process.host_path_for_mount(Path(shim_dir), _REPO_ROOT)
+        if shim_dir
+        else None
+    )
+    return sut_process.ContainerSpec(
+        image=str(manifest["image"]),
+        container_name=f"retbench-{run_id}-{invocation_index:02d}",
+        dir_host_path=sut_process.host_path_for_mount(dir_path, _REPO_ROOT),
+        env_names=[str(e) for e in (manifest.get("env") or [])],
+        shim_host_path=shim_host,
+    )
+
+
 def run(config: RunConfig) -> Path:
     """Execute the task definition end-to-end. Returns the run directory path."""
     task = config.task
@@ -140,6 +176,9 @@ def run(config: RunConfig) -> Path:
         invocation_index=state.sut_invocation_count,
         stderr_log=stderr_log,
         extra_pythonpath=config.sut_pythonpath,
+        container=_make_container_spec(
+            config, run_id, dir_path, state.sut_invocation_count
+        ),
     )
     state.sut_invocation_count += 1
 
@@ -163,7 +202,8 @@ def run(config: RunConfig) -> Path:
                     _run_quiz(tw, handle, event_id, state, ev, task, config)
                 elif ev.type == "reset":
                     handle = _run_reset(
-                        tw, handle, event_id, state, dir_path, dirs, config, stderr_log
+                        tw, handle, event_id, state, dir_path, dirs, config,
+                        stderr_log, run_id,
                     )
                 state.event_index += 1
 
@@ -349,6 +389,7 @@ def _run_reset(
     dirs: trace_writer.RunDirs,
     config: RunConfig,
     stderr_log: Path,
+    run_id: str,
 ) -> sut_process.SUTHandle:
     t0_iso, t0 = _iso_now(), time.perf_counter()
     sig_name, exit_code = sut_process.kill_sut(handle)
@@ -360,6 +401,9 @@ def _run_reset(
         invocation_index=state.sut_invocation_count,
         stderr_log=stderr_log,
         extra_pythonpath=config.sut_pythonpath,
+        container=_make_container_spec(
+            config, run_id, dir_path, state.sut_invocation_count
+        ),
     )
     state.sut_invocation_count += 1
     state.reset_count += 1

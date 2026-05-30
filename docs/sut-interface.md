@@ -20,7 +20,21 @@ The harness launches the SUT once per session (a "session" runs from process spa
 - Receives no positional command-line arguments by default. SUTs that need configuration knobs read them from `sut-manifest.json` or env vars.
 - Connects to the harness via stdin / stdout / stderr (see "I/O channel" below).
 
-The SUT command is read from the manifest's `entrypoint` field as a Docker exec-form argv array (e.g., `["python", "-m", "no_state"]`). The harness invokes it via `subprocess.Popen(entrypoint, cwd=DIR, …)`. SUT developers point the harness at the SUT package directory (`--sut <dir>`); the harness reads `<dir>/sut-manifest.json` and launches what it declares.
+The SUT command is read from the manifest's `entrypoint` field as a Docker exec-form argv array (e.g., `["python", "-m", "no_state"]`). SUT developers point the harness at the SUT package directory (`--sut <dir>`); the harness reads `<dir>/sut-manifest.json` and launches what it declares.
+
+### Launch modes (B4a)
+
+The harness chooses how to launch based on whether the manifest declares an `image`:
+
+- **Subprocess** (no `image`): the harness invokes `subprocess.Popen(entrypoint, cwd=DIR, …)`, inheriting the harness's full environment. This is the path used by the built-in stubs and by tests; it is unchanged from M3/M4.
+- **Container** (`image` present): the harness launches the SUT via `docker run -i --rm --name <unique> -v <DIR>:/dir -w /dir <image> <entrypoint…>`. The wire contract is identical — JSONL over the container's stdin/stdout. Differences from the subprocess path:
+  - **Environment is not inherited.** Only the env vars named in the manifest's `env` array are forwarded, by name (`docker run -e NAME`), so their values cross into the container without ever appearing in harness logs or process argv. A containerised SUT that needs a var it didn't declare will not see it.
+  - **`DIR` is bind-mounted** at the fixed container path `/dir`, which is also the working directory; `RETENTION_BENCH_DIR=/dir` is set so SUTs that read the env var rather than `cwd` resolve it too. The SUT package itself is expected to be installed in the image (no PYTHONPATH injection — that subprocess-only mechanism does not apply).
+  - **`RESET` tears the container down by name** (`docker rm -f`) before spawning a fresh one. Killing only the `docker run` client process does not reliably stop the container, so the harness removes it explicitly; this preserves the subprocess path's "RESET = hard kill + fresh spawn" semantics.
+
+**DooD path translation.** When the harness itself runs inside a dev container that mounts the host's `docker.sock` (Docker-outside-of-Docker), the docker *daemon* runs on the host and resolves bind-mount paths against the **host** filesystem. Set `HOST_WORKSPACE` to the host path of the repo root; the harness then rewrites the dev-container `DIR` path (which must live under the repo root) to its host equivalent before passing it to `-v`. On a bare host (harness and daemon share a filesystem) leave `HOST_WORKSPACE` unset and no translation happens. The Dockerfiles these images are built from, and the bare-host vs. dev-container smoke validation, are **B4b/B4c**.
+
+> **Note (B9 forward-compat):** the harness never hardcodes provider env-var names; it forwards exactly what each manifest's `env` array declares. Switching a SUT's LLM backend is therefore a manifest edit, not a harness change.
 
 ## I/O channel
 
@@ -159,8 +173,9 @@ Schema:
 | `mode` | enum | yes | `agentic` \| `in-context` (decision #7). Determines which leaderboard the run lands on. |
 | `hardware_tier` | enum | yes | `consumer` \| `1xH100` \| `8xH100` \| `API` \| `open` (decision #16). |
 | `strict_verbatim` | bool | yes | Self-report per decision #4. `true` means the SUT does not persist verbatim `READ` spans into `DIR`. |
-| `entrypoint` | array[string] | yes | argv the harness uses to launch the SUT. Run in `DIR`. |
-| `env` | array[string] | no | Env vars the SUT requires (names only — values come from the harness's environment). |
+| `entrypoint` | array[string] | yes | argv the harness uses to launch the SUT. In subprocess mode, run in `DIR`; in container mode (see `image`), the in-container argv run with workdir `/dir`. |
+| `image` | string | no | Docker image to launch the SUT in (B4a). When present, the harness launches via `docker run` instead of a bare subprocess (see "Launch modes"). When absent, the subprocess path is used. The image itself is built by **B4b**. |
+| `env` | array[string] | no | Env vars the SUT requires (names only — values come from the harness's environment). In container mode these are the **only** vars forwarded into the container (`docker run -e NAME`); in subprocess mode the full environment is inherited and this list is advisory. |
 | `resource_appendix` | object | no | Self-reported resource profile. `kind: "api"` → `model_id` etc.; `kind: "local"` → `gpu_model`, etc. Per decision #15. Per-event token counts may also be emitted in response lines and aggregated by the harness. |
 
 Missing optional fields are logged but do not fail the run. Missing required fields fail at run start.
