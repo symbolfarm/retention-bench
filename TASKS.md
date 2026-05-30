@@ -8,6 +8,18 @@
 
 ## Current focus
 
+**⛔ Next session, start here: B4c is blocked on a Docker-capable environment.**
+B4a (launch engine) and B4b (Dockerfiles) landed 2026-05-30, but **B4c cannot
+proceed in this dev container** — no host `docker.sock`, unprivileged, and a
+seccomp filter blocks user namespaces so even rootless Docker won't run. Before
+resuming B4, **rebuild the dev container for DooD** (bind-mount host
+`/var/run/docker.sock`, install `docker-ce-cli`, grant `agent` socket access,
+set `HOST_WORKSPACE`). Full spec in the B4c backlog entry below + the
+`AgentDesk dev env` memory. Until then there is **no unblocked task** in the
+queue. *(Earlier MVP focus, below, is complete as of M7 — kept for context.)*
+
+---
+
 **Operational MVP for the book-track.** Goal: a runnable end-to-end smoke test
 where the harness drives a no-state reference SUT through a toy book-track task,
 produces a trace, scores it, and renders a retention curve. No cohort-1 assets,
@@ -16,6 +28,7 @@ exercises the full pipeline.
 
 Definition of done for MVP: `./run.sh smoke-test` produces a JSONL trace and a
 printed `P`/`C`/`R(k)` retention curve, end-to-end, on the no-state SUT.
+**Status: ✓ met at M7 (2026-05-20).**
 
 **Stack (decided 2026-05-20):** Python for harness + reference SUTs. Anthropic
 SDK for the no-state SUT's LLM calls. Rust port of the harness is a possible
@@ -55,9 +68,9 @@ individual `.tasks/M*.md` task files after a debrief pass.
 - B2 — naive-RAG reference SUT (decision #11). ✓ **Done** (2026-05-26; pluggable embedder seam, interim `sentence-transformers` default, llama-cpp wired).
 - B3 — LLM-as-judge scorer (decision #6). ✓ **Done** (2026-05-26; **hand-rolled** judge behind a `Scorer` seam — *not* a library; see decisions-checklist #6).
 - B4 — Docker container packaging + tier-declaration scaffolding (decision #16). **Split** (2026-05-30) into B4a/B4b/B4c — oversized for one session. See `.tasks/debriefs/B4.md`.
-  - B4a — harness docker-run launch engine + manifest `image`/`env_passthrough` contract. **Unblocked**, next up.
-  - B4b — four SUT Dockerfiles (shared slim base for API trio; separate torch-CPU base for constructive) + workaround deprecation. Blocked by B4a.
-  - B4c — bare-host + dev-container smoke paths, QUICKSTART, tier-metadata audit flow, container-path integration coverage. Blocked by B4a + B4b.
+  - B4a — harness docker-run launch engine + manifest `image`/`env` contract. ✓ **Done** (2026-05-30; commit `16bf61b`).
+  - B4b — four SUT Dockerfiles (shared slim API base + separate torch-CPU base for constructive) + README packaging notes. ✓ **Done** (2026-05-30; commit `51f6625`). Caveat: images are **build-UNVERIFIED** — no Docker daemon in this dev container.
+  - **B4c — ⛔ BLOCKED ON ENVIRONMENT. Read this before next session.** Needs a **Docker-capable environment**, which this dev container is not: no host `docker.sock`, unprivileged (`CapEff: 0`), and a seccomp filter blocks `unshare(CLONE_NEWUSER)` so even *rootless* Docker can't run (diagnosed 2026-05-30). **Action before resuming B4c:** rebuild the dev container for DooD — bind-mount host `/var/run/docker.sock`, install `docker-ce-cli` (client only), give the `agent` user socket access, and set `HOST_WORKSPACE=<host path of /workspace>`. Full spec + rationale in the `AgentDesk dev env` memory and `.tasks/debriefs/B4b.md`. Scope: real `docker build` verification of all six images, add `image` field to the four manifests + a harness force-subprocess opt-out (so the always-on tests stay green), bare-host + dev-container smoke paths, QUICKSTART, tier-metadata audit flow. See refined brief `.tasks/B4c-smoke-and-tier-audit.md`.
 - B5 — Mock tool-call transcript authorship strategy + first in-context-leaderboard variant (decision #7 deferred sub-decision).
 - B6 — `docs/interface.md` rewrite to match Turn 3 five-thing contract + two-leaderboard resolution.
 - B7 — `docs/metrics.md` write-in: resolved `C` definition (text-in-context + accumulated `QUIZ` history) + storage-delta-= 0 rule for in-place training + FLOPs reporting fields.
