@@ -54,7 +54,10 @@ individual `.tasks/M*.md` task files after a debrief pass.
 - B1 — notes-LLM reference SUT (decision #11). ✓ **Done** (2026-05-25).
 - B2 — naive-RAG reference SUT (decision #11). ✓ **Done** (2026-05-26; pluggable embedder seam, interim `sentence-transformers` default, llama-cpp wired).
 - B3 — LLM-as-judge scorer (decision #6). ✓ **Done** (2026-05-26; **hand-rolled** judge behind a `Scorer` seam — *not* a library; see decisions-checklist #6).
-- B4 — Docker container packaging + tier-declaration scaffolding (decision #16). **Unblocked** (B2 landed); now spans 3 SUTs incl. naive-RAG. Also the point to flip naive-RAG's default embedder to llama-cpp.
+- B4 — Docker container packaging + tier-declaration scaffolding (decision #16). **Split** (2026-05-30) into B4a/B4b/B4c — oversized for one session. See `.tasks/debriefs/B4.md`.
+  - B4a — harness docker-run launch engine + manifest `image`/`env_passthrough` contract. **Unblocked**, next up.
+  - B4b — four SUT Dockerfiles (shared slim base for API trio; separate torch-CPU base for constructive) + workaround deprecation. Blocked by B4a.
+  - B4c — bare-host + dev-container smoke paths, QUICKSTART, tier-metadata audit flow, container-path integration coverage. Blocked by B4a + B4b.
 - B5 — Mock tool-call transcript authorship strategy + first in-context-leaderboard variant (decision #7 deferred sub-decision).
 - B6 — `docs/interface.md` rewrite to match Turn 3 five-thing contract + two-leaderboard resolution.
 - B7 — `docs/metrics.md` write-in: resolved `C` definition (text-in-context + accumulated `QUIZ` history) + storage-delta-= 0 rule for in-place training + FLOPs reporting fields.
