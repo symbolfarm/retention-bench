@@ -18,8 +18,7 @@ nested-daemon reality before resuming. B4c is the meatier task and needs Toby
 input on the re-scope.
 
 **Unblocked tasks available now:** B16 (boundary token proxy), B14 (open-model
-judge quality validation), B15 (benchmark-validity watch-items). Unfiled doc
-ideas: B5/B6/B7. *(Earlier MVP focus, below, is complete as of M7 — kept for
+judge quality validation). Unfiled doc ideas: B5/B6/B7. *(Earlier MVP focus, below, is complete as of M7 — kept for
 context.)*
 
 ---
@@ -85,7 +84,7 @@ individual `.tasks/M*.md` task files after a debrief pass.
 - B12 — Smoke-task gold-answer quality pass: q4 gold "a heartbeat" is too terse, so substance-correct answers fail exact-match and (being `surface_factual`) aren't rescued by the judge. Asset fix, not a scorer fix. ✓ **Done** (2026-05-27; commit `a868ecc`). Surfaced 2026-05-26 during B3 wrap-up.
 - B13 — Constructive (train-and-grow) reference SUT (decision #11; the constructive-transformers tier). ✓ **Done** (2026-05-27; commit `85fedb6`). Torch-CPU SUT that grows capacity across `READ`/`RESET` and reports `kind:"local"` resource accounting.
 - B14 — Open-model judge quality validation. The pinned judge (`moonshotai/kimi-k2.6`, set in B9) drives every retention score but its agreement with a stronger reference judge / human labels is unvalidated. Measure agreement (accuracy / κ) on the judge-eligible types, document in `docs/metrics.md`, recommend a pinned judge. Surfaced 2026-06-03 during B9 wrap-up.
-- B15 — Benchmark validity watch-items (prior-saturation + question-type separation). (1) The `C≈P` exclusion makes effective `n` model-dependent — as base models improve, priors saturate and questions fall out (B9 smoke: 4/5 excluded), making renewable *novel* synth material load-bearing for validity, not just variety (informs B5/B8). (2) Report retention curves broken down by `question_type` so notes_llm's `surface_factual`-vs-`multi_hop` separation is legible — the stenography-vs-understanding-transfer signal. Surfaced 2026-06-03 in discussion.
+- B15 — Benchmark validity watch-items (prior-saturation + question-type separation). ✓ **Done** (2026-06-03; commit `46d6872`). Per-`question_type` retention curve breakdown in `scorer/aggregate.py` (`aggregate_curve_by_type`) + render block, and the prior-saturation/material-novelty validity narrative + interpretation rule in `docs/metrics.md`. (1) The `C≈P` exclusion makes effective `n` model-dependent — as base models improve, priors saturate and questions fall out (B9 smoke: 4/5 excluded), making renewable *novel* synth material load-bearing for validity, not just variety (informs B5/B8). (2) Report retention curves broken down by `question_type` so notes_llm's `surface_factual`-vs-`multi_hop` separation is legible — the stenography-vs-understanding-transfer signal. Surfaced 2026-06-03 in discussion.
 - B16 — Boundary token-counting proxy. Today the harness trusts SUT self-reported token usage; for a public-credibility artifact that's a reviewer's first attack. B9's `RETENTION_BENCH_BASE_URL` seam lets the harness interpose a forwarding proxy that tallies `usage` at the wire and reconciles against self-report (keeps the upstream key harness-side too). Surfaced 2026-06-03 during B9 wrap-up. *(NB: distinct from the completed `B13` constructive-SUT task — numbered B16 to avoid the ID clash.)*
 
 ## Structure
