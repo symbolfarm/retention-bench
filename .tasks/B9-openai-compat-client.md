@@ -67,6 +67,19 @@ real OpenRouter call.
     that a future boundary-counting proxy — see Out of scope — will use).
   - Per-role model vars stay as-is in name (`NO_STATE_MODEL`, `NOTES_LLM_MODEL`,
     `NAIVE_RAG_MODEL`, `RETENTION_BENCH_JUDGE_MODEL`), only their defaults change.
+- **`.env` loading (caught on re-read).** SUTs/judge read `os.environ`; a `.env`
+  in the workspace root is **not** auto-sourced. The harness forwards its own env
+  to SUT subprocesses, so the *harness process* must have `OPENROUTER_API_KEY` set
+  before launch. Make `run.sh` source `.env` if present (`set -a; . ./.env; set +a`)
+  so the live path works without the operator exporting by hand. Do **not** add
+  `python-dotenv` as a dependency — keep loading in the shell entrypoint, not baked
+  into every SUT image.
+- **Keep `max_tokens` (caught on re-read).** OpenRouter accepts the `max_tokens`
+  kwarg; no need to migrate to `max_completion_tokens`. Leave the existing
+  `max_tokens=MAX_TOKENS` calls as-is apart from the method rename.
+- **OpenRouter attribution headers are optional (caught on re-read).** `HTTP-Referer`
+  / `X-Title` (via the `openai` SDK's `default_headers`) only affect OpenRouter's
+  public rankings; not needed for function. Skip unless desired.
 - **Judge model stays pinned, not varied.** Treat `RETENTION_BENCH_JUDGE_MODEL`
   as a recorded measurement parameter. Whether an open model judges *as well as*
   Claude is a separate validation, not assumed here.
@@ -102,6 +115,7 @@ Per call, the SDK surfaces differ — these are the gotchas:
 - [ ] `suts/*/sut-manifest.json` `env` lists updated (`ANTHROPIC_API_KEY` → `OPENROUTER_API_KEY`, add base_url override if declared) and `resource_appendix.model_id` defaults reflect the new models.
 - [ ] B4b SUT `Dockerfile`s install `openai` instead of `anthropic` (the shared slim API base + any per-SUT layer). *Full image rebuild stays Docker-blocked under B4c — update the Dockerfile source, note it build-UNVERIFIED.*
 - [ ] Tests pass (`pytest -q`). Any test stub/fixture referencing `anthropic` updated (e.g. `harness/stubs`).
+- [ ] `run.sh` sources `./.env` if present (`set -a; . ./.env; set +a`) so `OPENROUTER_API_KEY` reaches the harness and is forwarded to SUT subprocesses. No `python-dotenv` dependency.
 - [ ] **Live verification:** at least one text SUT driven end-to-end against a real OpenRouter call (using the `.env` key) producing a non-empty trace. Record which SUT + model in the debrief.
 - [ ] README packaging/run notes updated where they reference `ANTHROPIC_API_KEY` / Anthropic models.
 
