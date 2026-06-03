@@ -41,6 +41,10 @@ class QuestionAggregate:
     """Per-question rollup of ``P``, ``C``, and ``R(k)`` instances."""
 
     question_id: str
+    # The record's ``question_type`` (e.g. ``surface_factual`` / ``multi_hop``),
+    # captured so the curve can be reported split by type (B15). Constant per
+    # question; first-seen wins.
+    question_type: Optional[str] = None
     prior: Optional[float] = None
     ceiling: Optional[float] = None
     # k -> score. If a (question, k) appears more than once (multiple seeds /
@@ -118,7 +122,10 @@ def aggregate_records(
         qid = s.get("question_id")
         if qid is None:
             continue
-        agg = per_question.setdefault(qid, QuestionAggregate(question_id=qid))
+        agg = per_question.get(qid)
+        if agg is None:
+            agg = QuestionAggregate(question_id=qid, question_type=question_type)
+            per_question[qid] = agg
         probe = s.get("probe_type")
 
         if probe == "prior":
@@ -169,3 +176,29 @@ def aggregate_curve(
         if values:
             out[k] = (sum(values) / len(values), len(values))
     return out
+
+
+def aggregate_curve_by_type(
+    per_question: Dict[str, QuestionAggregate],
+    epsilon: float = EPSILON,
+) -> Dict[str, Dict[int, Tuple[float, int]]]:
+    """Per-``question_type`` retention curves (B15).
+
+    Same per-``k`` normalisation and ``C ≈ P`` exclusion as
+    :func:`aggregate_curve`, but computed within each ``question_type`` group
+    so the ``surface_factual``-vs-``multi_hop`` separation is legible. A
+    flat-high curve across types is a stenography smell; a strong
+    ``surface_factual`` curve with a collapsing ``multi_hop`` curve is the
+    understanding-transfer signal (see ``docs/metrics.md``).
+
+    Returns ``{question_type: {k: (mean_normalised_retention, n_usable)}}``.
+    Questions whose ``question_type`` is missing are bucketed under
+    ``"unknown"``.
+    """
+    by_type: Dict[str, Dict[str, QuestionAggregate]] = {}
+    for qid, agg in per_question.items():
+        qtype = agg.question_type or "unknown"
+        by_type.setdefault(qtype, {})[qid] = agg
+    return {
+        qtype: aggregate_curve(group, epsilon) for qtype, group in by_type.items()
+    }

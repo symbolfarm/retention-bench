@@ -40,6 +40,38 @@ For a given SUT and task, the curve plots aggregated normalised retention vs. `k
 
 `k_max` is task-dependent and bounded by the run's event sequence. A task with `S` `RESET` events admits `k ∈ {1, ..., S}` for material delivered before the first `RESET`.
 
+### Per-`question_type` breakdown (stenography vs. understanding)
+
+The pooled curve is also reported **broken down by `question_type`**, not just
+aggregated across all questions. This is not cosmetic — it is the load-bearing
+signal that distinguishes *understanding-transfer* from *stenography*.
+
+Consider `notes_llm`, which retains by writing cumulative notes to `DIR` —
+externalised episodic memory, done competently. If it posts a strong *pooled*
+retention curve, that may mean nothing more than "facts survived in the notes."
+The discriminating question is whether the curve **separates by type**:
+
+- **`surface_factual`** — answers a competent note-taker can carry verbatim.
+  High retention here is expected and says little about comprehension.
+- **`multi_hop`** (and `entity_tracking`) — require synthesis the notes do not
+  literally contain. Retention here is the signal that *understanding*, not just
+  text, survived the reset.
+
+**Interpretation rule:**
+
+- **Separation** — strong `surface_factual`, collapsing `multi_hop` — is the
+  understanding-transfer signal the benchmark exists to measure. A system that
+  only stenographs will show exactly this gap.
+- **Flat-high across all types** is a *warning*, not a triumph: it suggests the
+  benchmark (or this asset's questions) is rewarding stenography, or that the
+  `multi_hop` questions aren't actually requiring synthesis. Inspect the asset
+  before celebrating the curve.
+
+The scorer emits the per-type curve in `render_curve` (a `by question_type:`
+block after the pooled aggregate), computed by
+`scorer.aggregate.aggregate_curve_by_type`. The `C ≈ P` exclusion is applied
+*within* each type group, so a type's `n_usable` can differ from the pooled `n`.
+
 ## Baselines reported alongside the curve
 
 The curve is *normalised*, but the un-normalised probes are reported separately to make the SUT legible:
@@ -97,7 +129,9 @@ These reveal whether a memory system has genuine indexing or is scanning.
 
 A CL-N result for one SUT on one task should include:
 
-1. **The retention curve** (normalised retention vs. `k`), with error bars.
+1. **The retention curve** (normalised retention vs. `k`), with error bars —
+   pooled **and broken down by `question_type`** (see "Per-`question_type`
+   breakdown"), so the stenography-vs-understanding separation is legible.
 2. **Summary statistics** (mean `P`, mean `C`, mean `C − P`, AURC, half-retention `k`).
 3. **Resource curves** (tokens vs. `k`, filesystem size vs. event index, cold-start cost vs. `k`).
 4. **Mode declaration** (pure LLM / notes / full harness, plus any relevant configuration).
@@ -192,6 +226,37 @@ via `--scorer judge`.
 **Note:** this section partially addresses backlog B7 (metrics documentation
 of scorer integration shape).  B7 is not fully closed — it also covers
 multi-question-type weighting and the full reporting format update.
+
+## Benchmark validity: prior saturation and material novelty (B15)
+
+The `C ≈ P` exclusion (drop a question when the learnable gap `C − P < ε`) is
+the right call — a benchmark that returns *null* on a question with no learnable
+signal is trustworthy, not broken. But it has a consequence that must be
+tracked: it makes the benchmark's **effective `n` model-dependent**.
+
+A question is excluded precisely when the SUT's base model *already knows the
+answer cold* (`P ≈ C`). As base models improve, more world-knowledge questions
+saturate their priors and fall out the bottom of the aggregate. This is not
+hypothetical: the B9 smoke run excluded 4 of 5 questions (`n_usable = 1`)
+because a capable base model already answered them at prior.
+
+The implication reframes the synthetic-data track:
+
+- **Material novelty is a validity requirement, not a variety nice-to-have.** A
+  renewable supply of material the model *provably has not seen* is what keeps
+  `C − P` open and the benchmark able to measure anything at all. As models
+  improve, only genuinely novel material keeps priors low enough to leave a
+  learnable gap. This raises the priority of the synth-gen work in
+  [[tasks]] (cohort dispatch / B8) and the mock-transcript / in-context-leaderboard
+  work (B5) from "variety" to "load-bearing for validity."
+- **Target: keep mean `P` low** (well below `C`) on the questions that drive the
+  curve. Report mean `P` prominently (see "Baselines reported alongside the
+  curve") and treat a rising mean `P` across cohorts as a signal that the asset
+  pool is aging out, not as SUT improvement.
+
+This does **not** motivate removing the exclusion — the exclusion stays. It
+motivates feeding the benchmark novel material fast enough that prior saturation
+never starves the aggregate.
 
 ## What is deliberately not measured in v1
 

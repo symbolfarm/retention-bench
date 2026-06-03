@@ -5,12 +5,20 @@ from __future__ import annotations
 from scorer.aggregate import (
     EPSILON,
     aggregate_curve,
+    aggregate_curve_by_type,
     aggregate_records,
     normalised_retention,
 )
 
 
-def _rec(qid: str, probe: str, sut: str, gold: str, k: int | None = None) -> dict:
+def _rec(
+    qid: str,
+    probe: str,
+    sut: str,
+    gold: str,
+    k: int | None = None,
+    qtype: str = "surface_factual",
+) -> dict:
     return {
         "record_id": f"evt-{qid}-{probe}",
         "event_id": f"evt-{probe}",
@@ -20,7 +28,7 @@ def _rec(qid: str, probe: str, sut: str, gold: str, k: int | None = None) -> dic
         "question_text": "?",
         "gold_answer": gold,
         "sut_answer": sut,
-        "question_type": "surface_factual",
+        "question_type": qtype,
         "material_ref": "m1",
         "question_seen_before": 0,
         "parsing_status": "ok",
@@ -132,6 +140,52 @@ def test_missing_p_or_c_is_excluded() -> None:
     _, per_q = aggregate_records(records)
     assert per_q["q1"].is_excluded() is True
     assert aggregate_curve(per_q) == {}
+
+
+def test_question_type_captured_on_aggregate() -> None:
+    records = [
+        _rec("q1", "prior", "wrong", "right", qtype="multi_hop"),
+        _rec("q1", "ceiling", "right", "right", qtype="multi_hop"),
+    ]
+    _, per_q = aggregate_records(records)
+    assert per_q["q1"].question_type == "multi_hop"
+
+
+def test_curve_by_type_separates_question_types() -> None:
+    # surface_factual question retains (norm 1.0); multi_hop collapses (norm 0.0).
+    # The pooled curve averages to 0.5, but the per-type breakdown must keep
+    # them legible — this is the stenography-vs-understanding signal (B15).
+    records = [
+        _rec("sf1", "prior", "wrong", "right", qtype="surface_factual"),
+        _rec("sf1", "ceiling", "right", "right", qtype="surface_factual"),
+        _rec("sf1", "retention", "right", "right", k=1, qtype="surface_factual"),
+        _rec("mh1", "prior", "wrong", "right", qtype="multi_hop"),
+        _rec("mh1", "ceiling", "right", "right", qtype="multi_hop"),
+        _rec("mh1", "retention", "wrong", "right", k=1, qtype="multi_hop"),
+    ]
+    _, per_q = aggregate_records(records)
+
+    # Pooled curve hides the separation.
+    assert aggregate_curve(per_q)[1] == (0.5, 2)
+
+    # Per-type curve exposes it.
+    by_type = aggregate_curve_by_type(per_q)
+    assert by_type["surface_factual"][1] == (1.0, 1)
+    assert by_type["multi_hop"][1] == (0.0, 1)
+
+
+def test_curve_by_type_excludes_within_group() -> None:
+    # A multi_hop question with no learnable signal (C≈P) is excluded from its
+    # own group's curve, just as in the pooled aggregate.
+    records = [
+        _rec("mh1", "prior", "right", "right", qtype="multi_hop"),  # excluded
+        _rec("mh1", "ceiling", "right", "right", qtype="multi_hop"),
+        _rec("mh1", "retention", "right", "right", k=1, qtype="multi_hop"),
+    ]
+    _, per_q = aggregate_records(records)
+    by_type = aggregate_curve_by_type(per_q)
+    # Group exists but has no usable questions → empty curve for that type.
+    assert by_type["multi_hop"] == {}
 
 
 def test_epsilon_constant() -> None:

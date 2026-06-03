@@ -64,6 +64,9 @@ def test_cli_smoke(tmp_path: Path) -> None:
     assert "q1" in out and "q2" in out
     assert "excluded" in out  # q2 is C≈P
     assert "aggregate (k=1, n_usable=1): 1.00" in out
+    # Per-question_type breakdown (B15): both records are surface_factual.
+    assert "by question_type:" in out
+    assert "surface_factual (k=1, n_usable=1): 1.00" in out
 
 
 def test_cli_deterministic(tmp_path: Path) -> None:

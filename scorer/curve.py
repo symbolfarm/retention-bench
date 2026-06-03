@@ -12,6 +12,7 @@ from scorer.aggregate import (
     EPSILON,
     QuestionAggregate,
     aggregate_curve,
+    aggregate_curve_by_type,
     normalised_retention,
 )
 
@@ -69,6 +70,24 @@ def render_curve(
         for k in sorted(curve.keys()):
             mean, n = curve[k]
             lines.append(f"aggregate (k={k}, n_usable={n}): {mean:.2f}")
+
+    # Per-question_type breakdown (B15). Makes the surface_factual-vs-multi_hop
+    # separation legible: a flat-high curve across types is a stenography smell;
+    # strong surface_factual with collapsing multi_hop is the
+    # understanding-transfer signal. See docs/metrics.md for the interpretation
+    # rule.
+    by_type = aggregate_curve_by_type(per_question, epsilon)
+    if by_type:
+        lines.append("")
+        lines.append("by question_type:")
+        for qtype in sorted(by_type.keys()):
+            type_curve = by_type[qtype]
+            if not type_curve:
+                lines.append(f"  {qtype}: (no usable questions — all excluded)")
+                continue
+            for k in sorted(type_curve.keys()):
+                mean, n = type_curve[k]
+                lines.append(f"  {qtype} (k={k}, n_usable={n}): {mean:.2f}")
 
     return "\n".join(lines) + "\n"
 
