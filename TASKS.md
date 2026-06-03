@@ -8,14 +8,19 @@
 
 ## Current focus
 
-**Docker now works in the dev container** (verified 2026-06-03) — a *real
-nested daemon* via the Sysbox runtime (`--runtime=sysbox-runc`), **not** the
-DooD socket-mount the B4c brief still describes. So B4c is **environment-
-unblocked**, but its brief's "Action before resuming" steps (bind-mount
-`docker.sock`, install `docker-ce-cli`, set `HOST_WORKSPACE`) are now obsolete
-and the `image`-field / force-subprocess scope should be re-read against a
-nested-daemon reality before resuming. B4c is the meatier task and needs Toby
-input on the re-scope.
+**Docker now works in the ml dev container** (verified 2026-06-03) — a *real
+nested `dockerd`* (rootful DinD in the privileged ml container; `dockerd`/
+`containerd` run in-container, `agent` is in the `docker` group). This is the
+**plain docker runtime**, *not* Sysbox — the ml container kept the plain runtime
+because Sysbox blocks GPU access, which retention-bench needs (PyTorch). (Sysbox
+is the *agent* variant's setup — see [[project_incontainer_docker_sysbox]] — not
+this one.) So B4c is **environment-unblocked**, but its brief assumes a
+different topology (DooD + `HOST_WORKSPACE` translation): with a *nested* daemon,
+a `docker run -v /workspace:/…` bind-mounts the in-container path directly, so
+`HOST_WORKSPACE` translation is likely a **no-op** here. B4c needs a re-scope
+pass against the nested-DinD reality (also: its brief still says
+`tests/test_*_fake_anthropic.py`, renamed to `fake_openai` in B9). The meatier
+task; needs Toby input.
 
 **Unblocked tasks available now:** B16 (boundary token proxy), B14 (open-model
 judge quality validation). Unfiled doc ideas: B5/B6/B7. *(Earlier MVP focus, below, is complete as of M7 — kept for

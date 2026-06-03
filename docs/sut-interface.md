@@ -16,7 +16,7 @@ This spec realises decisions #2 (tagged-section `STAGE_INPUT`), #4 (strict-verba
 The harness launches the SUT once per session (a "session" runs from process spawn to `RESET` or end-of-run). The SUT process is:
 
 - Spawned with its **current working directory set to `DIR`** (the per-run persistent directory).
-- Inherits the harness's environment, plus any env vars the SUT declares it needs (e.g., `ANTHROPIC_API_KEY`).
+- Inherits the harness's environment, plus any env vars the SUT declares it needs (e.g., `OPENROUTER_API_KEY`).
 - Receives no positional command-line arguments by default. SUTs that need configuration knobs read them from `sut-manifest.json` or env vars.
 - Connects to the harness via stdin / stdout / stderr (see "I/O channel" below).
 
@@ -158,10 +158,10 @@ Schema:
   "hardware_tier": "API",
   "strict_verbatim": true,
   "entrypoint": ["python", "-m", "no_state"],
-  "env": ["ANTHROPIC_API_KEY"],
+  "env": ["OPENROUTER_API_KEY", "NO_STATE_MODEL", "RETENTION_BENCH_BASE_URL"],
   "resource_appendix": {
     "kind": "api",
-    "model_id": "claude-haiku-4-5-20251001"
+    "model_id": "deepseek/deepseek-v4-flash"
   }
 }
 ```
@@ -198,7 +198,7 @@ The SUT may internally have prompted its underlying model for `<ANSWER>`-tagged 
 
 ## Reference implementations
 
-- **`suts/no_state/`** — minimum-viable in-context SUT. Calls Anthropic API with the question text only, ignores `DIR`. Reference for the contract; floor row on the leaderboard.
+- **`suts/no_state/`** — minimum-viable in-context SUT. Calls an OpenAI-compatible API (via the `openai` SDK pointed at `RETENTION_BENCH_BASE_URL`) with the question text only, ignores `DIR`. Reference for the contract; floor row on the leaderboard.
 - **`suts/notes_llm/`** (B1) — cumulative-notes SUT; persists running notes to `DIR` and survives `RESET` via them.
 - **`suts/naive_rag/`** (B2) — naive dense-retrieval RAG SUT; embeds chunks into a `DIR/index.jsonl` index and retrieves at QUIZ time.
 - **`suts/constructive/`** (B13) — train-and-grow SUT. The only reference that learns by **mutating its own weights** as it reads: each READ takes a bounded next-token gradient step on the READ text and (deterministically, once) grows capacity by adding a transformer block; it flushes a `DIR/checkpoint.pt` (config + weights) *before* each READ ack so the grown model survives `RESET`, and answers QUIZ by generating from current weights. Integration example, not a quality baseline — gibberish answers are expected. Reports `param_count` / `train_steps` / `train_flops` / `growth_count` via the `notes` field.

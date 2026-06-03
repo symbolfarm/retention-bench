@@ -88,6 +88,12 @@ A `Scorer` protocol seam (`scorer/protocols.py`) keeps a library swappable in
 later as another `Scorer` implementation if the metric battery expands.
 Multi-judge remains out of scope. See `.tasks/debriefs/B3.md`.
 
+**Update (B9, 2026-06-03):** the judge is unchanged in design (still a single
+hand-rolled, schema-validated tool call) but the call now goes through the
+`openai` SDK to an OpenAI-compatible `base_url` rather than the Anthropic SDK —
+pinned to the open model `moonshotai/kimi-k2.6`. See `.tasks/debriefs/B9.md` and
+`docs/metrics.md`.
+
 ### 7. Stage-dependency surfacing default
 
 - **A.** Always explicit pointer ("your earlier work is at `./notes.md`, `./summary.md`").

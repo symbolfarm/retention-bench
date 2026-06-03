@@ -5,8 +5,31 @@
 before either smoke path can run end-to-end)
 **Touches:** `run.sh`, `docs/QUICKSTART.md` (new), `harness/event_loop.py`
 (tier-metadata into run-manifest), `harness/sut_process.py` (declared-vs-
-actual capability capture), `tests/test_*_fake_anthropic.py` (container
+actual capability capture), `tests/test_*_fake_openai.py` (container
 path), `docs/decisions-checklist.md` (tier-declaration resolution)
+
+> **⚠️ ENVIRONMENT UPDATE (2026-06-03) — re-scope before resuming.** This brief
+> was written against a no-Docker dev container and a planned **DooD** rebuild.
+> Both assumptions are now stale; verify each acceptance criterion against
+> current reality before doing the work:
+> - **Docker already works** in the ml dev container — a *real nested `dockerd`*
+>   (rootful DinD in the privileged container; **plain runtime, not Sysbox** —
+>   Sysbox was rejected for the ml container because it blocks GPU). No rebuild
+>   needed; the "rebuild for DooD" framing below is obsolete.
+> - **Not DooD — nested DinD.** The daemon shares this container's filesystem,
+>   so `docker run -v /workspace:/…` bind-mounts the *in-container* path
+>   directly. The `HOST_WORKSPACE` host-path translation (B4a) is therefore
+>   likely a **no-op** here — confirm whether it's needed at all, rather than
+>   assuming the DooD path-translation criteria below.
+> - **Test files were renamed** `test_*_fake_anthropic.py` → `test_*_fake_openai.py`
+>   in B9 (provider port). Update all references in this brief and the work.
+> - The **force-subprocess opt-out** is still worth keeping (so the always-on
+>   suite never *requires* a daemon), but its original "daemonless
+>   `FileNotFoundError: docker`" justification no longer applies in this
+>   container — re-frame as portability/CI hygiene, not a hard blocker.
+> - Possibly-relevant: `harness/sut_process.py` now normalises a `python`/
+>   `python3` subprocess entrypoint to `sys.executable` (2026-06-03 fix); the
+>   container path is unaffected but keep it in mind for the smoke comparison.
 
 ## Context
 

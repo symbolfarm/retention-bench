@@ -155,8 +155,9 @@ Two implementations ship:
 
 - `ExactMatchScorer` — case-insensitive, whitespace-normalised exact match.
   Never calls an API. Default for all question types under `--scorer exact-match`.
-- `JudgeScorer` — LLM-as-judge via the Anthropic SDK's tool-use / structured
-  output. Returns a `{score, rationale}` verdict without free-text parsing.
+- `JudgeScorer` — LLM-as-judge via the OpenAI-compatible chat-completions API's
+  tool-calling (`openai` SDK pointed at a configurable `base_url`). Returns a
+  `{score, rationale}` verdict without free-text parsing.
 
 A future `DeepEvalScorer` (or other framework adapter) slots in as a third
 implementation against the same protocol, without touching the harness or
@@ -195,8 +196,11 @@ machine-readable and lean while making rationales auditable.
 ### Judge implementation
 
 - Model: read from `RETENTION_BENCH_JUDGE_MODEL` env var; falls back to
-  `claude-sonnet-4-6`.  Same idiom as the SUT implementations — a future
-  task (B9) replaces all hardcoded Anthropic call sites uniformly.
+  `moonshotai/kimi-k2.6` (a pinned frontier *open* model). Calls go to an
+  OpenAI-compatible `base_url` (`RETENTION_BENCH_BASE_URL`, default OpenRouter)
+  via the `openai` SDK and require `OPENROUTER_API_KEY`. (B9, 2026-06-03, moved
+  the judge and all SUT call sites off the Anthropic SDK to this provider-neutral
+  shape.) Judge-quality validation of the pinned open model is tracked in B14.
 - Prompt: reason-then-score structure.  The model produces a brief
   rationale before the verdict, which improves reliability on borderline
   cases.  Verdict is extracted via a tool call (`judge_verdict`), so no
@@ -211,7 +215,7 @@ machine-readable and lean while making rationales auditable.
   mirroring the SUT `resource_appendix` conventions plus judge totals:
 
   ```json
-  {"kind": "api", "model_id": "claude-sonnet-4-6", "api_call_count": 3, "input_tokens": 380, "output_tokens": 145}
+  {"kind": "api", "model_id": "moonshotai/kimi-k2.6", "api_call_count": 3, "input_tokens": 380, "output_tokens": 145}
   ```
 
   Per decision #6 (open-Q6): the SUT budget and the scoring budget are
