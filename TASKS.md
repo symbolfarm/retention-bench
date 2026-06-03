@@ -8,19 +8,22 @@
 
 ## Current focus
 
-**Docker now works in the ml dev container** (verified 2026-06-03) — a *real
-nested `dockerd`* (rootful DinD in the privileged ml container; `dockerd`/
-`containerd` run in-container, `agent` is in the `docker` group). This is the
-**plain docker runtime**, *not* Sysbox — the ml container kept the plain runtime
-because Sysbox blocks GPU access, which retention-bench needs (PyTorch). (Sysbox
-is the *agent* variant's setup — see [[project_incontainer_docker_sysbox]] — not
-this one.) So B4c is **environment-unblocked**, but its brief assumes a
-different topology (DooD + `HOST_WORKSPACE` translation): with a *nested* daemon,
-a `docker run -v /workspace:/…` bind-mounts the in-container path directly, so
-`HOST_WORKSPACE` translation is likely a **no-op** here. B4c needs a re-scope
-pass against the nested-DinD reality (also: its brief still says
-`tests/test_*_fake_anthropic.py`, renamed to `fake_openai` in B9). The meatier
-task; needs Toby input.
+**Docker now works in this dev container** (verified 2026-06-03) — this is the
+**Sysbox agent container** (`--runtime=sysbox-runc`; confirmed via userns remap
+`uid_map 0 165536 65536`, `sysboxfs` mounts, `/var/lib/docker` →
+`/var/lib/sysbox/docker/…`), which runs a **real nested `dockerd`** inside the
+container. See [[project_incontainer_docker_sysbox]]. **No GPU here** (Sysbox
+doesn't pass GPUs through); GPU-dependent work uses a *separate* **ml
+plain-docker container** (PyTorch/GPU). But B4c needs no GPU — API-tier SUTs
+plus a torch-**CPU** constructive base — so it can build + smoke here in Sysbox.
+So B4c is **environment-unblocked**. Its brief assumes DooD + `HOST_WORKSPACE`
+translation, but the Sysbox daemon is *nested* and shares this container's
+filesystem, so `docker run -v /workspace:/…` bind-mounts the in-container path
+directly — `HOST_WORKSPACE` translation is likely a **no-op** here. B4c needs a
+re-scope against this (its brief also still says `tests/test_*_fake_anthropic.py`,
+renamed `fake_openai` in B9), **including a Toby call on which runtime B4c and
+future GPU-bearing eval runs should target** (Sysbox here vs the ml/GPU
+container). The meatier task; needs Toby input.
 
 **Unblocked tasks available now:** B16 (boundary token proxy), B14 (open-model
 judge quality validation). Unfiled doc ideas: B5/B6/B7. *(Earlier MVP focus, below, is complete as of M7 — kept for
