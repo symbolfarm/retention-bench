@@ -92,6 +92,24 @@ bare-host path.
 - [ ] `docs/decisions-checklist.md` #16 updated to reflect that
       tier-declaration is now recorded-and-auditable (soft), not just
       trust-only.
+- [ ] **Runtime decision checkpoint (Sysbox vs GPU/ml).** *Resolve the part
+      B4c can answer; defer the rest — don't read past this.*
+      (a) **Confirm + record** that the **Sysbox agent container suffices** for
+      build + smoke + the API/CPU SUT tiers (no current SUT needs GPU: API SUTs
+      + torch-CPU constructive) — you'll have empirical proof from the build/
+      smoke criteria above.
+      (b) **Design constraint:** keep the host-capability capture
+      **runtime-agnostic** — report whatever GPU/CPU/mem the running host
+      exposes, with no "Sysbox ⇒ no GPU" hardcoding — so neither runtime choice
+      forces rework later.
+      (c) **Defer** the GPU-eval-runtime choice (when to reach for the ml/GPU
+      plain-docker container) to the first SUT that actually serves a *local
+      GPU* model — that's a B8 cohort-composition question, not answerable from
+      B4c. Leave a forward pointer (B8 / decisions-checklist) so it isn't lost.
+      Record the decision + the deferral in `docs/decisions-checklist.md`.
+      (Context: Toby flagged this 2026-06-03; see the ENVIRONMENT UPDATE callout
+      above. Reviewed: B4c won't surface the GPU-need info — it's downstream of
+      B8 — so deferring loses nothing as long as (b) holds.)
 - [ ] **Container-path integration coverage.** The option-B shim mount
       (built in B4a) is exercised: at least one fake-anthropic
       integration test drives a SUT *through a container* (`-v
