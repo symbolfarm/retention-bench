@@ -1,8 +1,8 @@
-# Canned responses for the fake-anthropic integration test. Sequence-keyed:
-# the Nth call to client.messages.create() returns responses[N].
+# Canned responses for the fake-openai integration test. Sequence-keyed:
+# the Nth call to client.chat.completions.create() returns responses[N].
 #
 # trivial.yaml drives two QUIZ events split by one RESET, so the no-state SUT
-# makes exactly two messages.create() calls — one per SUT subprocess. Distinct
+# makes exactly two completions.create() calls — one per SUT subprocess. Distinct
 # token counts let us verify the harness aggregates both correctly across the
 # RESET boundary (regression for the M7 dropped-resource-fields bug).
 responses:

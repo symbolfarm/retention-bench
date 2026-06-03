@@ -14,7 +14,7 @@ Dispatch rules (locked per B3 design decisions):
 ``ExactMatchScorer`` wraps the existing :func:`scorer.exact_match.exact_match_score`
 logic and never calls an API.
 
-The ``JudgeScorer`` lives in :mod:`scorer.judge` and calls the Anthropic API.
+The ``JudgeScorer`` lives in :mod:`scorer.judge` and calls an OpenAI-compatible API.
 A future ``DeepEvalScorer`` (B9 / B7 follow-up) would add another implementation
 without touching this file's dispatch table shape or the callers in
 ``scorer.aggregate``.

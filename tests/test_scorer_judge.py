@@ -1,8 +1,8 @@
 """Tests for the LLM-as-judge scorer integration.
 
 All tests are deterministic and offline — no live API calls. The fake
-Anthropic shim (tests/fake_anthropic_shim/anthropic.py) is injected via
-PYTHONPATH and FAKE_ANTHROPIC_FIXTURE env vars.
+OpenAI shim (tests/fake_openai_shim/openai.py) is injected via
+PYTHONPATH and FAKE_OPENAI_FIXTURE env vars.
 
 Coverage:
 - Dispatch logic: surface_factual → exact-match, entity_tracking → judge,
@@ -31,7 +31,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SHIM_DIR = REPO_ROOT / "tests" / "fake_anthropic_shim"
+SHIM_DIR = REPO_ROOT / "tests" / "fake_openai_shim"
 FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures"
 
 
@@ -73,16 +73,16 @@ def _run_scorer(
     fake_fixture: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
-    env["ANTHROPIC_API_KEY"] = "fake-key-for-tests"
+    env["OPENROUTER_API_KEY"] = "fake-key-for-tests"
     if fake_fixture is not None:
-        env["FAKE_ANTHROPIC_FIXTURE"] = str(fake_fixture)
+        env["FAKE_OPENAI_FIXTURE"] = str(fake_fixture)
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".counter", delete=False
         ) as cf:
             cf.write("0")
             counter_path = cf.name
-        env["FAKE_ANTHROPIC_COUNTER"] = counter_path
-        # Inject shim: prepend shim dir to PYTHONPATH so `import anthropic`
+        env["FAKE_OPENAI_COUNTER"] = counter_path
+        # Inject shim: prepend shim dir to PYTHONPATH so `import openai`
         # resolves to the fake.
         existing = env.get("PYTHONPATH", "")
         env["PYTHONPATH"] = str(SHIM_DIR) + (":" + existing if existing else "")
@@ -130,16 +130,16 @@ def test_dispatch_entity_tracking_judge_mode_uses_judge(monkeypatch, tmp_path):
     protocols.reset_judge_singleton()
 
     # Provide a fake API key and PYTHONPATH so JudgeScorer can be constructed.
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "fake-key")
-    # Prepend shim dir so `import anthropic` resolves to the fake.
+    monkeypatch.setenv("OPENROUTER_API_KEY", "fake-key")
+    # Prepend shim dir so `import openai` resolves to the fake.
     orig = sys.path[:]
     sys.path.insert(0, str(SHIM_DIR))
-    # Also set FAKE_ANTHROPIC_FIXTURE so shim doesn't raise on import.
+    # Also set FAKE_OPENAI_FIXTURE so shim doesn't raise on import.
     fixture = FIXTURE_DIR / "fake_judge_responses.yaml"
-    monkeypatch.setenv("FAKE_ANTHROPIC_FIXTURE", str(fixture))
+    monkeypatch.setenv("FAKE_OPENAI_FIXTURE", str(fixture))
     counter_file = tmp_path / "counter.txt"
     counter_file.write_text("0")
-    monkeypatch.setenv("FAKE_ANTHROPIC_COUNTER", str(counter_file))
+    monkeypatch.setenv("FAKE_OPENAI_COUNTER", str(counter_file))
     try:
         protocols.reset_judge_singleton()
         scorer = protocols.get_scorer("entity_tracking", scorer_mode="judge")
@@ -244,7 +244,7 @@ def test_exact_match_mode_reproduces_m6_q3_excluded(tmp_path):
 # ---------------------------------------------------------------------------
 # --scorer judge: q3 flip test (the key acceptance criterion)
 #
-# Uses the fake Anthropic shim with canned tool-use responses.
+# Uses the fake OpenAI shim with canned tool-call responses.
 # q3 entity_tracking: judge scores ceiling=1, retention=1 → contributes to curve.
 # ---------------------------------------------------------------------------
 

@@ -61,7 +61,7 @@ def _spec(**over) -> ContainerSpec:
         image="retention-bench/no-state:latest",
         container_name="retbench-run-00",
         dir_host_path="/host/ws/runs/r/dir",
-        env_names=["ANTHROPIC_API_KEY", "NO_STATE_MODEL"],
+        env_names=["OPENROUTER_API_KEY", "NO_STATE_MODEL"],
         shim_host_path=None,
     )
     base.update(over)
@@ -84,7 +84,7 @@ def test_docker_argv_forwards_env_by_name_only():
     """Secret values must never appear in argv — only `-e NAME` (no `=value`)."""
     argv = build_docker_argv(_spec(), ["python", "-m", "no_state"])
     # Each declared var appears as a bare name immediately after a `-e`.
-    for name in ("ANTHROPIC_API_KEY", "NO_STATE_MODEL"):
+    for name in ("OPENROUTER_API_KEY", "NO_STATE_MODEL"):
         assert name in argv
         assert argv[argv.index(name) - 1] == "-e"
         # No `NAME=value` form for the forwarded vars.
@@ -93,10 +93,10 @@ def test_docker_argv_forwards_env_by_name_only():
 
 def test_docker_argv_shim_mount_when_requested():
     argv = build_docker_argv(
-        _spec(shim_host_path="/host/ws/tests/fake_anthropic_shim"),
+        _spec(shim_host_path="/host/ws/tests/fake_openai_shim"),
         ["python", "-m", "no_state"],
     )
-    assert f"/host/ws/tests/fake_anthropic_shim:{SHIM_CONTAINER_PATH}:ro" in argv
+    assert f"/host/ws/tests/fake_openai_shim:{SHIM_CONTAINER_PATH}:ro" in argv
     assert f"PYTHONPATH={SHIM_CONTAINER_PATH}" in argv
 
 
@@ -136,20 +136,20 @@ def test_container_spec_built_from_manifest(monkeypatch):
     cfg = _config({
         "image": "retention-bench/no-state:latest",
         "entrypoint": ["python", "-m", "no_state"],
-        "env": ["ANTHROPIC_API_KEY", "NO_STATE_MODEL"],
+        "env": ["OPENROUTER_API_KEY", "NO_STATE_MODEL"],
     })
     dir_path = REPO_ROOT / "runs" / "r" / "dir"
     spec = event_loop._make_container_spec(cfg, "run-xyz", dir_path, 2)
     assert spec is not None
     assert spec.image == "retention-bench/no-state:latest"
     assert spec.container_name == "retbench-run-xyz-02"  # unique per invocation
-    assert spec.env_names == ["ANTHROPIC_API_KEY", "NO_STATE_MODEL"]
+    assert spec.env_names == ["OPENROUTER_API_KEY", "NO_STATE_MODEL"]
     assert spec.shim_host_path is None
 
 
 def test_container_spec_includes_shim_when_env_set(monkeypatch):
     monkeypatch.delenv("HOST_WORKSPACE", raising=False)
-    shim = REPO_ROOT / "tests" / "fake_anthropic_shim"
+    shim = REPO_ROOT / "tests" / "fake_openai_shim"
     monkeypatch.setenv("RETENTION_BENCH_SHIM_DIR", str(shim))
     cfg = _config({"image": "img:latest", "env": []})
     spec = event_loop._make_container_spec(cfg, "run", REPO_ROOT / "d", 0)

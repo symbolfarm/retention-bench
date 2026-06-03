@@ -13,10 +13,10 @@ Scorer modes
 
 ``--scorer judge``
     Routes judge-eligible question types (``entity_tracking``,
-    ``multi_hop``) to the LLM judge (Anthropic API).  ``surface_factual``
+    ``multi_hop``) to the LLM judge (OpenAI-compatible API).  ``surface_factual``
     questions still use exact-match regardless of this flag.
 
-    Requires ``ANTHROPIC_API_KEY`` in the environment.  Judge rationales are
+    Requires ``OPENROUTER_API_KEY`` in the environment.  Judge rationales are
     written to a sibling ``scoring.jsonl`` file in the run directory.  Judge
     token usage is written to a sibling ``judge_resource_appendix.jsonl``.
 
@@ -106,7 +106,7 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "Scoring mode. 'exact-match' (default) reproduces M6 behavior. "
             "'judge' routes entity_tracking and multi_hop questions to the "
-            "LLM judge (requires ANTHROPIC_API_KEY)."
+            "LLM judge (requires OPENROUTER_API_KEY)."
         ),
     )
     args = parser.parse_args(argv)

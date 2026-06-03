@@ -1,8 +1,8 @@
 """End-to-end integration test: harness drives the real no-state SUT against
-the trivial fixture, calls the Anthropic API for real, and produces a valid
-trace + snapshot + per-question records.
+the trivial fixture, calls the OpenAI-compatible API (OpenRouter) for real,
+and produces a valid trace + snapshot + per-question records.
 
-Skipped unless ANTHROPIC_API_KEY is set — CI does not have a key; local runs do.
+Skipped unless OPENROUTER_API_KEY is set — CI does not have a key; local runs do.
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ from harness import __main__ as harness_main
 
 
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("ANTHROPIC_API_KEY"),
-    reason="ANTHROPIC_API_KEY not set; skipping live no-state SUT integration",
+    not os.environ.get("OPENROUTER_API_KEY"),
+    reason="OPENROUTER_API_KEY not set; skipping live no-state SUT integration",
 )
 
 
@@ -29,15 +29,15 @@ FIXTURE = REPO_ROOT / "tests" / "fixtures" / "trivial.yaml"
 NO_STATE_DIR = REPO_ROOT / "suts" / "no_state"
 
 
-def _have_anthropic() -> bool:
+def _have_openai() -> bool:
     try:
-        import anthropic  # noqa: F401
+        import openai  # noqa: F401
         return True
     except ImportError:
         return False
 
 
-@pytest.mark.skipif(not _have_anthropic(), reason="anthropic package not installed")
+@pytest.mark.skipif(not _have_openai(), reason="openai package not installed")
 def test_no_state_end_to_end(tmp_path: Path) -> None:
     runs_dir = tmp_path / "runs"
     argv = [

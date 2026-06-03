@@ -9,7 +9,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Source .env if present so ANTHROPIC_API_KEY (and friends) get exported
+# Source .env if present so OPENROUTER_API_KEY (and friends) get exported
 # without the caller having to remember. Never committed (see .gitignore).
 if [[ -f .env ]]; then
   set -a

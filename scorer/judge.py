@@ -93,7 +93,7 @@ def _build_user_prompt(question_text: str, gold_answer: str, sut_answer: str) ->
 
 
 class JudgeScorer:
-    """LLM-as-judge scorer using Anthropic tool-use for structured output."""
+    """LLM-as-judge scorer using OpenAI function-calling for structured output."""
 
     def __init__(self) -> None:
         api_key = os.environ.get("OPENROUTER_API_KEY")

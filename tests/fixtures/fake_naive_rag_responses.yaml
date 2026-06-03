@@ -1,5 +1,5 @@
-# Canned responses for the naive-rag fake-anthropic integration test.
-# Sequence-keyed: the Nth call to client.messages.create() returns
+# Canned responses for the naive-rag fake-openai integration test.
+# Sequence-keyed: the Nth call to client.chat.completions.create() returns
 # responses[N]. two_chapter.yaml drives:
 #   READ ch1   → no LLM call (only embedding calls)
 #   READ ch2   → no LLM call (only embedding calls)

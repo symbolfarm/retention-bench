@@ -49,7 +49,7 @@ class ContainerSpec:
     at `DIR_CONTAINER_PATH` inside the container. `env_names` are forwarded
     by name (`-e NAME`), so values pass through from the harness environment
     to the container without ever being logged. `shim_host_path`, when set,
-    bind-mounts the fake-anthropic test shim read-only and puts it on
+    bind-mounts the fake-openai test shim read-only and puts it on
     PYTHONPATH (the option-B test path; see B4a brief)."""
     image: str
     container_name: str
