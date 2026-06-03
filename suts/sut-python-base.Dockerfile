@@ -3,7 +3,7 @@
 #
 # Build once, tag as retention-bench/sut-python-base:0.1, then the three
 # API SUT Dockerfiles `FROM` it. This keeps the common layer (python +
-# the anthropic SDK) built and cached a single time.
+# the openai SDK) built and cached a single time.
 #
 #   docker build -f suts/sut-python-base.Dockerfile \
 #     -t retention-bench/sut-python-base:0.1 suts/
@@ -25,9 +25,10 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # The one shared runtime dependency for the API SUTs. Pinned to match the
-# floor declared across the SUT pyproject.toml files (anthropic>=0.39.0).
+# floor declared across the SUT pyproject.toml files (openai>=1.40.0). The
+# SUTs call an OpenAI-compatible endpoint (OpenRouter by default) — see B9.
 # Installed here so the three child images share this layer.
-RUN pip install "anthropic>=0.39.0,<1"
+RUN pip install "openai>=1.40.0"
 
 # Child images set their own WORKDIR for the build copy, then the harness
 # overrides the runtime workdir to /dir (the bind-mounted DIR) via

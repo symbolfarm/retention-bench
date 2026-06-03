@@ -2,9 +2,10 @@
 
 Floor row on the retention-bench leaderboard. Conforms to `docs/sut-interface.md`.
 
-On `QUIZ` events the SUT calls the Anthropic API with the question text *only* —
-no `DIR` reads, no in-memory accumulation, no priming from prior questions in
-the same session. On `READ` events it returns an empty `stage_output`.
+On `QUIZ` events the SUT calls an OpenAI-compatible API (OpenRouter by default)
+with the question text *only* — no `DIR` reads, no in-memory accumulation, no
+priming from prior questions in the same session. On `READ` events it returns an
+empty `stage_output`.
 
 This is intentional: the no-state SUT measures the floor that any architecture
 with actual retention must beat.
@@ -23,7 +24,7 @@ packaging path and avoids that workaround entirely.
 ## Container image (preferred packaging)
 
 This SUT ships a Dockerfile that extends the shared API base
-(`retention-bench/sut-python-base`, which carries the `anthropic` SDK):
+(`retention-bench/sut-python-base`, which carries the `openai` SDK):
 
 ```bash
 # Build the shared base once:
@@ -40,7 +41,7 @@ task **B4c**. See `docs/sut-interface.md` → "Launch modes".
 ## Run standalone (smoke check, outside the harness)
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export OPENROUTER_API_KEY=sk-or-...
 echo '{"event_id":"evt-0001","event_type":"QUIZ","stage_input":"<QUESTIONS><QUESTION id=\"q1\">What colour is the sky on a clear day?</QUESTION></QUESTIONS>"}' \
   | python -m no_state
 ```
@@ -52,8 +53,9 @@ Expected: a single line of JSON on stdout containing
 
 | Env var | Default | Notes |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | (required) | API auth; SUT exits non-zero if absent. |
-| `NO_STATE_MODEL` | `claude-haiku-4-5-20251001` | Override model; `sut-manifest.json` records the default. |
+| `OPENROUTER_API_KEY` | (required) | API auth; SUT exits non-zero if absent. |
+| `NO_STATE_MODEL` | `deepseek/deepseek-v4-flash` | Override model; `sut-manifest.json` records the default. |
+| `RETENTION_BENCH_BASE_URL` | `https://openrouter.ai/api/v1` | OpenAI-compatible endpoint; override to point at another provider or a local proxy. |
 
 ## Manifest
 

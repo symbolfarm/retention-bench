@@ -11,7 +11,8 @@ Index format: DIR/index.jsonl — one JSON object per line:
 
 Chunking: fixed-size word window, CHUNK_SIZE=200 words, CHUNK_OVERLAP=40 words.
 Retrieval: cosine similarity, TOP_K=5 chunks.
-LLM call shape: matches notes_llm / no_state idiom exactly (B9 will unify).
+LLM call shape: matches notes_llm / no_state idiom exactly — shared
+OpenAI-compatible (OpenRouter) client idiom since B9.
 
 Embedder backend selected by NAIVE_RAG_EMBEDDER env var:
   fake               — deterministic hash-based pseudo-vectors (default for tests)
@@ -40,7 +41,8 @@ from typing import Iterable, Protocol
 # Configuration constants
 # ---------------------------------------------------------------------------
 
-DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
+DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 MAX_TOKENS = 4096
 
 # Chunking parameters (documented in README)
@@ -385,18 +387,18 @@ def _extract_answers(model_text: str) -> list[dict]:
 
 
 def _call_llm(client, model: str, system: str, user: str):
-    resp = client.messages.create(
+    resp = client.chat.completions.create(
         model=model,
         max_tokens=MAX_TOKENS,
-        system=system,
-        messages=[{"role": "user", "content": user}],
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
     )
-    text = "".join(
-        b.text for b in resp.content if getattr(b, "type", None) == "text"
-    )
+    text = resp.choices[0].message.content or ""
     usage = getattr(resp, "usage", None)
-    tokens_in = getattr(usage, "input_tokens", 0) if usage else 0
-    tokens_out = getattr(usage, "output_tokens", 0) if usage else 0
+    tokens_in = getattr(usage, "prompt_tokens", 0) if usage else 0
+    tokens_out = getattr(usage, "completion_tokens", 0) if usage else 0
     return text, tokens_in, tokens_out
 
 
@@ -509,17 +511,18 @@ def _iter_events(stream: Iterable[str]):
 
 
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        _die("ANTHROPIC_API_KEY is not set; refusing to start.", code=2)
+        _die("OPENROUTER_API_KEY is not set; refusing to start.", code=2)
 
     try:
-        import anthropic  # type: ignore
+        import openai  # type: ignore
     except ImportError:
-        _die("`anthropic` package is not installed (pip install anthropic).", code=2)
+        _die("`openai` package is not installed (pip install openai).", code=2)
 
     model = os.environ.get("NAIVE_RAG_MODEL", DEFAULT_MODEL)
-    client = anthropic.Anthropic(api_key=api_key)
+    base_url = os.environ.get("RETENTION_BENCH_BASE_URL", DEFAULT_BASE_URL)
+    client = openai.OpenAI(api_key=api_key, base_url=base_url)
     embedder = _make_embedder()
     index_file = _index_path(Path.cwd())
 

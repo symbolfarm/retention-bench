@@ -5,9 +5,9 @@
   "hardware_tier": "API",
   "strict_verbatim": true,
   "entrypoint": ["python", "-m", "no_state"],
-  "env": ["ANTHROPIC_API_KEY", "NO_STATE_MODEL"],
+  "env": ["OPENROUTER_API_KEY", "NO_STATE_MODEL", "RETENTION_BENCH_BASE_URL"],
   "resource_appendix": {
     "kind": "api",
-    "model_id": "claude-haiku-4-5-20251001"
+    "model_id": "deepseek/deepseek-v4-flash"
   }
 }

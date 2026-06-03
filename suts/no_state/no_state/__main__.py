@@ -1,8 +1,8 @@
 """No-state reference SUT for retention-bench.
 
 Reads JSONL events from stdin (per docs/sut-interface.md), responds on stdout.
-Calls the Anthropic API with the question text *only* for QUIZ events.
-Ignores DIR entirely. Floor row on the leaderboard.
+Calls an OpenAI-compatible API (OpenRouter by default) with the question text
+*only* for QUIZ events. Ignores DIR entirely. Floor row on the leaderboard.
 
 Wire contract (M4): QUIZ replies carry a structured `answers` list of
 {"id": <qid>, "text": <answer>} objects. The model is asked to emit
@@ -18,7 +18,8 @@ import re
 import sys
 from typing import Iterable
 
-DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
+DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 MAX_TOKENS = 1024
 SYSTEM_PROMPT = (
     "You are a question-answering assistant for a retention benchmark. "
@@ -77,21 +78,23 @@ def _handle_event(client, model: str, event: dict) -> dict:
         if not questions:
             return {"event_id": eid, "answers": [],
                     "notes": "no <QUESTION> tags found in stage_input"}
-        resp = client.messages.create(
-            model=model, max_tokens=MAX_TOKENS, system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": _user_prompt(questions)}],
+        resp = client.chat.completions.create(
+            model=model, max_tokens=MAX_TOKENS,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": _user_prompt(questions)},
+            ],
         )
-        text = "".join(b.text for b in resp.content
-                       if getattr(b, "type", None) == "text")
+        text = resp.choices[0].message.content or ""
         usage = getattr(resp, "usage", None)
         answers = _extract_answers(text, [q for q, _ in questions])
         return {
             "event_id": eid,
             "answers": answers,
-            "tokens_in": getattr(usage, "input_tokens", 0) if usage else 0,
-            "tokens_out": getattr(usage, "output_tokens", 0) if usage else 0,
+            "tokens_in": getattr(usage, "prompt_tokens", 0) if usage else 0,
+            "tokens_out": getattr(usage, "completion_tokens", 0) if usage else 0,
             "api_call_count": 1,
-            "model_id": model,
+            "model_id": getattr(resp, "model", None) or model,
         }
     return {"event_id": eid, "stage_output": "",
             "notes": f"unknown event_type: {etype}"}
@@ -105,18 +108,19 @@ def _iter_events(stream: Iterable[str]):
 
 
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        _die("ANTHROPIC_API_KEY is not set; refusing to start.", code=2)
+        _die("OPENROUTER_API_KEY is not set; refusing to start.", code=2)
 
     try:
-        import anthropic  # type: ignore
+        import openai  # type: ignore
     except ImportError:
-        _die("`anthropic` package is not installed (pip install anthropic).",
+        _die("`openai` package is not installed (pip install openai).",
              code=2)
 
     model = os.environ.get("NO_STATE_MODEL", DEFAULT_MODEL)
-    client = anthropic.Anthropic(api_key=api_key)
+    base_url = os.environ.get("RETENTION_BENCH_BASE_URL", DEFAULT_BASE_URL)
+    client = openai.OpenAI(api_key=api_key, base_url=base_url)
 
     for event in _iter_events(sys.stdin):
         response = _handle_event(client, model, event)

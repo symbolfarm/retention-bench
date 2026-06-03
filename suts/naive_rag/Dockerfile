@@ -1,6 +1,6 @@
 # naive_rag reference SUT image.
 #
-# Extends the shared API base (anthropic SDK pre-installed). Build the base
+# Extends the shared API base (openai SDK pre-installed). Build the base
 # first, then this image from the SUT directory:
 #
 #   docker build -f suts/sut-python-base.Dockerfile \
@@ -28,7 +28,7 @@ FROM retention-bench/sut-python-base:0.1
 
 WORKDIR /opt/sut
 
-# Install the SUT with the sentence-transformers extra. anthropic comes from
+# Install the SUT with the sentence-transformers extra. openai comes from
 # the base; the extra adds sentence-transformers (+ CPU torch). We do NOT pass
 # --no-deps here because the extra brings real transitive dependencies that
 # must resolve.

@@ -36,7 +36,7 @@ packaging path and avoids that workaround entirely.
 ## Container image (preferred packaging)
 
 Extends the shared API base (`retention-bench/sut-python-base`, carrying the
-`anthropic` SDK):
+`openai` SDK):
 
 ```bash
 # Build the shared base once:
@@ -54,8 +54,9 @@ task **B4c**. See `docs/sut-interface.md` → "Launch modes".
 
 | Env var | Default | Notes |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | (required) | API auth; SUT exits non-zero if absent. |
-| `NOTES_LLM_MODEL` | `claude-haiku-4-5-20251001` | Override model; `sut-manifest.json` records the default. |
+| `OPENROUTER_API_KEY` | (required) | API auth; SUT exits non-zero if absent. |
+| `NOTES_LLM_MODEL` | `deepseek/deepseek-v4-flash` | Override model; `sut-manifest.json` records the default. |
+| `RETENTION_BENCH_BASE_URL` | `https://openrouter.ai/api/v1` | OpenAI-compatible endpoint; override to point at another provider or a local proxy. |
 
 Same model used for both READ (note-taking) and QUIZ (answering), so the
 retention curve isolates the value of notes rather than a model swap.

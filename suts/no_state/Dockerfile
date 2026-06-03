@@ -1,6 +1,6 @@
 # no_state reference SUT image.
 #
-# Extends the shared API base (anthropic SDK pre-installed). Build the base
+# Extends the shared API base (openai SDK pre-installed). Build the base
 # first, then this image from the SUT directory:
 #
 #   docker build -f suts/sut-python-base.Dockerfile \
@@ -15,7 +15,7 @@ FROM retention-bench/sut-python-base:0.1
 
 WORKDIR /opt/sut
 
-# Source (and pyproject) copied together, then installed. anthropic — the only
+# Source (and pyproject) copied together, then installed. openai — the only
 # dependency — already lives in the base layer, so --no-deps keeps this layer
 # cheap and avoids re-resolving it. The expensive dependency layer is in the
 # shared base and caches across all three API SUTs.

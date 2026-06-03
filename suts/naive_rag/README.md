@@ -69,9 +69,14 @@ model (default: `bge-small-en-v1.5-q8_0.gguf` in the current directory).
 ## LLM model
 
 The LLM used for answer generation is set by `NAIVE_RAG_MODEL`
-(default: `claude-haiku-4-5-20251001`). The Anthropic client is
-instantiated directly from `ANTHROPIC_API_KEY` — same idiom as
-`notes_llm` and `no_state` (B9 will unify these call sites).
+(default: `deepseek/deepseek-v4-flash`). An OpenAI-compatible client
+(OpenRouter by default, `https://openrouter.ai/api/v1`) is instantiated from
+`OPENROUTER_API_KEY` — the shared idiom across `notes_llm` and `no_state`
+since B9. Override the endpoint with `RETENTION_BENCH_BASE_URL`.
+
+Note this is the *generation* model only; the **embedder** is a separate,
+local concern (see "Embedder backend" above) and is unaffected by the
+OpenAI-compatible client.
 
 ## Resource fields
 
@@ -104,7 +109,7 @@ packaging path and avoids that workaround entirely.
 ## Container image (preferred packaging)
 
 Extends the shared API base (`retention-bench/sut-python-base`, carrying the
-`anthropic` SDK). The image bakes in the **`sentence-transformers`** embedder
+`openai` SDK). The image bakes in the **`sentence-transformers`** embedder
 (the SUT's default) and pre-fetches the `all-MiniLM-L6-v2` model so the
 container runs offline:
 

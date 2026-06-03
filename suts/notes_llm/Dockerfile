@@ -1,6 +1,6 @@
 # notes_llm reference SUT image.
 #
-# Extends the shared API base (anthropic SDK pre-installed). Build the base
+# Extends the shared API base (openai SDK pre-installed). Build the base
 # first, then this image from the SUT directory:
 #
 #   docker build -f suts/sut-python-base.Dockerfile \
@@ -15,7 +15,7 @@ FROM retention-bench/sut-python-base:0.1
 
 WORKDIR /opt/sut
 
-# --no-deps: anthropic (the only dependency) is already provided by the base
+# --no-deps: openai (the only dependency) is already provided by the base
 # layer, shared across all three API SUTs.
 COPY pyproject.toml ./
 COPY notes_llm/ notes_llm/
