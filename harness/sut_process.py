@@ -196,8 +196,18 @@ def spawn_sut(
     if existing_pp:
         parts.append(existing_pp)
     env["PYTHONPATH"] = os.pathsep.join(parts)
+    # The manifest `entrypoint` (e.g. ["python", "-m", "no_state"]) names the
+    # *container* interpreter. In subprocess mode we run on the host, where a
+    # bare `python` may not exist (only `python3`) and, more importantly, only
+    # the harness's own interpreter is guaranteed to have the SUT's deps
+    # installed (e.g. the active venv). Launch python-module SUTs under
+    # sys.executable — the same choice the built-in stub launch makes
+    # (harness/__main__.py). Non-python entrypoints are left untouched.
+    launch = list(command)
+    if launch and os.path.basename(launch[0]) in ("python", "python3"):
+        launch[0] = sys.executable
     proc = subprocess.Popen(
-        command,
+        launch,
         cwd=str(dir_path),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
