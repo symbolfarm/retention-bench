@@ -16,3 +16,4 @@
 {"id":"B4a","status":"completed","priority":"medium","blocked_by":[],"task_file":"B4a-docker-launch-engine.md","commit":"16bf61b","created_at":"2026-05-30T00:00:00Z","completed_at":"2026-05-30T00:00:00Z"}
 {"id":"B4b","status":"completed","priority":"medium","blocked_by":["B4a"],"task_file":"B4b-sut-dockerfiles.md","commit":"51f6625","created_at":"2026-05-30T00:00:00Z","completed_at":"2026-05-30T00:00:00Z"}
 {"id":"B4c","status":"pending","priority":"medium","blocked_by":["B4a","B4b"],"task_file":"B4c-smoke-and-tier-audit.md","commit":null,"created_at":"2026-05-30T00:00:00Z","completed_at":null}
+{"id":"B9","status":"pending","priority":"medium","blocked_by":[],"task_file":"B9-openai-compat-client.md","commit":null,"created_at":"2026-06-03T03:10:02Z","completed_at":null}
