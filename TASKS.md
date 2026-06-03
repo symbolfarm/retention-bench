@@ -8,15 +8,19 @@
 
 ## Current focus
 
-**⛔ Next session, start here: B4c is blocked on a Docker-capable environment.**
-B4a (launch engine) and B4b (Dockerfiles) landed 2026-05-30, but **B4c cannot
-proceed in this dev container** — no host `docker.sock`, unprivileged, and a
-seccomp filter blocks user namespaces so even rootless Docker won't run. Before
-resuming B4, **rebuild the dev container for DooD** (bind-mount host
-`/var/run/docker.sock`, install `docker-ce-cli`, grant `agent` socket access,
-set `HOST_WORKSPACE`). Full spec in the B4c backlog entry below + the
-`AgentDesk dev env` memory. Until then there is **no unblocked task** in the
-queue. *(Earlier MVP focus, below, is complete as of M7 — kept for context.)*
+**Docker now works in the dev container** (verified 2026-06-03) — a *real
+nested daemon* via the Sysbox runtime (`--runtime=sysbox-runc`), **not** the
+DooD socket-mount the B4c brief still describes. So B4c is **environment-
+unblocked**, but its brief's "Action before resuming" steps (bind-mount
+`docker.sock`, install `docker-ce-cli`, set `HOST_WORKSPACE`) are now obsolete
+and the `image`-field / force-subprocess scope should be re-read against a
+nested-daemon reality before resuming. B4c is the meatier task and needs Toby
+input on the re-scope.
+
+**Unblocked tasks available now:** B16 (boundary token proxy), B14 (open-model
+judge quality validation), B15 (benchmark-validity watch-items). Unfiled doc
+ideas: B5/B6/B7. *(Earlier MVP focus, below, is complete as of M7 — kept for
+context.)*
 
 ---
 
@@ -76,9 +80,10 @@ individual `.tasks/M*.md` task files after a debrief pass.
 - B7 — `docs/metrics.md` write-in: resolved `C` definition (text-in-context + accumulated `QUIZ` history) + storage-delta-= 0 rule for in-place training + FLOPs reporting fields.
 - B8 — Cohort-1 novella dispatch (blocked on Toby's sign-off; orthogonal to harness MVP).
 - B9 — Provider-neutral LLM calls via the OpenAI-compatible API (OpenRouter). ✓ **Done** (2026-06-03; commits `6be9374` + `c460bc8`). **Rescoped** (2026-06-03, with Toby) from "general provider framework" to: point the three text SUTs + the judge at an OpenAI-compatible `base_url` via the `openai` SDK — SUTs default `deepseek/deepseek-v4-flash`, judge pinned `moonshotai/kimi-k2.6`. No shared package (client construction inlined per component, ~3 lines each). The `NAIVE_RAG_EMBEDDER` seam was **deliberately left out of scope** (local dense retrieval, not a provider LLM call) — a reversal of the 2026-05-26 scope-growth note above. Live-verified end-to-end against OpenRouter (deepseek SUT + kimi judge function-calling). Follow-ups filed: **B16** (boundary token-counting proxy), **B14** (open-model judge quality validation), **B15** (benchmark validity watch-items). See `.tasks/debriefs/B9.md`.
-- B10 — Harness integration tests against a fake LLM client. The unit-test suite uses the stub SUT, so it doesn't exercise the real subprocess + SDK + token-accounting path. M7 surfaced two harness bugs (`_run_reset` PYTHONPATH-drop; SUT-reported resource fields dropped on the floor) that no test currently catches. A fake client (returns canned responses, reports synthetic token counts) driving the real SUTs through the real harness would catch this class of bug and protect the audit-trail fidelity that future published retention curves rely on. **Largely already delivered:** `tests/fake_openai_shim/` + `tests/test_*_fake_openai.py` (rebuilt from the old fake-anthropic shim in B9, 2026-06-03) drive all three real SUTs through the real harness and assert exactly those M7 resource-accounting regressions. Revisit only if B10 wants coverage beyond what now exists (e.g. fault-injection / error-path cases). Surfaced 2026-05-20 during M7 wrap-up.
-- B11 — Wire judge token usage into a separate `judge_resource_appendix` (decision #6). B3 documented the architecture but `JudgeScorer.score()` currently drops `response.usage`. Surfaced 2026-05-26 during B3 wrap-up.
-- B12 — Smoke-task gold-answer quality pass: q4 gold "a heartbeat" is too terse, so substance-correct answers fail exact-match and (being `surface_factual`) aren't rescued by the judge. Asset fix, not a scorer fix. Surfaced 2026-05-26 during B3 wrap-up.
+- B10 — Harness integration tests against a fake LLM client. ✓ **Done** (2026-05-20; commit `07b741c`). The unit-test suite uses the stub SUT, so it doesn't exercise the real subprocess + SDK + token-accounting path. M7 surfaced two harness bugs (`_run_reset` PYTHONPATH-drop; SUT-reported resource fields dropped on the floor) that no test currently catches. A fake client (returns canned responses, reports synthetic token counts) driving the real SUTs through the real harness would catch this class of bug and protect the audit-trail fidelity that future published retention curves rely on. **Largely already delivered:** `tests/fake_openai_shim/` + `tests/test_*_fake_openai.py` (rebuilt from the old fake-anthropic shim in B9, 2026-06-03) drive all three real SUTs through the real harness and assert exactly those M7 resource-accounting regressions. Revisit only if B10 wants coverage beyond what now exists (e.g. fault-injection / error-path cases). Surfaced 2026-05-20 during M7 wrap-up.
+- B11 — Wire judge token usage into a separate `judge_resource_appendix` (decision #6). ✓ **Done** (2026-05-27; commit `fe0ca39`; appendix code later carried through the B9 OpenAI port). B3 documented the architecture but `JudgeScorer.score()` was dropping `response.usage`; now `JudgeScorer` accumulates per-call usage and the CLI writes `judge_resource_appendix.jsonl`. Surfaced 2026-05-26 during B3 wrap-up.
+- B12 — Smoke-task gold-answer quality pass: q4 gold "a heartbeat" is too terse, so substance-correct answers fail exact-match and (being `surface_factual`) aren't rescued by the judge. Asset fix, not a scorer fix. ✓ **Done** (2026-05-27; commit `a868ecc`). Surfaced 2026-05-26 during B3 wrap-up.
+- B13 — Constructive (train-and-grow) reference SUT (decision #11; the constructive-transformers tier). ✓ **Done** (2026-05-27; commit `85fedb6`). Torch-CPU SUT that grows capacity across `READ`/`RESET` and reports `kind:"local"` resource accounting.
 - B14 — Open-model judge quality validation. The pinned judge (`moonshotai/kimi-k2.6`, set in B9) drives every retention score but its agreement with a stronger reference judge / human labels is unvalidated. Measure agreement (accuracy / κ) on the judge-eligible types, document in `docs/metrics.md`, recommend a pinned judge. Surfaced 2026-06-03 during B9 wrap-up.
 - B15 — Benchmark validity watch-items (prior-saturation + question-type separation). (1) The `C≈P` exclusion makes effective `n` model-dependent — as base models improve, priors saturate and questions fall out (B9 smoke: 4/5 excluded), making renewable *novel* synth material load-bearing for validity, not just variety (informs B5/B8). (2) Report retention curves broken down by `question_type` so notes_llm's `surface_factual`-vs-`multi_hop` separation is legible — the stenography-vs-understanding-transfer signal. Surfaced 2026-06-03 in discussion.
 - B16 — Boundary token-counting proxy. Today the harness trusts SUT self-reported token usage; for a public-credibility artifact that's a reviewer's first attack. B9's `RETENTION_BENCH_BASE_URL` seam lets the harness interpose a forwarding proxy that tallies `usage` at the wire and reconciles against self-report (keeps the upstream key harness-side too). Surfaced 2026-06-03 during B9 wrap-up. *(NB: distinct from the completed `B13` constructive-SUT task — numbered B16 to avoid the ID clash.)*
