@@ -19,4 +19,4 @@
 {"id":"B9","status":"completed","priority":"medium","blocked_by":[],"task_file":"B9-openai-compat-client.md","commit":"c460bc8","created_at":"2026-06-03T03:10:02Z","completed_at":"2026-06-03T06:50:00Z"}
 {"id":"B16","status":"pending","priority":"medium","blocked_by":[],"task_file":"B16-boundary-token-proxy.md","commit":null,"created_at":"2026-06-03T07:10:00Z","completed_at":null}
 {"id":"B14","status":"pending","priority":"medium","blocked_by":[],"task_file":"B14-judge-quality-validation.md","commit":null,"created_at":"2026-06-03T07:10:00Z","completed_at":null}
-{"id":"B15","status":"in_progress","priority":"low","blocked_by":[],"task_file":"B15-benchmark-validity-watch.md","commit":null,"created_at":"2026-06-03T07:10:00Z","completed_at":null}
+{"id":"B15","status":"completed","priority":"low","blocked_by":[],"task_file":"B15-benchmark-validity-watch.md","commit":"46d6872","created_at":"2026-06-03T07:10:00Z","completed_at":"2026-06-03T00:00:00Z"}
