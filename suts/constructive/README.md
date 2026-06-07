@@ -120,6 +120,24 @@ This SUT speaks **two** one-line-JSON contracts from the *same* model code
 `SubprocessSystem` stays generic — all CL-Bench-specific bridging lives in
 `clbench_main.py`. See `tests/test_constructive_clbench.py`.
 
+### Sweeping the reset axis (gain-vs-`k`)
+
+`retention_bench.gain_curve` drives this entrypoint over a sweep of hard-reset
+densities and renders the retention/gain curve (the pivot's net-new axis,
+task **C4**), reconciled against CL-Bench's own `mean_gain`:
+
+```bash
+python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
+  --task-kwarg variant=five_ch_wide --task-kwarg num_instances=6 \
+  --sut "python -m constructive.clbench_main" \
+  --extra-pythonpath suts/constructive --reset-every 1 --reset-every 2
+```
+
+Because this SUT's reward is gibberish by construction, its band `C − P` is ~0
+and the curve correctly reports `EXCLUDED` — the honest negative result, now on
+the axis. See `docs/metrics.md` (*Reset-axis curve*) for the formula and the
+reconciliation.
+
 ## Configuration
 
 | Env var | Default | Notes |

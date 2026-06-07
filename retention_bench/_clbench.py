@@ -26,8 +26,12 @@ try:
         TaskResult,
         TaskStepResult,
         observation_marks_instance_complete,
+        serialize_instance_outcome,
         standard_evaluate,
     )
+    from src.registry import get_task_class, list_tasks  # noqa: F401
+    from src.runtime.runner import run_task  # noqa: F401
+    from src.trace_metrics import build_benchmark_aggregate  # noqa: F401
     from src.usage import UsageEvent  # noqa: F401
 except ModuleNotFoundError as exc:  # pragma: no cover - exercised via env, not unit
     raise ModuleNotFoundError(
@@ -50,6 +54,11 @@ __all__ = [
     "TaskResult",
     "TaskStepResult",
     "UsageEvent",
+    "build_benchmark_aggregate",
+    "get_task_class",
+    "list_tasks",
     "observation_marks_instance_complete",
+    "run_task",
+    "serialize_instance_outcome",
     "standard_evaluate",
 ]

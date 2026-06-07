@@ -93,6 +93,63 @@ A curve is the primary artifact. Summary statistics are secondary and useful for
 
 Summary statistics should always be reported with the curve, not instead of it.
 
+## Reset-axis curve on Continual Learning Bench (the pivot's net-new axis)
+
+Everything above is the book-track formulation (per-question `P`/`C`/`R(k)`
+probes inside one run). After the 2026-06-07 pivot (see
+[`clbench-pivot-plan.md`](clbench-pivot-plan.md)), the same normalisation is
+applied to **whole-run rewards on a Continual Learning Bench task**, where the
+axis is the number of *hard resets* `k` the run executed. This is the thing
+CL-Bench cannot express: its `mean_gain` is a single number at one implicit
+reset density.
+
+`retention_bench.gain_curve.run_reset_sweep` runs three kinds of arm on one
+CL-Bench task + system, each from a *fresh* survive-dir:
+
+- **ceiling `C`** — `NoReset`, no wipe: state accumulates unbroken (`R(0)`).
+- **prior `P`** — `EveryNInstances(1)` with `wipe_on_reset=True`: the survive-dir
+  is cleared on every boundary, so each instance is seen by a fresh, stateless
+  process. This is CL-Bench's stateless baseline in our hard-reset vocabulary.
+- **points `R(k)`** — one stateful (non-wiping) arm per requested schedule; `k`
+  is the *measured* `system.scheduled_resets`, not the nominal density.
+
+The per-point number is the **same** band normalisation as the book-track curve,
+reusing `scorer.aggregate.normalised_retention`:
+
+```
+norm_gain(k) = (R(k) − P) / max(C − P, ε)
+```
+
+The `C ≈ P` exclusion carries over unchanged: when the band collapses the curve
+is reported `EXCLUDED` and points show no normalised value. (On the constructive
+SUT, whose output is gibberish by construction, the band is ~0 and the curve
+*correctly* excludes — the honest negative result from `.tasks/debriefs/C3.md`,
+now visible on the axis rather than asserted in prose.)
+
+### Reconciliation with CL-Bench's gain
+
+We contribute the axis, **not** a competing formula. CL-Bench's normalised gain
+is `(r_sf − r_sl) / (r_max − r_sl)`; under `r_sf → R(k)`, `r_sl → P`,
+`r_max → C` that is exactly `norm_gain(k)`. The non-tautological check is on the
+numerator: our `R(k) − P` (a difference of run-mean rewards) must equal
+CL-Bench's `mean_gain`, which its own `build_benchmark_aggregate` computes as the
+mean of *per-instance* `rollout_reward − baseline_reward` matched by
+`instance_id`. The two agree exactly because both arms play the identical
+instance set, so the mean of the per-instance differences equals the difference
+of the means. Each `GainCurvePoint` carries `clbench_mean_gain` straight from
+their function, and `tests/test_gain_curve.py::test_reconciles_with_clbench_mean_gain`
+asserts the equality on every point — i.e. at the matching `k`, our number is
+CL-Bench's gain on the same run.
+
+Run it against any SUT speaking the `SubprocessSystem` contract:
+
+```bash
+python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
+  --task-kwarg variant=five_ch_wide --task-kwarg num_instances=6 \
+  --sut "python -m constructive.clbench_main" \
+  --extra-pythonpath suts/constructive --reset-every 1 --reset-every 2
+```
+
 ## Resource metrics
 
 Resource metrics are reported per run and as aggregates across `N`. They are not collapsed into the score; they live alongside it.
