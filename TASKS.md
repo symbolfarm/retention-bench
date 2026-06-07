@@ -8,28 +8,44 @@
 
 ## Current focus
 
-**Docker now works in this dev container** (verified 2026-06-03) — this is the
-**Sysbox agent container** (`--runtime=sysbox-runc`; confirmed via userns remap
-`uid_map 0 165536 65536`, `sysboxfs` mounts, `/var/lib/docker` →
-`/var/lib/sysbox/docker/…`), which runs a **real nested `dockerd`** inside the
-container. See [[project_incontainer_docker_sysbox]]. **No GPU here** (Sysbox
-doesn't pass GPUs through); GPU-dependent work uses a *separate* **ml
-plain-docker container** (PyTorch/GPU). But B4c needs no GPU — API-tier SUTs
-plus a torch-**CPU** constructive base — so it can build + smoke here in Sysbox.
-So B4c is **environment-unblocked**. Its brief assumes DooD + `HOST_WORKSPACE`
-translation, but the Sysbox daemon is *nested* and shares this container's
-filesystem, so `docker run -v /workspace:/…` bind-mounts the in-container path
-directly — `HOST_WORKSPACE` translation is likely a **no-op** here. B4c needs a
-re-scope against this (its brief also still says `tests/test_*_fake_anthropic.py`,
-renamed `fake_openai` in B9), **including a Toby call on which runtime B4c and
-future GPU-bearing eval runs should target** (Sysbox here vs the ml/GPU
-container). The meatier task; needs Toby input.
+**PIVOT (2026-06-07): retention-bench is now an extension on top of Continual
+Learning Bench** (Asawa et al., arXiv 2606.05661, Apache-2.0), not a standalone
+benchmark. We adopt their harness / task-ABC / metrics / leaderboard and
+contribute the two things they explicitly lack: a **hard RESET** (process-kill
+discontinuity where only an on-disk survive-dir persists) and a
+**constructive/parametric system class**. Full rationale + reuse/retire map:
+[`docs/clbench-pivot-plan.md`](docs/clbench-pivot-plan.md). See also
+[[project_clbench_pivot]].
 
-**Unblocked tasks available now:** B16 (boundary token proxy), B14 (open-model
-judge quality validation). Unfiled doc ideas: B5/B6/B7. *(Earlier MVP focus, below, is complete as of M7 — kept for
-context.)*
+The **C0 integration spike** (done, commit `9edfd93`; debrief
+`.tasks/debriefs/C0.md`) proved the adapter seam against CL-Bench's real runner:
+our `SubprocessSystem` (reusing `harness.sut_process`) runs through their runner,
+hard reset rides on the existing `reset_between_instances` hook with **zero core
+changes**, and the harness discriminates retention (survive-dir 1.0 vs wiped
+baseline 0.2). Key finding: the k-axis (reset density) is owned **system-side**,
+so no upstream change blocks us.
+
+**Unblocked tasks available now:** **C1** (triage CL-Bench's 6 tasks for
+cross-reset purity + shape + the understanding signal) and **C2** (productionize
+the `SubprocessSystem` + reset schedule + compute accounting). Then C3 (wire the
+constructive SUT) → C4 (retention-curve reporting) → C5 (author outreach, gated)
+/ C6 (constructive-friendly task, if C1 shows a gap) / C7 (upstream PRs, optional).
+
+The CL-Bench env lives at `/home/agent/src/cl-bench` (py3.13 venv, `cl-benchmark`
+installed `-e`). Use `/home/agent/src/cl-bench/.venv/bin/python`.
+
+**Dropped by the pivot:** B4c (docker/tier — CL-Bench owns packaging), B14 (judge
+quality — no judge anymore), B16 (token proxy — CL-Bench owns cost accounting).
+Marked `superseded` in the log; see their debriefs.
 
 ---
+
+## Historical: standalone-benchmark era (M1–M7, B1–B16) — SUPERSEDED by the pivot
+
+Kept for context and "why" archaeology. The completed work below (the harness,
+scorer, and reference SUTs) is the source of what we now **reuse** as
+contributions — chiefly `harness/sut_process.py`, `harness/dir_lifecycle.py`,
+and `suts/constructive/`. See the reuse/retire table in the pivot plan.
 
 **Operational MVP for the book-track.** Goal: a runnable end-to-end smoke test
 where the harness drives a no-state reference SUT through a toy book-track task,
