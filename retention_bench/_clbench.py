@@ -31,6 +31,11 @@ try:
     )
     from src.registry import get_task_class, list_tasks  # noqa: F401
     from src.runtime.runner import run_task  # noqa: F401
+    from src.tasks.blind_spectrum_monitoring.corpus import (  # noqa: F401
+        build_rollout_corpus,
+        default_corpus_paths,
+        write_scan_corpus,
+    )
     from src.trace_metrics import build_benchmark_aggregate  # noqa: F401
     from src.usage import UsageEvent  # noqa: F401
 except ModuleNotFoundError as exc:  # pragma: no cover - exercised via env, not unit
@@ -55,10 +60,13 @@ __all__ = [
     "TaskStepResult",
     "UsageEvent",
     "build_benchmark_aggregate",
+    "build_rollout_corpus",
+    "default_corpus_paths",
     "get_task_class",
     "list_tasks",
     "observation_marks_instance_complete",
     "run_task",
     "serialize_instance_outcome",
     "standard_evaluate",
+    "write_scan_corpus",
 ]

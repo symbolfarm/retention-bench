@@ -26,6 +26,7 @@ pytest.importorskip("src.interface", reason="cl-benchmark (import 'src') not ins
 
 from retention_bench import (  # noqa: E402
     EveryNInstances,
+    ExplicitBoundaries,
     NoReset,
     ResetSchedule,
     SubprocessSystem,
@@ -107,6 +108,60 @@ def test_excluded_band_yields_none_normalised_gain():
     assert all(p.normalised_gain is None for p in curve.points)
     # The CL-Bench gain numerator is still well-defined (and ~0 here).
     assert all(p.clbench_mean_gain == pytest.approx(0.0, abs=1e-6) for p in curve.points)
+
+
+def test_explicit_boundaries_arm_measures_placed_resets():
+    """C10: an ExplicitBoundaries arm — the tool for placing resets on vs off a
+    drift boundary — fires only at the listed ordinals, so measured k equals the
+    count of listed ordinals that fall within the run. Boundaries past the run
+    length are harmless (never fire)."""
+    # 5 instances; resets placed after ordinals 2 and 4 fire (k=2); the 7 never does.
+    curve = _sweep([ExplicitBoundaries([2, 4, 7])], num_instances=5)
+    (point,) = curve.points
+    assert point.k == 2
+    assert point.schedule_label == "boundaries:2,4,7"
+
+
+def test_explicit_boundaries_placement_changes_measured_k():
+    """Two placements with different in-range ordinal counts yield different k —
+    the axis distinguishes where the resets land, which is what the on-vs-off-drift
+    sweep exploits."""
+    curve = _sweep(
+        [ExplicitBoundaries([2, 4]), ExplicitBoundaries([3])], num_instances=5
+    )
+    ks = sorted(p.k for p in curve.points)
+    assert ks == [1, 2]
+
+
+def test_cli_reset_at_builds_explicit_boundary_arms():
+    """The --reset-at CLI flag parses comma-separated ordinals into one
+    ExplicitBoundaries arm each (the surface the drift-placement run uses)."""
+    from retention_bench import gain_curve as gc
+
+    captured: dict = {}
+
+    def fake_sweep(make_system, make_task, schedules, **kwargs):
+        captured["schedules"] = schedules
+        captured["kwargs"] = kwargs
+        return _sweep([NoReset()], num_instances=1)  # cheap real GainCurve to render
+
+    monkey = pytest.MonkeyPatch()
+    monkey.setattr(gc, "run_reset_sweep", fake_sweep)
+    try:
+        rc = gc.main(
+            [
+                "--task", "blind_spectrum_monitoring",
+                "--sut", "python -m noop",
+                "--reset-at", "30,60",
+                "--reset-at", "35,65",
+            ]
+        )
+    finally:
+        monkey.undo()
+
+    assert rc == 0
+    labels = [s.label for s in captured["schedules"]]
+    assert labels == ["boundaries:30,60", "boundaries:35,65"]
 
 
 def test_render_table_contains_band_and_rows(capsys):

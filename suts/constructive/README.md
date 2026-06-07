@@ -138,6 +138,23 @@ and the curve correctly reports `EXCLUDED` — the honest negative result, now o
 the axis. See `docs/metrics.md` (*Reset-axis curve*) for the formula and the
 reconciliation.
 
+To place resets **on vs off a concept-drift boundary** (task **C10**) use the
+`default` 3-stage schedule and `--reset-at` instead of `--reset-every` (drifts at
+ordinals 30 and 60):
+
+```bash
+python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
+  --task-kwarg schedule=default --task-kwarg probe_mode=true \
+  --sut "python -m constructive.clbench_main" \
+  --extra-pythonpath suts/constructive \
+  --reset-at "30,60" --reset-at "35,65" --name constructive-drift
+```
+
+The `default` schedule needs the `mixed_grid_lifecycle` frozen corpus (ships with
+the cl-benchmark dependency; regenerate/verify via `python -m
+retention_bench.bsm_corpus --verify`). See `docs/metrics.md` (*Placing resets on
+a concept-drift boundary*).
+
 ## Configuration
 
 | Env var | Default | Notes |

@@ -150,6 +150,55 @@ python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
   --extra-pythonpath suts/constructive --reset-every 1 --reset-every 2
 ```
 
+### Placing resets on a concept-drift boundary (the non-monotonic story)
+
+`--reset-every N` spaces resets uniformly. The richer claim the pivot wants to
+expose is **non-monotonic**: usually more resets means less retention, but a
+single reset placed *on* a concept-drift boundary can *help* by clearing a
+now-stale prior. To test that you must place resets deliberately, not uniformly —
+that is `ExplicitBoundaries`, exposed on the CLI as `--reset-at`:
+
+```bash
+# BSM `default` schedule: 3 stages × 30 instances, drift at ordinals 30 and 60.
+# On-drift {30,60} vs just-after {35,65}, k matched at 2 resets each.
+python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
+  --task-kwarg schedule=default --task-kwarg probe_mode=true \
+  --sut "python -m constructive.clbench_main" \
+  --extra-pythonpath suts/constructive \
+  --reset-at "30,60" --reset-at "35,65" --name constructive-drift
+```
+
+The `default` three-stage schedule (`Wideband → +Narrowband → Full grid`) is a
+concept drift: new radio channels switch on at each stage boundary, so belief
+the system accumulated about "empty" guard bands becomes a confidently-wrong
+prior the instant the next stage starts. A reset *on* the boundary (`{30,60}`)
+discards exactly that stale prior; a reset *just after* (`{35,65}`) instead
+discards the fresh, correct adaptation the system has already begun — same `k`,
+opposite effect. `ExplicitBoundaries` ordinals are 1-based completed-instance
+counts; ordinals past the run length never fire.
+
+**Data prerequisite.** The `default` schedule declares
+`corpus_id: mixed_grid_lifecycle`, so CL-Bench requires that frozen corpus on
+disk (it refuses to silently fall back to seeded scans, raising
+`FileNotFoundError`). The corpus ships git-tracked inside the cl-benchmark
+dependency at `data/blind_spectrum_monitoring/mixed_grid_lifecycle.{jsonl,_metadata.json}`
+— a fresh clone already has it. It is byte-deterministic (seeded `SpectrumDGP`
+rollouts, seeds 42/43/44); `retention_bench.bsm_corpus` regenerates or verifies
+it:
+
+```bash
+python -m retention_bench.bsm_corpus --verify   # regenerate in a temp dir, compare sha256; writes nothing
+python -m retention_bench.bsm_corpus            # (re)write into the cl-bench data dir if missing
+```
+
+> **Note on what's observable today.** With the current constructive SUT (output
+> is gibberish by construction — out of scope to fix, see
+> [`.tasks/debriefs/C3.md`](../.tasks/debriefs/C3.md)) the reward band collapses
+> (`C ≈ P`), so the drift sweep renders `EXCLUDED` and every placement reports no
+> normalised value. The corpus + `--reset-at` machinery is what C10 delivers; the
+> non-monotonic *shape* needs a retaining-but-imperfect SUT plugged into the same
+> command.
+
 ## Resource metrics
 
 Resource metrics are reported per run and as aggregates across `N`. They are not collapsed into the score; they live alongside it.

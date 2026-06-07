@@ -62,7 +62,12 @@ from ._clbench import (
     run_task,
     serialize_instance_outcome,
 )
-from .reset_schedule import EveryNInstances, NoReset, ResetSchedule
+from .reset_schedule import (
+    EveryNInstances,
+    ExplicitBoundaries,
+    NoReset,
+    ResetSchedule,
+)
 from .system import SubprocessSystem
 
 # A factory that builds a fresh system bound to ``state_dir`` for one arm. The
@@ -279,7 +284,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         default=[],
         metavar="N",
         help="Add a stateful arm that hard-resets every N instances (repeatable). "
-        "Measured k is plotted. Default: 1, 2, 3 if none given.",
+        "Measured k is plotted. Default: 1, 2, 3 if no --reset-every/--reset-at given.",
+    )
+    parser.add_argument(
+        "--reset-at",
+        action="append",
+        default=[],
+        metavar="O1,O2,...",
+        help="Add a stateful arm that hard-resets after exactly the listed 1-based "
+        "completed-instance ordinals (ExplicitBoundaries; repeatable). Use to place "
+        'resets on vs just-off a concept-drift boundary, e.g. --reset-at "30,60" '
+        '--reset-at "35,65" on the BSM default schedule (drifts at 30 and 60).',
     )
     parser.add_argument(
         "--task-kwarg",
@@ -310,8 +325,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     command = shlex.split(args.sut)
     extra_pythonpath = [Path(p).resolve() for p in args.extra_pythonpath]
     name = args.name or args.task
-    every = args.reset_every or [1, 2, 3]
-    schedules = [EveryNInstances(n) for n in every]
+    schedules: list[ResetSchedule] = [EveryNInstances(n) for n in args.reset_every]
+    for spec in args.reset_at:
+        ordinals = [int(tok) for tok in spec.split(",") if tok.strip()]
+        if not ordinals:
+            raise SystemExit(f"--reset-at needs at least one ordinal, got {spec!r}")
+        schedules.append(ExplicitBoundaries(ordinals))
+    if not schedules:  # neither flag given: keep the historical default sweep.
+        schedules = [EveryNInstances(n) for n in (1, 2, 3)]
 
     def make_system(state_dir: Path, schedule: ResetSchedule, wipe: bool) -> SubprocessSystem:
         return SubprocessSystem(
