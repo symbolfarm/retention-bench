@@ -28,3 +28,4 @@
 {"id":"C6","status":"pending","priority":"medium","blocked_by":["C1"],"task_file":"C6-constructive-task.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":null}
 {"id":"C7","status":"pending","priority":"low","blocked_by":[],"task_file":"C7-upstream-prs.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":null}
 {"id":"C0","status":"completed","priority":"high","blocked_by":[],"task_file":"C0-integration-spike.md","commit":"9edfd93","created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-07T05:59:21Z"}
+{"id":"C8","status":"pending","priority":"low","blocked_by":["C2"],"task_file":"C8-multistep-sut-adapter.md","commit":null,"created_at":"2026-06-07T06:45:00Z","completed_at":null}
