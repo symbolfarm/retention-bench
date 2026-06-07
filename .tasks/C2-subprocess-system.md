@@ -25,8 +25,11 @@ configurable reset schedule, and compute `UsageEvent`s.
 
 ## Acceptance criteria
 
-- [ ] `retention_bench/` package; `pyproject.toml` declares `cl-benchmark` dep,
-      python `>=3.13`.
+- [ ] `retention_bench/` package; python `>=3.13`. `pyproject.toml` declares the
+      CL-Bench dependency as a **pinned GitHub VCS dependency** (not PyPI — not
+      published yet), e.g.
+      `cl-benchmark @ git+https://github.com/pgasawa/continual-learning-bench.git@<commit-sha>`.
+      Pin an exact commit (spike used `9cc63c0`), not a branch, for reproducibility.
 - [ ] `SubprocessSystem(ContinualLearningSystem)`: spawn/kill via
       `harness.sut_process`; `respond()` maps `Query` -> SUT stage I/O ->
       `query.response_schema`; `reset()` = hard process bounce keeping survive-dir.
@@ -50,6 +53,15 @@ configurable reset schedule, and compute `UsageEvent`s.
   blocker (C0 finding). A first-class reset schedule upstream is a C7 nice-to-have.
 - D1 (resolved 2026-06-07): adopt their harness; reuse only sut_process +
   dir_lifecycle from the old harness.
+- **Dependency form (resolved 2026-06-07):** depend on CL-Bench as a *pinned
+  GitHub VCS dependency*, not a vendored clone or submodule. Rationale: they
+  haven't published to PyPI, and a pinned `git+https://…@<sha>` is reproducible
+  without carrying their source in-tree. Keep a throwaway clone (e.g.
+  `/home/agent/src/cl-bench`) only when actively reading/patching their source
+  for C7. **Watch-out:** their distribution is literally named `src` (import path
+  `src.*`), which is collision-prone inside our own package — confirm a clean
+  import story (the C0 spike imported `src.*` directly; a thin re-export or an
+  upstream rename request may be warranted).
 
 ## Out of scope
 
