@@ -7,11 +7,16 @@ name = "retention-bench"
 version = "0.1.0"
 description = "Benchmark measuring LLM-agent retention across working-state discontinuities."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 license = { text = "MIT" }
 authors = [{ name = "Symbol Farm" }]
 dependencies = [
     "PyYAML>=6.0",
+    # Continual Learning Bench (Asawa et al.) — not on PyPI, so pin an exact
+    # commit of the GitHub source for reproducibility. Imports as `src.*`; see
+    # retention_bench/_clbench.py for the single re-export chokepoint. This dep
+    # drives the py>=3.13 floor (cl-benchmark requires 3.13).
+    "cl-benchmark @ git+https://github.com/pgasawa/continual-learning-bench.git@9cc63c0f429048b843e8d43ac4f2b0ea4df13724",
 ]
 
 [project.optional-dependencies]
@@ -27,7 +32,7 @@ retention-bench = "harness.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["harness*"]
+include = ["harness*", "retention_bench*"]
 exclude = ["tests*", "runs*"]
 
 [tool.pytest.ini_options]
