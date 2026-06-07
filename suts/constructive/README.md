@@ -95,6 +95,31 @@ printf '%s\n' \
 Expected: a READ ack carrying a `notes` self-report, then a QUIZ reply with an
 `answers` list (content gibberish). A `checkpoint.pt` is left in the cwd.
 
+## Two entrypoints: book-track vs. CL-Bench
+
+This SUT speaks **two** one-line-JSON contracts from the *same* model code
+(`model` / `train` / `checkpoint` / `grow`):
+
+- **`python -m constructive`** — the original **book-track** `READ`/`QUIZ` event
+  contract (`docs/sut-interface.md`). Used by the standalone smoke above and the
+  book-track harness.
+- **`python -m constructive.clbench_main`** — the **Continual Learning Bench**
+  contract (`{prompt, response_schema, feedback}` → `{action, resource}`), driven
+  through `retention_bench.SubprocessSystem` (task **C3**). There is no separate
+  `READ` stage in CL-Bench's single-shot tasks, so each *query* is the learning
+  signal: a bounded gradient step is taken on the prompt bytes, capacity grows on
+  schedule, and the checkpoint is flushed *before* the reply (surviving the hard
+  `RESET`'s `SIGKILL`). The reply `action` is synthesised from the query's
+  `response_schema` (a generic JSON-Schema→value walker), with leaf values drawn
+  from the model's gibberish generation — **schema-valid** so the runner never
+  crashes, **model-derived** so the output reflects the constructed weights.
+  Reward quality remains a non-goal; the point is that a constructive system runs
+  as a CL-Bench system, persists through the reset, and is accounted for in the
+  `compute` channel.
+
+`SubprocessSystem` stays generic — all CL-Bench-specific bridging lives in
+`clbench_main.py`. See `tests/test_constructive_clbench.py`.
+
 ## Configuration
 
 | Env var | Default | Notes |
@@ -103,7 +128,9 @@ Expected: a READ ack carrying a `notes` self-report, then a QUIZ reply with an
 | `CONSTRUCTIVE_BLOCK_SIZE` | `64` | Context window (bytes). |
 | `CONSTRUCTIVE_D_MODEL` | `64` | Model width. |
 | `CONSTRUCTIVE_N_HEADS` | `4` | Attention heads. |
-| `CONSTRUCTIVE_N_LAYERS` | `2` | Initial block count (grows to 3 after READ #1). |
+| `CONSTRUCTIVE_N_LAYERS` | `2` | Initial block count (grows after the first instance). |
+| `CONSTRUCTIVE_GROW_EVERY` | `0` | CL-Bench entrypoint: also grow every N instances (0 = grow only once, at instance 1). |
+| `CONSTRUCTIVE_MAX_LAYERS` | `6` | CL-Bench entrypoint: cap on grown block count (bounds CPU cost). |
 
 `RETENTION_BENCH_DIR` (set by the harness) is honoured as the `DIR` path; the
 SUT falls back to its cwd, which the harness sets to `DIR` anyway.
