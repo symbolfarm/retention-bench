@@ -31,5 +31,5 @@
 {"id":"C8","status":"pending","priority":"low","blocked_by":["C2"],"task_file":"C8-multistep-sut-adapter.md","commit":null,"created_at":"2026-06-07T06:45:00Z","completed_at":null}
 {"id":"C9","status":"completed","priority":"medium","blocked_by":[],"task_file":"C9-containerized-sut-launch.md","commit":"aaf29e4","created_at":"2026-06-07T13:30:00Z","completed_at":"2026-06-08T15:15:00Z"}
 {"id":"C10","status":"completed","priority":"medium","blocked_by":[],"task_file":"C10-drift-corpus.md","commit":"5b5437e","created_at":"2026-06-07T15:35:00Z","completed_at":"2026-06-07T17:55:00Z"}
-{"id":"C11","status":"pending","priority":"high","blocked_by":[],"task_file":"C11-incontext-validation-sut.md","commit":null,"created_at":"2026-06-08T15:30:00Z","completed_at":null}
+{"id":"C11","status":"completed","priority":"high","blocked_by":[],"task_file":"C11-incontext-validation-sut.md","commit":"8f9b99c","created_at":"2026-06-08T15:30:00Z","completed_at":"2026-06-08T15:50:00Z"}
 {"id":"C12","status":"pending","priority":"medium","blocked_by":[],"task_file":"C12-nonroot-sut-containers.md","commit":null,"created_at":"2026-06-08T15:30:00Z","completed_at":null}
