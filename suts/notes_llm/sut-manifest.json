@@ -5,6 +5,7 @@
   "hardware_tier": "API",
   "strict_verbatim": false,
   "entrypoint": ["python", "-m", "notes_llm"],
+  "clbench_entrypoint": ["python", "-m", "notes_llm.clbench_main"],
   "env": ["OPENROUTER_API_KEY", "NOTES_LLM_MODEL", "RETENTION_BENCH_BASE_URL"],
   "resource_appendix": {
     "kind": "api",
