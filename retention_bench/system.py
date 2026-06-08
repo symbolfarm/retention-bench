@@ -46,7 +46,11 @@ We reuse the *process lifecycle* (spawn/kill) and define our own framing.
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import uuid
+import weakref
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -63,6 +67,38 @@ from ._clbench import (
 from .reset_schedule import NoReset, ResetSchedule
 
 _RESERVED_REPLY_KEY = "resource"
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+@dataclass(frozen=True)
+class ContainerLaunch:
+    """Opt-in: launch the SUT inside a docker container instead of as a bare
+    host subprocess (reuses the B4a engine in :mod:`harness.sut_process`).
+
+    The SUT package must be installed in ``image`` — ``extra_pythonpath`` does
+    not apply in container mode, and the survive-dir is bind-mounted at
+    ``/dir`` (``DIR_CONTAINER_PATH``) with ``RETENTION_BENCH_DIR`` pointing at
+    it, matching the subprocess contract (cwd=survive-dir).
+
+    Args:
+        image: docker image tag to run. The image's ``python`` runs the
+            system's ``command`` as the in-container entrypoint, so ``command``
+            must name an entrypoint the *image* provides (e.g. for the
+            constructive SUT, ``["python", "-m", "constructive.clbench_main"]``
+            — the CL-Bench wire entrypoint, **not** the book-track
+            ``constructive`` module the manifest's ``entrypoint`` field names).
+        env_names: harness-environment variable *names* forwarded into the
+            container by name only (``-e NAME``), so secret values never appear
+            in argv or logs.
+        name_prefix: base for the per-spawn container name. The system appends
+            a per-instance run token + the spawn index so a RESET's fresh
+            container never collides with the one being torn down, and two
+            systems sharing a prefix never clash.
+    """
+
+    image: str
+    env_names: list[str] = field(default_factory=list)
+    name_prefix: str = "retbench-sut"
 
 
 class SubprocessSystem(ContinualLearningSystem):
@@ -98,6 +134,7 @@ class SubprocessSystem(ContinualLearningSystem):
         timeout_s: float = 300.0,
         extra_pythonpath: Optional[list[Path]] = None,
         stderr_log: Optional[Path] = None,
+        container: Optional[ContainerLaunch] = None,
     ) -> None:
         self._command = list(command)
         self._state_dir = Path(state_dir)
@@ -108,10 +145,24 @@ class SubprocessSystem(ContinualLearningSystem):
         self._timeout_s = timeout_s
         self._extra_pythonpath = extra_pythonpath
         self._stderr_log = stderr_log
+        self._container = container
+        # Per-instance token makes container names unique across SubprocessSystem
+        # instances that share a name_prefix (e.g. the gain-curve sweep arms).
+        self._run_token = uuid.uuid4().hex[:8]
 
         self._handle: Optional[sut_process.SUTHandle] = None
         self._completed_instances = 0
         self._last_storage_bytes, _ = dir_lifecycle.account_dir(self._state_dir)
+
+        # Backstop teardown. CL-Bench's runner has no end-of-run hook and never
+        # bounces the *last* spawned SUT, so a forgotten shutdown() would leak
+        # the final process — cheap as an orphan subprocess, but a live docker
+        # container otherwise. The finalizer holds a mutable box (not ``self``,
+        # which it must not keep alive) that _spawn/_hard_bounce keep in sync, so
+        # a still-live handle is reaped at GC / interpreter exit. shutdown()
+        # detaches it once cleanup has run explicitly.
+        self._live_handle: dict[str, Optional[sut_process.SUTHandle]] = {"handle": None}
+        self._finalizer = weakref.finalize(self, _reap_handle, self._live_handle)
 
         # Observability counters (asserted by tests; surfaced for C4 reporting).
         self.spawns = 0
@@ -127,8 +178,37 @@ class SubprocessSystem(ContinualLearningSystem):
             invocation_index=self.spawns,
             stderr_log=self._stderr_log,
             extra_pythonpath=self._extra_pythonpath,
+            container=self._build_container_spec(),
         )
+        self._live_handle["handle"] = self._handle
         self.spawns += 1
+
+    def _build_container_spec(self) -> Optional[sut_process.ContainerSpec]:
+        """Build a fresh per-spawn ``ContainerSpec``, or ``None`` for the
+        default subprocess path.
+
+        Mirrors ``harness.event_loop._make_container_spec``: the survive-dir is
+        translated for the docker daemon's view (a no-op when HOST_WORKSPACE is
+        unset — e.g. the Sysbox nested daemon that shares this filesystem), the
+        container name is unique per spawn (so a RESET's fresh container never
+        collides with the one ``docker rm -f`` is tearing down), and the
+        fake-OpenAI test shim is opt-in via ``$RETENTION_BENCH_SHIM_DIR``.
+        """
+        if self._container is None:
+            return None
+        shim_dir = os.environ.get("RETENTION_BENCH_SHIM_DIR")
+        shim_host = (
+            sut_process.host_path_for_mount(Path(shim_dir), _REPO_ROOT)
+            if shim_dir
+            else None
+        )
+        return sut_process.ContainerSpec(
+            image=self._container.image,
+            container_name=f"{self._container.name_prefix}-{self._run_token}-{self.spawns:02d}",
+            dir_host_path=sut_process.host_path_for_mount(self._state_dir, _REPO_ROOT),
+            env_names=list(self._container.env_names),
+            shim_host_path=shim_host,
+        )
 
     def _hard_bounce(self) -> None:
         """SIGKILL the SUT (if alive) and drop the handle; survive-dir is kept.
@@ -142,8 +222,32 @@ class SubprocessSystem(ContinualLearningSystem):
             sut_process.kill_sut(self._handle)
             self.kills += 1
             self._handle = None
+            self._live_handle["handle"] = None
         if self._wipe_on_reset:
             self._wipe_survive_dir()
+
+    def shutdown(self) -> None:
+        """Reap the live SUT at end of run — kill the process and ``docker rm
+        -f`` the container (via :func:`harness.sut_process.kill_sut`).
+
+        CL-Bench's runner never bounces the *last* spawned SUT (the one alive
+        when the run ends) and exposes no teardown hook, so call this — or use
+        the system as a context manager — to avoid leaking the final container.
+        It is plain teardown, **not** a scheduled reset, so it touches neither
+        ``scheduled_resets`` nor ``kills`` (those track the reset schedule).
+        Idempotent.
+        """
+        if self._handle is not None:
+            sut_process.kill_sut(self._handle)
+            self._handle = None
+        self._live_handle["handle"] = None
+        self._finalizer.detach()
+
+    def __enter__(self) -> "SubprocessSystem":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.shutdown()
 
     def _wipe_survive_dir(self) -> None:
         """Stateless-baseline arm: clear everything except the reserved prefix."""
@@ -291,6 +395,20 @@ class SubprocessSystem(ContinualLearningSystem):
                 },
             )
         )
+
+
+def _reap_handle(box: dict[str, Optional[sut_process.SUTHandle]]) -> None:
+    """Best-effort teardown of a still-live SUT handle, called by the weakref
+    finalizer when a :class:`SubprocessSystem` is collected without an explicit
+    shutdown(). Swallows everything — this runs during GC / interpreter exit."""
+    handle = box.get("handle")
+    if handle is None:
+        return
+    try:
+        sut_process.kill_sut(handle)
+    except Exception:
+        pass
+    box["handle"] = None
 
 
 def _split_reply(reply: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:

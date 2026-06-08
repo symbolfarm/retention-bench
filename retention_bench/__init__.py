@@ -18,13 +18,14 @@ from .reset_schedule import (
     NoReset,
     ResetSchedule,
 )
-from .system import SubprocessSystem
+from .system import ContainerLaunch, SubprocessSystem
 
 # gain_curve imports scorer + cl-benchmark at module load; keep it lazy so the
 # lightweight schedule/system symbols import without those heavier deps present.
 
 __all__ = [
     "SubprocessSystem",
+    "ContainerLaunch",
     "ResetSchedule",
     "NoReset",
     "EveryNInstances",

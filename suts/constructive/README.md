@@ -77,10 +77,44 @@ docker build -t retention-bench/sut-constructive:0.1 suts/constructive/
 ```
 
 The model is from-scratch and offline (no HF downloads); the checkpoint lands
-in the bind-mounted `/dir` and survives RESET. The harness launches a SUT in
-its image when the manifest declares an `image` field; that wiring (plus the
-smoke tests) lands in task **B4c**. See `docs/sut-interface.md` → "Launch
-modes".
+in the bind-mounted `/dir` and survives RESET. **Build-verified under task C9**
+(Docker 29.x via the Sysbox nested daemon).
+
+To run this SUT *in its container* through CL-Bench's runner, hand
+`SubprocessSystem` a `ContainerLaunch` — note the in-container command is the
+**CL-Bench** entrypoint (`constructive.clbench_main`), not the manifest's
+book-track `entrypoint`:
+
+```python
+from retention_bench import SubprocessSystem, ContainerLaunch, EveryNInstances
+
+system = SubprocessSystem(
+    ["python", "-m", "constructive.clbench_main"],   # in-container entrypoint
+    state_dir,
+    reset_schedule=EveryNInstances(2),
+    container=ContainerLaunch(
+        image="retention-bench/sut-constructive:0.1",
+        env_names=["CONSTRUCTIVE_SEED", "CONSTRUCTIVE_N_LAYERS", ...],  # forwarded by name
+    ),
+)
+```
+
+The hard RESET tears the **container** down (`docker rm -f` by name) and a fresh
+container loads the survived `/dir/checkpoint.pt`; `system.shutdown()` (or using
+the system as a context manager) reaps the final container, which no RESET
+bounces. The manifest's `image` field marks the SUT as containerisable and
+`clbench_entrypoint` records the wire entrypoint. Subprocess launch stays the
+default — container mode is opt-in, so the daemon-free test suite stays green.
+See `tests/test_constructive_container_clbench.py` (docker-gated end-to-end) and
+`docs/sut-interface.md` → "Launch modes".
+
+**Bind-mount path translation.** `ContainerLaunch` translates `state_dir` to the
+docker daemon's view via `$HOST_WORKSPACE` (the DooD case). Under the Sysbox
+nested daemon validated here the daemon shares this filesystem, so `HOST_WORKSPACE`
+is unset and the translation is a **no-op** — the survive-dir is bind-mounted
+verbatim. A bare-host DooD topology (host `docker.sock`) would set `HOST_WORKSPACE`
+to the host's repo path; keep the survive-dir under the repo root so the
+translation resolves.
 
 ## Run standalone (smoke check, outside the harness)
 

@@ -202,3 +202,77 @@ def test_observe_emits_storage_event_and_tracks_delta():
     assert md["reset"] is True  # schedule fired (next_query present)
     assert md["instance_ordinal"] == 1
     assert system.kills == 1
+
+
+# --------------------------------------------------------------------------- #
+# C9: container-launch wiring. Daemon-free — these exercise ContainerSpec
+# construction and the subprocess-default invariant, not a real `docker run`
+# (that lives in tests/test_constructive_container_clbench.py, docker-gated).
+# --------------------------------------------------------------------------- #
+from harness.sut_process import DIR_CONTAINER_PATH, build_docker_argv  # noqa: E402
+
+from retention_bench import ContainerLaunch  # noqa: E402
+
+
+def test_subprocess_is_the_default_no_container_spec(tmp_path):
+    """No ContainerLaunch → _build_container_spec is None → spawn_sut takes the
+    bare-subprocess branch (the always-on default stays unchanged)."""
+    system = SubprocessSystem(COUNTER_CMD, tmp_path / "d")
+    assert system._build_container_spec() is None
+
+
+def test_container_spec_built_from_launch(monkeypatch, tmp_path):
+    monkeypatch.delenv("HOST_WORKSPACE", raising=False)
+    monkeypatch.delenv("RETENTION_BENCH_SHIM_DIR", raising=False)
+    system = SubprocessSystem(
+        ["python", "-m", "constructive.clbench_main"],
+        tmp_path / "d",
+        container=ContainerLaunch(image="img:0.1", env_names=["CONSTRUCTIVE_SEED"]),
+    )
+    spec = system._build_container_spec()
+    assert spec is not None
+    assert spec.image == "img:0.1"
+    assert spec.env_names == ["CONSTRUCTIVE_SEED"]
+    assert spec.shim_host_path is None
+    # Name = prefix-runtoken-NN; the run token namespaces this instance.
+    assert spec.container_name == f"retbench-sut-{system._run_token}-00"
+    # HOST_WORKSPACE unset → daemon shares the fs → no path translation.
+    assert spec.dir_host_path == str(tmp_path / "d")
+    # The system's command is appended verbatim as the in-container entrypoint —
+    # the CL-Bench wire entrypoint, and DIR is bind-mounted at the fixed path.
+    argv = build_docker_argv(spec, system._command)
+    assert argv[-3:] == ["python", "-m", "constructive.clbench_main"]
+    assert f"{spec.dir_host_path}:{DIR_CONTAINER_PATH}" in argv
+
+
+def test_container_name_unique_per_spawn_index(tmp_path):
+    system = SubprocessSystem(["x"], tmp_path / "d", container=ContainerLaunch(image="img"))
+    n0 = system._build_container_spec().container_name
+    system.spawns = 1  # simulate a post-reset respawn
+    n1 = system._build_container_spec().container_name
+    assert n0.endswith("-00") and n1.endswith("-01")
+    assert n0 != n1  # a RESET's fresh container never collides with the killed one
+
+
+def test_container_names_disjoint_across_systems(tmp_path):
+    a = SubprocessSystem(["x"], tmp_path / "a", container=ContainerLaunch(image="img"))
+    b = SubprocessSystem(["x"], tmp_path / "b", container=ContainerLaunch(image="img"))
+    assert a._run_token != b._run_token  # per-instance token
+    assert a._build_container_spec().container_name != b._build_container_spec().container_name
+
+
+def test_container_spec_includes_shim_when_env_set(monkeypatch, tmp_path):
+    monkeypatch.delenv("HOST_WORKSPACE", raising=False)
+    shim = Path(__file__).parent / "fake_openai_shim"
+    monkeypatch.setenv("RETENTION_BENCH_SHIM_DIR", str(shim))
+    system = SubprocessSystem(["x"], tmp_path / "d", container=ContainerLaunch(image="img"))
+    assert system._build_container_spec().shim_host_path == str(shim)
+
+
+def test_shutdown_is_idempotent_without_a_live_handle(tmp_path):
+    """shutdown() with no spawned SUT is a harmless no-op, and is safe to call
+    twice (the context-manager exit path); the finalizer detaches cleanly."""
+    system = SubprocessSystem(COUNTER_CMD, tmp_path / "d")
+    system.shutdown()
+    system.shutdown()
+    assert system._handle is None
