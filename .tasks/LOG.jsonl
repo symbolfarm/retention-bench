@@ -35,6 +35,6 @@
 {"id":"C12","status":"pending","priority":"medium","blocked_by":[],"task_file":"C12-nonroot-sut-containers.md","commit":null,"created_at":"2026-06-08T15:30:00Z","completed_at":null}
 {"id":"C13","status":"completed","priority":"high","blocked_by":[],"task_file":"C13-public-internal-split.md","commit":"785a556","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-10T08:45:00Z"}
 {"id":"C14","status":"pending","priority":"high","blocked_by":["C13"],"task_file":"C14-public-readme.md","commit":null,"created_at":"2026-06-10T07:30:00Z","completed_at":null}
-{"id":"C15","status":"pending","priority":"high","blocked_by":["C13"],"task_file":"C15-license-attribution.md","commit":null,"created_at":"2026-06-10T07:30:00Z","completed_at":null}
+{"id":"C15","status":"completed","priority":"high","blocked_by":["C13"],"task_file":"C15-license-attribution.md","commit":"541c48b","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-10T09:05:00Z"}
 {"id":"C16","status":"pending","priority":"medium","blocked_by":["C13"],"task_file":"C16-docs-triage.md","commit":null,"created_at":"2026-06-10T07:30:00Z","completed_at":null}
 {"id":"C17","status":"pending","priority":"medium","blocked_by":["C13","C14","C15","C16"],"task_file":"C17-cut-orphan-main.md","commit":null,"created_at":"2026-06-10T07:30:00Z","completed_at":null}
