@@ -21,8 +21,10 @@ scoping doc. It is wrong on multiple counts for a public reader (see
   "What this project owes other projects" sections (internal joint-scoping +
   cross-project strategy).
 
-This README is a **divergent variant** maintained directly on `main` (per C13) —
-not snapshotted from `dev`.
+The lean README is authored on `dev` (replacing the stale one) and snapshotted to
+`main` like every other public file — `main` is a strict subset, no divergent
+files (per C13). `AGENTS.md` (dev-only) carries internal orientation, so the
+README needn't differ between branches.
 
 ## Goal
 
@@ -58,7 +60,7 @@ Plus a `.env.example` the `.gitignore` already whitelists.
 
 ## Decisions already made
 
-- README is a `main`-only variant (C13), not promoted from `dev`.
+- README authored on `dev`, snapshotted to `main` (C13); no divergent variant.
 - Public face leads with the contribution (reset + constructive), CL-Bench as the
   base it extends — consistent with the C5 outreach framing (don't claim priority).
 

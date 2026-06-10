@@ -12,8 +12,8 @@ arXiv 2606.05661, **Apache-2.0**) and **reuses CL-Bench's harness/runner** via t
 adapter seam (see [[project_clbench_pivot]]), so the derivation needs explicit
 attribution, not just a license of our own.
 
-LICENSE/NOTICE are `main`-only public files (maintained directly on `main` per
-C13's divergent-file handling), though they can equally live on `dev` too.
+LICENSE/NOTICE are authored on `dev` and snapshotted to `main` like every other
+public file (`main` is a strict subset, no divergent files — per C13).
 
 ## Goal
 
