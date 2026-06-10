@@ -19,7 +19,7 @@
 - **`docs/README.md`** index: one line per current doc + a prose note that
   standalone-era specs live on `dev` under `docs/archive/`.
 - **Fixed 3 dangling cross-links in `metrics.md`** that would break on `main`: a
-  link + an inline ref to `.tasks/debriefs/C3.md` (dev-only), and two links to the
+  link + an inline ref to `.tasks/debriefs/C3-constructive-system.md` (dev-only), and two links to the
   now-archived `extensions.md`. Rephrased to keep meaning without the broken refs.
 - Verified via `promote.sh dryrun`: `main`'s `docs/` = the 5 current docs + index,
   `docs/archive/` excluded, leak check clean.

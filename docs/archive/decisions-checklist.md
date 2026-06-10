@@ -86,12 +86,12 @@ so a framework (DeepEval/Inspect) would contribute only its judge-prompt
 scaffold (~5%) at full dependency weight and impose its own loop assumptions.
 A `Scorer` protocol seam (`scorer/protocols.py`) keeps a library swappable in
 later as another `Scorer` implementation if the metric battery expands.
-Multi-judge remains out of scope. See `.tasks/debriefs/B3.md`.
+Multi-judge remains out of scope. See `.tasks/debriefs/B3-llm-judge-scorer.md`.
 
 **Update (B9, 2026-06-03):** the judge is unchanged in design (still a single
 hand-rolled, schema-validated tool call) but the call now goes through the
 `openai` SDK to an OpenAI-compatible `base_url` rather than the Anthropic SDK —
-pinned to the open model `moonshotai/kimi-k2.6`. See `.tasks/debriefs/B9.md` and
+pinned to the open model `moonshotai/kimi-k2.6`. See `.tasks/debriefs/B9-openai-compat-client.md` and
 `docs/metrics.md`.
 
 ### 7. Stage-dependency surfacing default
@@ -160,7 +160,7 @@ interim default** because the `llama-cpp-python` native build was out of scope
 for B2. Flip to llama-cpp once B4's Dockerfile builds it. The embedder
 backend/model is SUT "code"/asset, not `DIR` content (cf. #8 DIR accounting);
 the vector index (`DIR/index.jsonl`) is the `DIR`-resident artifact. See
-`.tasks/debriefs/B2.md`.
+`.tasks/debriefs/B2-naive-rag-sut.md`.
 
 ### 12. Replayability minimum
 
