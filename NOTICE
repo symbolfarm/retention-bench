@@ -1,0 +1,28 @@
+retention-bench
+Copyright 2026 Toby Lightheart / Symbol Farm
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+------------------------------------------------------------------------
+This product extends and depends on third-party work:
+
+Continual Learning Bench (CL-Bench)
+  Authors:  Parth Asawa et al.
+  Source:   https://github.com/pgasawa/continual-learning-bench
+  Paper:    "Continual Learning Bench", arXiv:2606.05661
+  License:  Apache License, Version 2.0
+
+retention-bench builds on Continual Learning Bench. It is consumed as a
+pinned-commit dependency (the `cl-benchmark` package; see pyproject.toml) and
+is NOT redistributed in this repository. retention-bench adapts CL-Bench's
+runner, task interface, and evaluation contract via a thin adapter layer
+(`retention_bench/`) and adds, as its own original contributions:
+
+  - a hard RESET — a process-kill discontinuity across which only an on-disk
+    survive-directory persists; and
+  - a constructive / parametric system class (a train-and-grow reference
+    learner) and its compute accounting.
+
+Original copyright in CL-Bench is held by its respective authors. This NOTICE
+is provided for attribution under Apache-2.0 §4(d) and is informational; it
+does not modify the License.

@@ -8,8 +8,12 @@ version = "0.1.0"
 description = "Benchmark measuring LLM-agent retention across working-state discontinuities."
 readme = "README.md"
 requires-python = ">=3.13"
-license = { text = "MIT" }
-authors = [{ name = "Symbol Farm" }]
+license = { text = "Apache-2.0" }
+authors = [{ name = "Toby Lightheart" }, { name = "Symbol Farm" }]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "PyYAML>=6.0",
     # Continual Learning Bench (Asawa et al.) — not on PyPI, so pin an exact
