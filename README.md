@@ -1,78 +1,76 @@
----
-title: Continual-Learning Eval (CL-N)
-status: scoping (joint-scoping mode; pilot #2 of the joint-scoping pattern)
-started: 2026-05-08
-promoted_from: scratch/continual-learning-eval/ (commit 3733126)
-tags: [project, continual-learning, eval, benchmark, scoping]
----
+# retention-bench
 
-# Continual-Learning Eval
+A benchmark measuring how gracefully an LLM-agent system's task performance
+**degrades across discontinuities that erase working state**. The headline
+artifact is a *retention curve*: task score as a function of the number of
+resets `k`, comparing systems with different memory / state-preservation
+strategies on equal footing.
 
-Research project for a benchmark that measures **how gracefully a system's task performance degrades across discontinuities** that erase working state. The headline artifact is a *retention curve*: task score as a function of the number of discontinuities, comparing systems with different memory/state-preservation strategies on equal footing.
+retention-bench is an **extension on top of [Continual Learning Bench](https://github.com/pgasawa/continual-learning-bench)**
+(CL-Bench; Asawa et al., arXiv:2606.05661). It adopts CL-Bench's runner, task
+interface, and evaluation contract, and contributes the two things CL-Bench
+explicitly lacks:
 
-**Interface design (resolved 2026-05-09, Turn 3 of [[design-dialogue]]):** one protocol with a **mechanism-agnostic interface**. The SUT is a subprocess that reads `STAGE_INPUT`, possibly mutates a persistent-state directory, and writes `STAGE_OUTPUT` within an action budget. Discontinuity = `process.kill()` + only the directory survives. SGD fine-tuning, structural growth (constructive nets), agent-with-notes, vector-store retrieval, EWC, and so on are all *reference modes* above the interface — the harness can't tell them apart.
+- **A hard RESET** — a process-kill discontinuity across which *only* an on-disk
+  survive-directory persists. A system under test (SUT) is a subprocess spanning
+  one reset to the next; everything in memory is gone at each reset, so any score
+  that survives must have been carried through the survive-dir.
+- **A constructive / parametric system class** — a train-and-grow reference
+  learner that grows capacity across reads, with compute accounting, alongside
+  the agent-memory reference SUTs (no-state, notes, naive-RAG).
 
-**Eval philosophy (locked Turn 5, 2026-05-13):** the load-bearing rule is **cross-reset purity** — no scored question is answerable from the SUT's current `STAGE_INPUT` alone; every scored retention question requires state carried across at least one RESET. A run is a sequence of `READ`, `QUIZ`, and `RESET` events; a SUT process spans `RESET`-to-`RESET`. Per-question, the eval measures three probes: `P` (prior knowledge, before any reading), `C` (capability ceiling, with the text fresh in the same process), and `R(k)` (retention after `k` resets). The headline metric is **normalized retention** `(R − P) / (C − P)` — how much of what was *learnable in principle* survived the resets. A useful side-effect: pretraining contamination becomes a measured quantity (a high `P`) rather than something to be avoided, which widens the usable asset pool.
-
-For the cross-project framing of how this eval composes with the sibling projects (constructive-neural-networks and eureka-tokens), see [research-stack-synthesis](https://github.com/symbolfarm/meta-research/blob/main/projects/research-stack-synthesis.md) — CL-eval supplies the **measurement** slot in the trigger-operator-measurement triple.
-
-Two **areas of focus** for task and reference-mode design (not protocol bifurcations):
-
-- **Agent-memory area** — externally-legible framing; most current memory-system work lives here, so most external interest will land here first.
-- **Constructive area** — priority area for this project's owner; the constructive-neural-networks project depends on this evaluator existing.
-
-Task and reference-mode design decisions resolve the way constructive-area concerns dictate, but the agent-memory area keeps its seat because (a) it's the more externally legible framing and (b) v0.1 of the spec already invested heavily in it.
+Because the SUT interface is **mechanism-agnostic** (read a stage, optionally
+mutate the survive-dir, write a response), fine-tuning, structural growth,
+notes, and retrieval are all just reference modes above one contract — the
+harness can't tell them apart.
 
 ## Quickstart
 
-End-to-end smoke run on the no-state reference SUT:
+Requires **Python 3.13+** (the `cl-benchmark` dependency sets this floor).
 
 ```bash
-# 1. Drop your Anthropic key in .env (gitignored):
-echo "ANTHROPIC_API_KEY=sk-..." > .env
-# Optional model override (default: claude-haiku-4-5-20251001):
-#   echo "NO_STATE_MODEL=claude-sonnet-4-6" >> .env
+# 1. Install (editable), with the no-state reference SUT's dependencies:
+pip install -e ".[no-state-sut]"
 
-# 2. Run the canonical smoke task end-to-end:
+# 2. Provide an API key for the OpenAI-compatible endpoint (OpenRouter default):
+cp .env.example .env
+#   then edit .env and set OPENROUTER_API_KEY=...
+
+# 3. Run the canonical end-to-end smoke test:
 ./run.sh smoke
 ```
 
-This drives `tasks/smoke-test/task.yaml` (a public-domain text + 5
-questions) through the harness + no-state SUT and scores the resulting
-trace, printing a `P` / `C` / `R(k)` retention table. The no-state SUT
-is the floor row — it never reads the source — so all questions are
-correctly excluded by the `C≈P` rule. See
-`tasks/smoke-test/sample-output.md` for a captured-output reference.
+This drives `tasks/smoke-test/task.yaml` (a public-domain text + 5 questions)
+through the harness and the **no-state** reference SUT, then scores the trace and
+prints a `P` / `C` / `R(k)` retention table. The no-state SUT is the floor row —
+it never reads the source — so every question is correctly excluded by the
+`C ≈ P` rule (see [`docs/metrics.md`](docs/metrics.md)).
 
-Runs are written to `runs/<run-id>/` (gitignored). Each run dir contains
-`trace.jsonl`, `questions.jsonl`, `run-manifest.json`,
-`sut-manifest.json`, `dir/`, `snapshots/`, `stages/`, and
-`sut-stderr.log` — the full audit trail.
+Runs are written to `runs/<run-id>/` (gitignored): `trace.jsonl`,
+`questions.jsonl`, run/SUT manifests, the survive-`dir/`, snapshots, stage I/O,
+and SUT stderr — the full audit trail.
 
-For arbitrary tasks: `./run.sh <task.yaml> --sut <sut-pkg-dir>` (or
-`python -m harness ... && python -m scorer <run-dir>` directly).
+For an arbitrary task: `./run.sh <task.yaml> --sut <sut-dir>` (or call
+`python -m harness ...` and `python -m scorer <run-dir>` directly).
 
-## Entry points
+## How retention is scored
 
-- `AGENTS.md` — orientation for a fresh agent resuming the project. Read first.
-- `TASKS.md` + `.tasks/` — current MVP task queue (task-cycle skill).
-- `docs/decisions-checklist.md` — resolved design decisions. Load-bearing for what we're building.
-- `docs/spec.md` — the v0.1 design spec, promoted from `scratch/`. **Read for the protocol shape, not as a final commitment to scope.**
-- `history/design-dialogue.md` — joint-scoping conversation, all turns. Superseded by the decisions checklist; consult for "why" archaeology.
-- `history/handover.md` — earlier read-order guide; predates Turn 5/6, superseded by `AGENTS.md`.
+Each question is probed three ways: `P` (prior knowledge, before any reading),
+`C` (capability ceiling, with the text fresh in the same process), and `R(k)`
+(retention after `k` resets). The headline metric is **normalised retention**
+`(R − P) / (C − P)` — how much of what was *learnable in principle* survived the
+resets. Questions where `C ≈ P` (nothing was learnable, or priors already
+saturate) are excluded rather than scored. Full definitions, the reset axis, and
+reconciliation with CL-Bench's gain are in [`docs/metrics.md`](docs/metrics.md).
 
-The other spec documents under `docs/` (`protocol.md`, `interface.md`, `metrics.md`, `tasks.md`, `topology.md`, `validity.md`, `extensions.md`, `open-questions.md`) are reference material — *v0.1 starting points*, not stable specifications. `docs/interface.md` in particular is slated for rewrite.
+## Documentation
 
-## What this project owes other projects
+See [`docs/`](docs/) — start with [`docs/clbench-pivot-plan.md`](docs/clbench-pivot-plan.md)
+(what retention-bench reuses vs. contributes) and
+[`docs/sut-interface.md`](docs/sut-interface.md) (the SUT process contract).
 
-- **constructive-neural-networks** depends on the weight-update track existing in some form. CNN's branch-promotion gate ("read the eval before drilling into target signal or unit-of-construction") was set against this project's previous shape (a deferred extension); promoting + reopening scope satisfies the dependency-shape that CNN actually needs.
+## License
 
-## Communication norms
-
-This project uses the **echo-back / design-dialogue / idea-tree** joint-scoping pattern, same as the CNN project. See `feedback/joint-design-dialogue-pattern.md` and `feedback/echo-back-communication-norms.md`. The CNN project is pilot #1 of this mode; this is pilot #2.
-
-## Status
-
-**MVP implementation cleared (2026-05-20).** All 16 active decisions in `docs/decisions-checklist.md` resolved; #17 (train/no-train lane) deferred. Headline resolutions: atomic-event model (`READ`/`QUIZ`/`RESET`) with three-probe baselines (`P`/`C`/`R(k)`) and `(R−P)/(C−P)` normalised retention; thin test harness + SUT-internal scaffolding; two leaderboards (agentic vs. in-context with mock tool-call transcripts); constructive-SUT weights accounted as a delta in `DIR` (in-place training → storage delta = 0, FLOPs becomes the load-bearing cost signal); five hardware tiers (Consumer / 1×H100 / 8×H100 / API / Open).
-
-Build order tracked in `TASKS.md` + `.tasks/LOG.jsonl` under the `task-cycle` skill.
+Apache-2.0 — see [`LICENSE`](LICENSE). retention-bench builds on Continual
+Learning Bench (Apache-2.0), consumed as a pinned-commit dependency; attribution
+is in [`NOTICE`](NOTICE).
