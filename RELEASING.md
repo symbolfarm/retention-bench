@@ -32,7 +32,7 @@ first so that **deletions on `dev` propagate** (a plain `git checkout dev -- <p>
 never removes files). It verifies no dev-only path leaked, and it **never pushes**.
 
 ```bash
-# Validate mechanics without touching main (orphan-snapshot to a throwaway branch):
+# Validate mechanics without touching main (builds the snapshot in a temp worktree):
 scripts/promote.sh dryrun
 
 # First public release — create the orphan `main`:
