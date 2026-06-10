@@ -123,7 +123,7 @@ norm_gain(k) = (R(k) − P) / max(C − P, ε)
 The `C ≈ P` exclusion carries over unchanged: when the band collapses the curve
 is reported `EXCLUDED` and points show no normalised value. (On the constructive
 SUT, whose output is gibberish by construction, the band is ~0 and the curve
-*correctly* excludes — the honest negative result from `.tasks/debriefs/C3.md`,
+*correctly* excludes — the honest negative result for the constructive SUT,
 now visible on the axis rather than asserted in prose.)
 
 ### Reconciliation with CL-Bench's gain
@@ -192,8 +192,7 @@ python -m retention_bench.bsm_corpus            # (re)write into the cl-bench da
 ```
 
 > **Note on what's observable today.** With the current constructive SUT (output
-> is gibberish by construction — out of scope to fix, see
-> [`.tasks/debriefs/C3.md`](../.tasks/debriefs/C3.md)) the reward band collapses
+> is gibberish by construction — out of scope to fix) the reward band collapses
 > (`C ≈ P`), so the drift sweep renders `EXCLUDED` and every placement reports no
 > normalised value. The corpus + `--reset-at` machinery is what C10 delivers; the
 > non-monotonic *shape* needs a retaining-but-imperfect SUT plugged into the same
@@ -370,6 +369,6 @@ never starves the aggregate.
 
 ## What is deliberately not measured in v1
 
-- **Failure-mode diagnostics** (was memory not stored, stored but not retrieved, retrieved but misapplied, corrupted across clears?). This is important for the benchmark's long-term diagnostic value but is deferred to task-level question design in v2. See [`extensions.md`](./extensions.md).
+- **Failure-mode diagnostics** (was memory not stored, stored but not retrieved, retrieved but misapplied, corrupted across clears?). This is important for the benchmark's long-term diagnostic value but is deferred to task-level question design in v2.
 - **Transfer to novel tasks** post-clear. This is a lifelong-learning concern orthogonal to the CL-N retention question and is better served by separate benchmarks.
-- **Weight-update catastrophic forgetting.** Deferred to [`extensions.md`](./extensions.md).
+- **Weight-update catastrophic forgetting.** Deferred to a future extension.
