@@ -14,8 +14,8 @@ benchmark. We adopt their harness / task-ABC / metrics / leaderboard and
 contribute the two things they explicitly lack: a **hard RESET** (process-kill
 discontinuity where only an on-disk survive-dir persists) and a
 **constructive/parametric system class**. Full rationale + reuse/retire map:
-[`docs/clbench-pivot-plan.md`](docs/clbench-pivot-plan.md). See also
-[[project_clbench_pivot]].
+[`docs/archive/clbench-pivot-plan.md`](docs/archive/clbench-pivot-plan.md)
+(archived dev-only by C18). See also [[project_clbench_pivot]].
 
 The **C0 integration spike** (done, commit `9edfd93`; debrief
 `.tasks/debriefs/C0-integration-spike.md`) proved the adapter seam against CL-Bench's real runner:

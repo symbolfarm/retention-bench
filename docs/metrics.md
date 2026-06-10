@@ -1,8 +1,6 @@
 # Metrics
 
-> **Note (Turn 5, 2026-05-13):** This document is being updated in step with Turn 5 of [[design-dialogue]]. The atomic-event model and three-probe baselines (`prior` / `ceiling` / `retention`) reshape how the retention curve is computed: per-question normalisation against a measured prior–ceiling band, rather than against a single CL-0 baseline. The `N` axis is replaced by `k` (resets-since-relevant-read).
-
-The headline output of a CL-N evaluation is a **retention curve**: normalised retention score as a function of `k`, the number of `RESET`s separating a `READ` event from the subsequent `retention`-probe `QUIZ`. Resource metrics are reported alongside, not collapsed into the headline.
+The headline output of a retention-bench evaluation is a **retention curve**: normalised retention score as a function of `k`, the number of `RESET`s separating a `READ` event from the subsequent `retention`-probe `QUIZ`. Retention is computed per-question against a measured prior–ceiling band (the `prior` / `ceiling` / `retention` three-probe model below), not against a single baseline. Resource metrics are reported alongside, not collapsed into the headline.
 
 ## Per-question probes
 
@@ -34,7 +32,7 @@ The `ε` floor (typical `ε = 0.05` of the score range) excludes questions where
 
 For a given SUT and task, the curve plots aggregated normalised retention vs. `k`:
 
-- Aggregate `normalised_retention(k, q)` across questions `q` for each `k`. Default: mean, weighted by question-class (with thematic and retroactively-relevant questions weighted higher per [[tasks]]).
+- Aggregate `normalised_retention(k, q)` across questions `q` for each `k`. Default: mean, weighted by question-class (with thematic and retroactively-relevant questions weighted higher).
 - Plot vs. `k = 1, 2, ..., k_max`.
 - Curve shape is the primary artifact; summary statistics are derived from it.
 
@@ -96,8 +94,7 @@ Summary statistics should always be reported with the curve, not instead of it.
 ## Reset-axis curve on Continual Learning Bench (the pivot's net-new axis)
 
 Everything above is the book-track formulation (per-question `P`/`C`/`R(k)`
-probes inside one run). After the 2026-06-07 pivot (see
-[`clbench-pivot-plan.md`](clbench-pivot-plan.md)), the same normalisation is
+probes inside one run). The same normalisation is also
 applied to **whole-run rewards on a Continual Learning Bench task**, where the
 axis is the number of *hard resets* `k` the run executed. This is the thing
 CL-Bench cannot express: its `mean_gain` is a single number at one implicit
@@ -194,18 +191,18 @@ python -m retention_bench.bsm_corpus            # (re)write into the cl-bench da
 > **Note on what's observable today.** With the current constructive SUT (output
 > is gibberish by construction — out of scope to fix) the reward band collapses
 > (`C ≈ P`), so the drift sweep renders `EXCLUDED` and every placement reports no
-> normalised value. The corpus + `--reset-at` machinery is what C10 delivers; the
+> normalised value. The corpus + `--reset-at` machinery is in place; the
 > non-monotonic *shape* needs a retaining-but-imperfect SUT plugged into the same
 > command.
 
 ## Resource metrics
 
-Resource metrics are reported per run and as aggregates across `N`. They are not collapsed into the score; they live alongside it.
+Resource metrics are reported per run and as aggregates across the run. They are not collapsed into the score; they live alongside it.
 
 ### Token usage
 
 - **Tokens per session (in/out).** Reveals how much a session costs.
-- **Cumulative tokens across the run.** Reveals total cost of completing the task at this `N`.
+- **Cumulative tokens across the run.** Reveals total cost of completing the full run.
 - **Cold-start tokens:** tokens spent in the first `X%` of each post-clear session. A proxy for how much effort the SUT spends reconstructing working state from the filesystem. A high cold-start cost is a legitimate architectural signal.
 - **Tokens per unit score:** cumulative tokens / task score. A rough efficiency proxy.
 
@@ -213,7 +210,7 @@ Resource metrics are reported per run and as aggregates across `N`. They are not
 
 - **Filesystem size at end of each session.** Absolute measure of accumulated state.
 - **Delta per session:** bytes added/modified/removed. Reveals information rate and whether the system prunes.
-- **Growth trajectory across `N`:** does filesystem size grow linearly with sessions, sublinearly (compression), or is it bounded?
+- **Growth trajectory across the run:** does filesystem size grow linearly with sessions, sublinearly (compression), or is it bounded?
 - **Storage efficiency:** task score / filesystem size. Loosely, how much "useful state per byte." Imperfect but informative.
 
 Note: raw size is not the whole story. A 10 GB vector store with excellent retrieval may outperform a 10 MB markdown file with poor retrieval. Report all storage metrics and let the reader compare systems on their own efficiency frontier.
@@ -232,7 +229,7 @@ These reveal whether a memory system has genuine indexing or is scanning.
 
 ## Reporting format
 
-A CL-N result for one SUT on one task should include:
+A retention-bench result for one SUT on one task should include:
 
 1. **The retention curve** (normalised retention vs. `k`), with error bars —
    pooled **and broken down by `question_type`** (see "Per-`question_type`
@@ -246,7 +243,7 @@ A CL-N result for one SUT on one task should include:
 
 Leaderboards, if they exist, should publish all of the above, not just a single score.
 
-## Scorer integration (B3)
+## Scorer integration
 
 ### Scorer seam
 
@@ -303,9 +300,10 @@ machine-readable and lean while making rationales auditable.
 - Model: read from `RETENTION_BENCH_JUDGE_MODEL` env var; falls back to
   `moonshotai/kimi-k2.6` (a pinned frontier *open* model). Calls go to an
   OpenAI-compatible `base_url` (`RETENTION_BENCH_BASE_URL`, default OpenRouter)
-  via the `openai` SDK and require `OPENROUTER_API_KEY`. (B9, 2026-06-03, moved
-  the judge and all SUT call sites off the Anthropic SDK to this provider-neutral
-  shape.) Judge-quality validation of the pinned open model is tracked in B14.
+  via the `openai` SDK and require `OPENROUTER_API_KEY`. (The judge and all SUT
+  call sites use this provider-neutral OpenAI-compatible shape.) Judge-quality
+  validation of the pinned open model against a stronger reference is a known
+  open item.
 - Prompt: reason-then-score structure.  The model produces a brief
   rationale before the verdict, which improves reliability on borderline
   cases.  Verdict is extracted via a tool call (`judge_verdict`), so no
@@ -323,20 +321,16 @@ machine-readable and lean while making rationales auditable.
   {"kind": "api", "model_id": "moonshotai/kimi-k2.6", "api_call_count": 3, "input_tokens": 380, "output_tokens": 145}
   ```
 
-  Per decision #6 (open-Q6): the SUT budget and the scoring budget are
-  different, so judge spend must never roll into the SUT's appendix.
+  The SUT budget and the scoring budget are different, so judge spend must
+  never roll into the SUT's appendix.
 
 ### Backward compatibility
 
-`--scorer exact-match` (default) reproduces M6 behavior exactly — past smoke
-runs re-score identically under the default.  The judge is strictly opt-in
-via `--scorer judge`.
+`--scorer exact-match` (default) reproduces the original exact-match behavior
+exactly — past smoke runs re-score identically under the default.  The judge is
+strictly opt-in via `--scorer judge`.
 
-**Note:** this section partially addresses backlog B7 (metrics documentation
-of scorer integration shape).  B7 is not fully closed — it also covers
-multi-question-type weighting and the full reporting format update.
-
-## Benchmark validity: prior saturation and material novelty (B15)
+## Benchmark validity: prior saturation and material novelty
 
 The `C ≈ P` exclusion (drop a question when the learnable gap `C − P < ε`) is
 the right call — a benchmark that returns *null* on a question with no learnable
@@ -346,7 +340,7 @@ tracked: it makes the benchmark's **effective `n` model-dependent**.
 A question is excluded precisely when the SUT's base model *already knows the
 answer cold* (`P ≈ C`). As base models improve, more world-knowledge questions
 saturate their priors and fall out the bottom of the aggregate. This is not
-hypothetical: the B9 smoke run excluded 4 of 5 questions (`n_usable = 1`)
+hypothetical: a smoke run excluded 4 of 5 questions (`n_usable = 1`)
 because a capable base model already answered them at prior.
 
 The implication reframes the synthetic-data track:
@@ -355,9 +349,8 @@ The implication reframes the synthetic-data track:
   renewable supply of material the model *provably has not seen* is what keeps
   `C − P` open and the benchmark able to measure anything at all. As models
   improve, only genuinely novel material keeps priors low enough to leave a
-  learnable gap. This raises the priority of the synth-gen work in
-  [[tasks]] (cohort dispatch / B8) and the mock-transcript / in-context-leaderboard
-  work (B5) from "variety" to "load-bearing for validity."
+  learnable gap. This makes a renewable supply of novel synthetic material
+  load-bearing for validity, not merely a source of variety.
 - **Target: keep mean `P` low** (well below `C`) on the questions that drive the
   curve. Report mean `P` prominently (see "Baselines reported alongside the
   curve") and treat a rising mean `P` across cohorts as a signal that the asset
@@ -370,5 +363,5 @@ never starves the aggregate.
 ## What is deliberately not measured in v1
 
 - **Failure-mode diagnostics** (was memory not stored, stored but not retrieved, retrieved but misapplied, corrupted across clears?). This is important for the benchmark's long-term diagnostic value but is deferred to task-level question design in v2.
-- **Transfer to novel tasks** post-clear. This is a lifelong-learning concern orthogonal to the CL-N retention question and is better served by separate benchmarks.
+- **Transfer to novel tasks** post-clear. This is a lifelong-learning concern orthogonal to the retention question this benchmark measures and is better served by separate benchmarks.
 - **Weight-update catastrophic forgetting.** Deferred to a future extension.

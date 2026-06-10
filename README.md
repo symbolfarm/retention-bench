@@ -65,9 +65,11 @@ reconciliation with CL-Bench's gain are in [`docs/metrics.md`](docs/metrics.md).
 
 ## Documentation
 
-See [`docs/`](docs/) — start with [`docs/clbench-pivot-plan.md`](docs/clbench-pivot-plan.md)
-(what retention-bench reuses vs. contributes) and
-[`docs/sut-interface.md`](docs/sut-interface.md) (the SUT process contract).
+See [`docs/`](docs/) — start with [`docs/sut-interface.md`](docs/sut-interface.md)
+(the SUT process contract) and [`docs/metrics.md`](docs/metrics.md) (how retention
+is scored). The input/output data contracts are in
+[`docs/task-definition-schema.md`](docs/task-definition-schema.md) and
+[`docs/trace-schema.md`](docs/trace-schema.md).
 
 ## License
 

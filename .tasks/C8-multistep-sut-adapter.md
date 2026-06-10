@@ -10,7 +10,7 @@
 
 ## Context
 
-C1 triage ([`docs/clbench-task-triage.md`](../docs/clbench-task-triage.md))
+C1 triage ([`docs/archive/clbench-task-triage.md`](../docs/archive/clbench-task-triage.md))
 picked **blind_spectrum_monitoring** as the first target precisely because it
 is the *only* single-shot task in CL-Bench — one `respond()` → terminal
 `InstanceOutcome`. **All five other tasks** (codebase_adaptation,
@@ -88,7 +88,7 @@ agentic task (poker, unless re-triaged).
 
 ## Relevant files
 
-- `docs/clbench-task-triage.md` (why this is deferred; second-target choice)
+- `docs/archive/clbench-task-triage.md` (why this is deferred; second-target choice)
 - `harness/sut_process.py` (`send_event`, the wire framing to generalize)
 - `docs/sut-interface.md` (the contract doc to update in lockstep)
 - `retention_bench/` (the C2 `SubprocessSystem` to extend)

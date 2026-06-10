@@ -1,7 +1,7 @@
 ---
 title: Task-definition schema
 project: retention-bench
-status: v1 (MVP) — locked 2026-05-20 (task M1)
+status: v1 — current
 tags: [schema, data-contract, tasks]
 ---
 
@@ -74,8 +74,8 @@ Exactly one of `path` or `text` is required.
 |---|---|---|---|
 | `id` | string | yes | Stable run-local ID (e.g., `q1`). Referenced from `QUIZ` events. |
 | `text` | string | yes | The question as the SUT will see it. |
-| `gold` | string | yes | Gold answer. For exact-match scoring (MVP), keep tight (one word or short phrase). Richer schemas land in B3. |
-| `type` | enum | yes | Taxonomy per `tasks.md`. |
+| `gold` | string | yes | Gold answer. For exact-match scoring, keep tight (one word or short phrase). Richer schemas may follow. |
+| `type` | enum | yes | Question-type taxonomy (the `type` values shown in the structure above). |
 | `material_ref` | string \| null | yes for non-prior questions | Material this question depends on. Null only for questions intended as pure prior-knowledge probes with no corresponding `READ`. |
 
 ## `events` entries
@@ -190,7 +190,6 @@ Validation failures are reported with a pointer to the offending entry.
 
 ## Cross-references
 
-- Decisions #1, #2, #6, #10 in `decisions-checklist.md`.
 - `trace-schema.md` — the output contract this input is processed into.
-- `tasks.md` — the book-track structure and question taxonomy.
-- `protocol.md` — `STAGE_INPUT` framing (some of this doc supersedes earlier protocol-doc statements; protocol.md rewrite is backlog B7).
+- `sut-interface.md` — the SUT process contract these events are delivered to.
+- `metrics.md` — how the resulting probes (`prior` / `ceiling` / `retention`) become a retention curve.

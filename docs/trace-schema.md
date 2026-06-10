@@ -1,15 +1,13 @@
 ---
 title: Trace schema
 project: retention-bench
-status: v1 (MVP) — locked 2026-05-20 (task M1); updated by M4 (structured SUT answers; harness no longer parses ANSWER tags)
+status: v1 — current. The harness records the SUT's structured answers directly; it does not parse ANSWER tags out of free text.
 tags: [schema, data-contract, trace]
 ---
 
 # Trace schema
 
 The trace is the data contract between the harness and everything downstream (scorers, audits, leaderboards). One run produces one **run directory** containing a JSONL event stream, a per-question records file, `DIR` snapshots, and two manifests.
-
-Realises decision #1 (JSONL + tarball snapshots) with field details from decisions #2, #6, #8, #10, #15.
 
 ## Run directory layout
 
@@ -52,7 +50,7 @@ Per-type additional fields:
 | Field | Type | Notes |
 |---|---|---|
 | `material_id` | string | From the task definition; identifies which reading material was delivered. |
-| `stage_input_path` | string | Relative path to `stages/<event_id>.in`. Tagged-section format per decision #2A. |
+| `stage_input_path` | string | Relative path to `stages/<event_id>.in`. Tagged-section format (see the worked example below). |
 | `stage_input_bytes` | integer | Byte size of the rendered STAGE_INPUT. |
 | `stage_output_path` | string | Relative path. Expected to be empty or a trivial ack. |
 
@@ -72,9 +70,9 @@ Per-type additional fields:
 | Field | Type | Notes |
 |---|---|---|
 | `snapshot_path` | string | Relative path to `snapshots/reset-<event_id>.tar.gz`. |
-| `dir_uncompressed_bytes` | integer | Sum of file sizes in `DIR` before snapshot. Decision #8C. |
+| `dir_uncompressed_bytes` | integer | Sum of file sizes in `DIR` before snapshot. |
 | `dir_file_count` | integer | Count of regular files in `DIR` (excluding the `.harness/` prefix the harness reserves). |
-| `dir_tarball_bytes` | integer | `tar.gz` size of the snapshot. Decision #8C. |
+| `dir_tarball_bytes` | integer | `tar.gz` size of the snapshot. |
 | `sut_kill_signal` | string | Signal used to terminate the SUT process (e.g., `SIGKILL`). |
 | `sut_exit_code` | integer \| null | Exit code if observable; null if process was force-killed before exit. |
 
@@ -90,11 +88,11 @@ One JSON object per (question, probe) instance — i.e., a `QUIZ` of 5 questions
 | `probe_type` | string | `prior` \| `ceiling` \| `retention`. Copied from event. |
 | `k` | integer \| null | Copied from event. |
 | `question_text` | string | Verbatim from task definition. |
-| `gold_answer` | string | Verbatim from task definition. Scorer-format (string for exact-match; richer schemas land in B3). |
+| `gold_answer` | string | Verbatim from task definition. Scorer-format (string for exact-match; richer schemas may follow). |
 | `sut_answer` | string | SUT's answer to this specific question, parsed out of `stage_output_path`. |
 | `question_type` | string | From taxonomy: `surface_factual` \| `entity_tracking` \| `multi_hop` \| `thematic` \| `retroactive`. |
 | `material_ref` | string \| null | Which READ this question depends on. Null for purely-prior questions. |
-| `question_seen_before` | integer | Count of prior exposures of this question in this run, before the current record. Decision #10B. Includes prior `P`, `C`, and earlier `R(k')` instances. |
+| `question_seen_before` | integer | Count of prior exposures of this question in this run, before the current record. Includes prior `P`, `C`, and earlier `R(k')` instances. |
 | `parsing_status` | string | `ok` \| `not_found` \| `ambiguous`. Surfaces SUT-answer-parsing failures without crashing the run. |
 
 ### SUT-answer ingestion
@@ -113,7 +111,7 @@ The harness reads this list and writes one `questions.jsonl` record per question
 
 The scorer treats `not_found` and `ambiguous` as score = 0 but they remain distinguishable in the records for diagnostics.
 
-The harness is intentionally agnostic to how the SUT produced its answers internally — tagged model outputs, JSON-mode, structured-output APIs, hand-written templates, anything. Earlier drafts had the harness regex-parse `<ANSWER id="…">` tags out of a `stage_output` text blob; M4 (2026-05-20) flipped this to keep the harness genuinely SUT-agnostic.
+The harness is intentionally agnostic to how the SUT produced its answers internally — tagged model outputs, JSON-mode, structured-output APIs, hand-written templates, anything. Earlier drafts had the harness regex-parse `<ANSWER id="…">` tags out of a `stage_output` text blob; this was changed to keep the harness genuinely SUT-agnostic.
 
 ## `run-manifest.json` — harness-side run metadata
 
@@ -138,14 +136,14 @@ Single JSON object. Written at run end.
 }
 ```
 
-- `sut_invocation_count` is the harness-external "tool call"-equivalent for SUT process spawns (decision #9 clarification — no peek into SUT internals).
+- `sut_invocation_count` is the harness-external "tool call"-equivalent for SUT process spawns (no peek into SUT internals).
 - `exit_status`: `ok` \| `sut_crash` \| `harness_error` \| `timeout`. `timeout` is set when any event exceeds the configured `event_timeout_seconds` (default 300s); the SUT is SIGKILLed and the run aborts.
 
 ## `sut-manifest.json` — SUT declarations
 
 Written by the harness at run start (copied from the SUT package's own `sut-manifest.json`) and re-written at run end with aggregated resource-accounting fields overlaid onto `resource_appendix`. SUT-declared fields (`name`, `version`, `mode`, `hardware_tier`, `strict_verbatim`, plus any non-counter fields under `resource_appendix` such as `gpu_model`) are preserved verbatim; harness-measured counters are written over the top.
 
-Aggregated by the harness at run end (M7, 2026-05-20):
+Aggregated by the harness at run end:
 
 - `resource_appendix.tokens_in` — sum of `tokens_in` reported by the SUT on each `QUIZ` reply.
 - `resource_appendix.tokens_out` — sum of `tokens_out`.
@@ -155,7 +153,7 @@ Aggregated by the harness at run end (M7, 2026-05-20):
 
 SUTs that don't report these fields keep the static-declared values (or zeros) — missing self-report doesn't fail the run.
 
-Schema mandated by M3, but the trace contract holds these fields:
+The trace contract holds these fields:
 
 ```json
 {
@@ -166,7 +164,7 @@ Schema mandated by M3, but the trace contract holds these fields:
   "strict_verbatim": true,
   "resource_appendix": {
     "kind": "api",
-    "model_id": "claude-haiku-4-5-20251001",
+    "model_id": "deepseek/deepseek-v4-flash",
     "tokens_in": 12450,
     "tokens_out": 3280,
     "api_call_count": 6
@@ -174,12 +172,12 @@ Schema mandated by M3, but the trace contract holds these fields:
 }
 ```
 
-`mode` ∈ {`agentic`, `in-context`} per decision #7. `hardware_tier` ∈ {`consumer`, `1xH100`, `8xH100`, `API`, `open`} per decision #16.
+`mode` ∈ {`agentic`, `in-context`}. `hardware_tier` ∈ {`consumer`, `1xH100`, `8xH100`, `API`, `open`}.
 
 `resource_appendix.kind`:
 
-- `local` → fields: `gpu_model`, `gpu_count`, `train_flops`, `inference_flops`, `wall_clock_ms` (decision #15 local regime).
-- `api` → fields: `model_id`, `tokens_in`, `tokens_out`, `api_call_count` (decision #15 API carve-out).
+- `local` → fields: `gpu_model`, `gpu_count`, `train_flops`, `inference_flops`, `wall_clock_ms`.
+- `api` → fields: `model_id`, `tokens_in`, `tokens_out`, `api_call_count`.
 
 SUTs write these as best-effort self-reports. Missing fields are logged but don't fail the run.
 
@@ -202,7 +200,7 @@ Task: one question, one read, one ceiling probe (no RESET, no retention — mini
 {"record_id":"evt-0003-q1","event_id":"evt-0003","question_id":"q1","probe_type":"ceiling","k":null,"question_text":"What is Gregor's profession?","gold_answer":"travelling salesman","sut_answer":"travelling salesman","question_type":"surface_factual","material_ref":"source","question_seen_before":1,"parsing_status":"ok"}
 ```
 
-`stages/evt-0001.in` (tagged-section STAGE_INPUT, decision #2A):
+`stages/evt-0001.in` (tagged-section STAGE_INPUT):
 
 ```
 <META>
@@ -223,7 +221,6 @@ event_id: evt-0001
 
 ## Cross-references
 
-- Decision #1, #2, #6, #8, #10, #15 in `decisions-checklist.md`.
 - `task-definition-schema.md` — the input contract this trace is produced against.
 - `metrics.md` — the `(R−P)/(C−P)` formula the scorer computes over `questions.jsonl`.
-- `protocol.md` — `STAGE_INPUT` / `STAGE_OUTPUT` framing (some of this doc supersedes earlier protocol-doc statements; protocol.md rewrite is backlog B7).
+- `sut-interface.md` — the SUT process contract that produces the `stage_output` payloads recorded here.
