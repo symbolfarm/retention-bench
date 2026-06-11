@@ -57,16 +57,16 @@ are gone; README/docs/TASKS reflect a single CL-Bench-native path.
 - [ ] `pytest` passes; `scripts/promote.sh dryrun` clean (public tree coherent,
       no dangling links, no archived docs leaking to `main`).
 
-## Decisions to confirm with Toby (do not bake silently)
+## Decisions made
 
-- **Disposition of `suts/no_state` + `suts/naive_rag`.** Both speak *only* the
-  book-track contract (no `clbench_main`); `notes_llm` + `constructive` are
-  already CL-Bench-native. The pivot plan marked all three DEPRIORITIZE
-  (duplicate CL-Bench's stateless / Mem0 / ICL-Notepad). `gain_curve`'s `P` arm
-  already provides the stateless floor intrinsically. **Recommendation: drop both
-  with the book-track** and update the README reference-SUT list to
-  `notes_llm` + `constructive` (+ the keyless BSM accumulator). Confirm before
-  removing — it is a public-story change. *[Toby's answer: TBD]*
+- **Drop both `suts/no_state` + `suts/naive_rag` with the book-track**
+  (Toby, 2026-06-11). They speak only the book-track contract (no `clbench_main`),
+  the pivot marked them DEPRIORITIZE (duplicate CL-Bench's stateless / Mem0), and
+  `gain_curve`'s `P` arm already provides the stateless floor intrinsically. The
+  public reference-SUT set becomes **`notes_llm` + `constructive` + the keyless
+  `bsm-accumulator`**. Update the README reference-SUT list accordingly, and
+  remove their tests (`test_no_state_*`, `test_naive_rag_*`) + the fake-openai
+  shim wiring if nothing else uses it (`notes_llm` still does — keep the shim).
 
 ## Relevant files
 
