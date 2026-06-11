@@ -1,106 +1,8 @@
 # Metrics
 
-The headline output of a retention-bench evaluation is a **retention curve**: normalised retention score as a function of `k`, the number of `RESET`s separating a `READ` event from the subsequent `retention`-probe `QUIZ`. Retention is computed per-question against a measured prior–ceiling band (the `prior` / `ceiling` / `retention` three-probe model below), not against a single baseline. Resource metrics are reported alongside, not collapsed into the headline.
+The headline output of a retention-bench evaluation is a **reset-axis retention curve**: normalised retention as a function of `k`, the number of hard `RESET`s the run executed. Each point applies a measured prior–ceiling band normalisation to the whole-run reward on a Continual Learning Bench task. This is the axis CL-Bench cannot express — its `mean_gain` is a single number at one implicit reset density. Resource metrics are reported alongside, not collapsed into the headline.
 
-## Per-question probes
-
-For each scored question `q` about reading material `m`:
-
-- `P(q)` — score on a `prior` `QUIZ` containing `q`, issued *before* `READ(m)`.
-- `C(q)` — score on a `ceiling` `QUIZ` containing `q`, issued *after* `READ(m)` and *before* the next `RESET`, within the same SUT process.
-- `R(k, q)` — score on a `retention` `QUIZ` containing `q`, issued after `k ≥ 1` `RESET`s following `READ(m)`.
-
-A given run can produce `P` and `C` once each per question, and `R(k)` at multiple values of `k`. Multiple seeds / trials estimate variance at each (`q`, `k`).
-
-## Normalised retention
-
-The per-question normalised retention is:
-
-```
-normalised_retention(k, q) = (R(k, q) − P(q)) / max(C(q) − P(q), ε)
-```
-
-Interpretation: how much of what was *learnable in principle for this SUT* (the gap `C − P`) survived `k` `RESET`s. By construction:
-
-- Values near 1 indicate the SUT retained the learnable gap.
-- Values near 0 indicate the SUT scored no better than its prior-knowledge baseline after `k` resets.
-- Negative values indicate post-reset performance below prior — possible if the SUT got confused by its own state.
-
-The `ε` floor (typical `ε = 0.05` of the score range) excludes questions where `C ≈ P` (no learnable signal at this SUT) from aggregation. Such questions are reported separately as informative-but-not-aggregated.
-
-## Retention curve
-
-For a given SUT and task, the curve plots aggregated normalised retention vs. `k`:
-
-- Aggregate `normalised_retention(k, q)` across questions `q` for each `k`. Default: mean, weighted by question-class (with thematic and retroactively-relevant questions weighted higher).
-- Plot vs. `k = 1, 2, ..., k_max`.
-- Curve shape is the primary artifact; summary statistics are derived from it.
-
-`k_max` is task-dependent and bounded by the run's event sequence. A task with `S` `RESET` events admits `k ∈ {1, ..., S}` for material delivered before the first `RESET`.
-
-### Per-`question_type` breakdown (stenography vs. understanding)
-
-The pooled curve is also reported **broken down by `question_type`**, not just
-aggregated across all questions. This is not cosmetic — it is the load-bearing
-signal that distinguishes *understanding-transfer* from *stenography*.
-
-Consider `notes_llm`, which retains by writing cumulative notes to `DIR` —
-externalised episodic memory, done competently. If it posts a strong *pooled*
-retention curve, that may mean nothing more than "facts survived in the notes."
-The discriminating question is whether the curve **separates by type**:
-
-- **`surface_factual`** — answers a competent note-taker can carry verbatim.
-  High retention here is expected and says little about comprehension.
-- **`multi_hop`** (and `entity_tracking`) — require synthesis the notes do not
-  literally contain. Retention here is the signal that *understanding*, not just
-  text, survived the reset.
-
-**Interpretation rule:**
-
-- **Separation** — strong `surface_factual`, collapsing `multi_hop` — is the
-  understanding-transfer signal the benchmark exists to measure. A system that
-  only stenographs will show exactly this gap.
-- **Flat-high across all types** is a *warning*, not a triumph: it suggests the
-  benchmark (or this asset's questions) is rewarding stenography, or that the
-  `multi_hop` questions aren't actually requiring synthesis. Inspect the asset
-  before celebrating the curve.
-
-The scorer emits the per-type curve in `render_curve` (a `by question_type:`
-block after the pooled aggregate), computed by
-`scorer.aggregate.aggregate_curve_by_type`. The `C ≈ P` exclusion is applied
-*within* each type group, so a type's `n_usable` can differ from the pooled `n`.
-
-## Baselines reported alongside the curve
-
-The curve is *normalised*, but the un-normalised probes are reported separately to make the SUT legible:
-
-- **Mean `P` across questions** — how much the SUT could answer cold. A high `P` indicates contamination or general-knowledge inflation.
-- **Mean `C` across questions** — the SUT's capability ceiling on this asset. A low `C` indicates the SUT can't answer the questions even with the text fresh.
-- **Mean `C − P`** — the learnable gap. If this is small, the asset isn't measuring memory at this SUT.
-
-These three numbers contextualise the retention curve and prevent over-interpretation of a clean curve that sits in a tiny `C − P` band.
-
-## Summary statistics
-
-A curve is the primary artifact. Summary statistics are secondary and useful for ranking.
-
-- **AURC (Area Under Retention Curve):** integral of normalised retention over `k ∈ [1, k_max]`. Higher is better. Easy to compare across SUTs for a fixed task.
-- **Half-retention `k`:** the smallest `k` at which normalised retention drops below 0.5. A notion of "how many resets before this system falls apart." Lower is worse.
-- **Mean `C − P`:** the learnable gap, as above. If small, the curve is reporting on a narrow band and should not be over-interpreted.
-- **Degradation shape classifier (optional):** categorise the curve as linear, stepped, cliff, or flat. Useful for qualitative comparison but not a scalar.
-
-Summary statistics should always be reported with the curve, not instead of it.
-
-## Reset-axis curve on Continual Learning Bench (the pivot's net-new axis)
-
-Everything above is the original per-question `P`/`C`/`R(k)` formulation (probes
-inside one run), which the retired book-track harness produced; it is kept here
-as the definition of the band metric. The **live** path applies the same
-normalisation to **whole-run rewards on a Continual Learning Bench task**, where
-the axis is the number of *hard resets* `k` the run executed. This is the thing
-CL-Bench cannot express: its `mean_gain` is a single number at one implicit
-reset density. (A pass to fold the per-question background into this section is
-tracked separately — see the C20 debrief.)
+## The reset-axis gain curve (the pivot's net-new axis)
 
 `retention_bench.gain_curve.run_reset_sweep` runs three kinds of arm on one
 CL-Bench task + system, each from a *fresh* survive-dir:
@@ -112,18 +14,29 @@ CL-Bench task + system, each from a *fresh* survive-dir:
 - **points `R(k)`** — one stateful (non-wiping) arm per requested schedule; `k`
   is the *measured* `system.scheduled_resets`, not the nominal density.
 
-The per-point number is the **same** band normalisation as the per-question
-curve above, reusing `scorer.aggregate.normalised_retention`:
+Each point is the band-normalised gain, reusing
+`scorer.aggregate.normalised_retention`:
 
 ```
 norm_gain(k) = (R(k) − P) / max(C − P, ε)
 ```
 
-The `C ≈ P` exclusion carries over unchanged: when the band collapses the curve
-is reported `EXCLUDED` and points show no normalised value. (On the constructive
-SUT, whose output is gibberish by construction, the band is ~0 and the curve
-*correctly* excludes — the honest negative result for the constructive SUT,
-now visible on the axis rather than asserted in prose.)
+Interpretation: how much of what was *learnable in principle for this SUT* (the
+gap `C − P`) survived `k` hard resets.
+
+- Values near 1 — the SUT retained the learnable gap across the resets.
+- Values near 0 — the SUT scored no better than its stateless prior after `k` resets.
+- Negative values — post-reset performance below prior (the SUT got confused by its own surviving state).
+
+The `ε` floor (default `ε = 0.05` of the score range; binary rewards live in
+`{0, 1}`) excludes the curve when the band collapses (`C ≈ P`): there is no
+learnable signal to retain. Such runs are reported `EXCLUDED` and points show no
+normalised value. (On the constructive SUT, whose output is gibberish by
+construction, the band is ~0 and the curve *correctly* excludes — the honest
+negative result, visible on the axis rather than asserted in prose.)
+
+`k_max` is bounded by the run: a sweep that places `S` hard resets admits
+`k ∈ {1, …, S}`.
 
 ### Reconciliation with CL-Bench's gain
 
@@ -140,7 +53,10 @@ their function, and `tests/test_gain_curve.py::test_reconciles_with_clbench_mean
 asserts the equality on every point — i.e. at the matching `k`, our number is
 CL-Bench's gain on the same run.
 
-Run it against any SUT speaking the `SubprocessSystem` contract:
+### Running it
+
+Run it against any SUT speaking the `SubprocessSystem` contract (see
+[`sut-interface.md`](sut-interface.md)):
 
 ```bash
 python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
@@ -197,33 +113,106 @@ python -m retention_bench.bsm_corpus            # (re)write into the cl-bench da
 > non-monotonic *shape* needs a retaining-but-imperfect SUT plugged into the same
 > command.
 
+## Baselines reported alongside the curve
+
+The curve is *normalised*, but the un-normalised arms are reported separately to
+make the SUT legible:
+
+- **Mean `P`** — how much the SUT scores cold (stateless, wiped every instance). A high `P` indicates contamination or general-knowledge inflation.
+- **Mean `C`** — the SUT's capability ceiling on this task with state accumulating unbroken. A low `C` indicates the SUT can't do the task even with full retained state.
+- **Mean `C − P`** — the learnable gap. If small, the task isn't measuring retention at this SUT, and the curve sits in a tiny band that must not be over-interpreted (and is `EXCLUDED` when `< ε`).
+
+## Summary statistics
+
+A curve is the primary artifact. Summary statistics are secondary and useful for ranking.
+
+- **AURC (Area Under Retention Curve):** integral of `norm_gain(k)` over `k ∈ [1, k_max]`. Higher is better. Easy to compare across SUTs for a fixed task.
+- **Half-retention `k`:** the smallest `k` at which `norm_gain(k)` drops below 0.5 — "how many resets before this system falls apart." Lower is worse.
+- **Mean `C − P`:** the learnable gap, as above. If small, the curve is reporting on a narrow band and should not be over-interpreted.
+- **Degradation shape classifier (optional):** categorise the curve as linear, stepped, cliff, or flat. Useful for qualitative comparison but not a scalar.
+
+Summary statistics should always be reported with the curve, not instead of it.
+
+## Background: the per-question band metric
+
+The band normalisation above is inherited from the original **per-question**
+`P`/`C`/`R(k)` probe formulation, which the retired book-track harness produced.
+It is kept here as the *definition* of the band metric the reset-axis curve
+reuses; it is **not** a live pipeline (the per-question scorer, its
+`question_type` aggregation, and the `python -m scorer` CLI were retired by C20 —
+only `scorer.aggregate.normalised_retention` and `EPSILON` survive). For a single
+scored question `q` about reading material `m`:
+
+- `P(q)` — score on a `prior` probe containing `q`, issued *before* reading `m`.
+- `C(q)` — score on a `ceiling` probe, *after* reading `m` and *before* the next `RESET`, within the same SUT process.
+- `R(k, q)` — score on a `retention` probe issued after `k ≥ 1` `RESET`s following the read of `m`.
+
+with the identical normalisation, `normalised_retention(k, q) = (R(k,q) − P(q)) /
+max(C(q) − P(q), ε)`. The reset-axis curve lifts this from per-question probes to
+whole-run rewards on a CL-Bench task: `R`, `P`, `C` become run-mean rewards of
+the three arms, and the `k` axis becomes the run's hard-reset density.
+
+### Stenography vs. understanding (an interpretive lens)
+
+When a per-question or per-`question_type` breakdown is available, the most
+informative cut is by question type, because it separates *understanding
+transfer* from *stenography*. Consider `notes_llm`, which retains by writing
+cumulative notes to the survive-dir — externalised episodic memory, done
+competently. A strong *pooled* curve may mean nothing more than "facts survived
+in the notes." The discriminating question is whether retention **separates by
+type**:
+
+- **`surface_factual`** — answers a competent note-taker can carry verbatim. High retention here is expected and says little about comprehension.
+- **`multi_hop`** / **`entity_tracking`** — require synthesis the notes do not literally contain. Retention here is the signal that *understanding*, not just text, survived the reset.
+
+Interpretation rule: **separation** (strong `surface_factual`, collapsing
+`multi_hop`) is the understanding-transfer signal the benchmark exists to
+measure; **flat-high across all types** is a *warning*, not a triumph — it
+suggests the task is rewarding stenography, or that the `multi_hop` questions
+aren't actually requiring synthesis. (The CL-Bench-native reset-axis path scores
+a single task reward per instance, so this per-type cut is a property of the
+per-question formulation and a target for a future per-type reward task, not a
+field the current `gain_curve` emits.)
+
+## Scoring is owned by the CL-Bench task
+
+retention-bench no longer ships its own scorers. On the live path, each instance's
+reward is produced by the **CL-Bench task's own reward function** (e.g. the
+interval-IoU scorer for `blind_spectrum_monitoring`); retention-bench consumes
+those per-instance rewards as the `R`/`P`/`C` run means. The only scoring
+primitive retention-bench owns is the band normalisation
+(`scorer.aggregate.normalised_retention` + `EPSILON`) — the single shared home
+for `(R − P) / max(C − P, ε)`, so every consumer normalises against one
+definition.
+
+The book-track `Scorer` seam (exact-match / LLM-as-judge dispatch by
+`question_type`, the `judge_resource_appendix`, the `python -m scorer` CLI) was
+retired with the per-question harness. It is preserved only in
+`docs/archive/` for "why" archaeology.
+
 ## Resource metrics
 
-Resource metrics are reported per run and as aggregates across the run. They are not collapsed into the score; they live alongside it.
+Resource metrics are reported per run and as aggregates across the run. They are not collapsed into the score; they live alongside it. `SubprocessSystem` records two kinds of CL-Bench `UsageEvent` tagged `call_type="compute"`: a per-response event carrying the SUT's self-reported `flops` / `tokens_in` / `tokens_out` / `model_id`, and a per-instance event carrying the survive-dir storage footprint.
 
-### Token usage
+### Token / compute usage
 
-- **Tokens per session (in/out).** Reveals how much a session costs.
-- **Cumulative tokens across the run.** Reveals total cost of completing the full run.
-- **Cold-start tokens:** tokens spent in the first `X%` of each post-clear session. A proxy for how much effort the SUT spends reconstructing working state from the filesystem. A high cold-start cost is a legitimate architectural signal.
-- **Tokens per unit score:** cumulative tokens / task score. A rough efficiency proxy.
+- **Tokens (and FLOPs) per response (in/out).** From the SUT's reply `resource` self-report. Reveals how much each query costs.
+- **Cumulative tokens / FLOPs across the run.** Total cost of completing the run.
+- **Cold-start cost:** compute spent in the first responses of each post-reset session. A proxy for how much effort the SUT spends reconstructing working state from the survive-dir. A high cold-start cost is a legitimate architectural signal.
+- **Cost per unit score:** cumulative tokens (or FLOPs) / task reward. A rough efficiency proxy.
 
-### Filesystem usage
+### Survive-dir (filesystem) usage
 
-- **Filesystem size at end of each session.** Absolute measure of accumulated state.
-- **Delta per session:** bytes added/modified/removed. Reveals information rate and whether the system prunes.
-- **Growth trajectory across the run:** does filesystem size grow linearly with sessions, sublinearly (compression), or is it bounded?
-- **Storage efficiency:** task score / filesystem size. Loosely, how much "useful state per byte." Imperfect but informative.
+The per-instance storage `UsageEvent` records `survive_dir_bytes`,
+`survive_dir_delta_bytes`, and `survive_dir_file_count` (measured before any
+bounce — the kill cannot change on-disk state).
+
+- **Footprint at end of each instance.** Absolute measure of accumulated state — the bytes that must survive a hard reset.
+- **Delta per instance:** bytes added/modified/removed. Reveals information rate and whether the system prunes.
+- **Growth trajectory across the run:** does the survive-dir grow linearly with instances, sublinearly (compression), or is it bounded? A constructive SUT's footprint steps up on a growth event.
+- **Storage efficiency:** task reward / survive-dir size. Loosely, "useful state per byte." Imperfect but informative.
 
 Note: raw size is not the whole story. A 10 GB vector store with excellent retrieval may outperform a 10 MB markdown file with poor retrieval. Report all storage metrics and let the reader compare systems on their own efficiency frontier.
-
-### Access patterns (optional but encouraged)
-
-- Files read per session, particularly per post-clear session.
-- Files written per session.
-- Re-access patterns: is the same file read many times, or does the SUT cache in working memory?
-
-These reveal whether a memory system has genuine indexing or is scanning.
 
 ### Wall-clock time
 
@@ -233,137 +222,41 @@ These reveal whether a memory system has genuine indexing or is scanning.
 
 A retention-bench result for one SUT on one task should include:
 
-1. **The retention curve** (normalised retention vs. `k`), with error bars —
-   pooled **and broken down by `question_type`** (see "Per-`question_type`
-   breakdown"), so the stenography-vs-understanding separation is legible.
-2. **Summary statistics** (mean `P`, mean `C`, mean `C − P`, AURC, half-retention `k`).
-3. **Resource curves** (tokens vs. `k`, filesystem size vs. event index, cold-start cost vs. `k`).
-4. **Mode declaration** (pure LLM / notes / full harness, plus any relevant configuration).
-5. **Awareness declaration** (clear-aware or clear-blind).
-6. **Seed count** and variance notes.
-7. **Per-question probe table** (raw `P`, `C`, `R(k)` values) — required for replicability and for post-hoc reanalysis under different aggregation choices.
+1. **The reset-axis retention curve** (`norm_gain(k)` vs `k`), with error bars.
+2. **The three arms** (mean `P`, mean `C`, mean `C − P`) and the band-exclusion status.
+3. **Summary statistics** (AURC, half-retention `k`).
+4. **Resource curves** (tokens/FLOPs vs `k`, survive-dir size vs instance index, cold-start cost vs `k`).
+5. **System-class declaration** (the manifest `mode` + hardware tier + relevant configuration).
+6. **Reset schedule** (`--reset-every` / `--reset-at`, and the *measured* `k` per arm).
+7. **Seed count** and variance notes.
+8. **CL-Bench reconciliation** (`clbench_mean_gain` per point) — required for replicability and cross-checking against CL-Bench's own gain.
 
 Leaderboards, if they exist, should publish all of the above, not just a single score.
 
-## Scorer integration
-
-### Scorer seam
-
-The scorer exposes a small `Scorer` protocol (defined in `scorer/protocols.py`):
-
-```
-score(record: dict) -> (score: float, scorer_kind: str, rationale: str | None)
-```
-
-Two implementations ship:
-
-- `ExactMatchScorer` — case-insensitive, whitespace-normalised exact match.
-  Never calls an API. Default for all question types under `--scorer exact-match`.
-- `JudgeScorer` — LLM-as-judge via the OpenAI-compatible chat-completions API's
-  tool-calling (`openai` SDK pointed at a configurable `base_url`). Returns a
-  `{score, rationale}` verdict without free-text parsing.
-
-A future `DeepEvalScorer` (or other framework adapter) slots in as a third
-implementation against the same protocol, without touching the harness or
-curve renderer.
-
-### Dispatch rules
-
-Dispatch is keyed by `question_type` in the `questions.jsonl` record:
-
-| `question_type`     | Default (`--scorer exact-match`) | `--scorer judge`  |
-|---------------------|----------------------------------|-------------------|
-| `surface_factual`   | exact-match                      | exact-match       |
-| `entity_tracking`   | exact-match                      | judge             |
-| `multi_hop`         | exact-match                      | judge             |
-| unknown / unmapped  | hard error (fail loud)           | hard error        |
-
-`surface_factual` bypasses the judge in all modes by design — these
-questions are amenable to exact-match and routing them through a judge
-wastes variance budget. Unknown types raise `ValueError` immediately (no
-silent fallback), forcing the type to be explicitly assigned to a scorer
-before it can be used.
-
-### Output fields
-
-Per-record output gains:
-
-- `scorer_kind` — `"exact_match"` or `"judge"`.  Always present.
-- `judge_rationale` — the judge's brief reasoning.  Present only for
-  judge-scored records; absent for exact-match records (keeps
-  `questions.jsonl` lean).
-
-Judge rationales are persisted to a sibling `scoring.jsonl` file in the
-run directory, keyed by `record_id`.  This keeps `questions.jsonl`
-machine-readable and lean while making rationales auditable.
-
-### Judge implementation
-
-- Model: read from `RETENTION_BENCH_JUDGE_MODEL` env var; falls back to
-  `moonshotai/kimi-k2.6` (a pinned frontier *open* model). Calls go to an
-  OpenAI-compatible `base_url` (`RETENTION_BENCH_BASE_URL`, default OpenRouter)
-  via the `openai` SDK and require `OPENROUTER_API_KEY`. (The judge and all SUT
-  call sites use this provider-neutral OpenAI-compatible shape.) Judge-quality
-  validation of the pinned open model against a stronger reference is a known
-  open item.
-- Prompt: reason-then-score structure.  The model produces a brief
-  rationale before the verdict, which improves reliability on borderline
-  cases.  Verdict is extracted via a tool call (`judge_verdict`), so no
-  fragile free-text JSON parsing.
-- Temperature: 0.  Single judge; multi-judge / ensemble is out of scope
-  (revisit if single-judge variance is too high).
-- Cost accounting: judge token usage is separate from SUT token usage.
-  Judge costs appear in a sibling `judge_resource_appendix.jsonl` (distinct
-  from the SUT's `resource_appendix`), written only when the judge is
-  actually engaged (judge mode with ≥1 judge-eligible record). It is a
-  single aggregate record (one JSONL line) accumulated across the run,
-  mirroring the SUT `resource_appendix` conventions plus judge totals:
-
-  ```json
-  {"kind": "api", "model_id": "moonshotai/kimi-k2.6", "api_call_count": 3, "input_tokens": 380, "output_tokens": 145}
-  ```
-
-  The SUT budget and the scoring budget are different, so judge spend must
-  never roll into the SUT's appendix.
-
-### Backward compatibility
-
-`--scorer exact-match` (default) reproduces the original exact-match behavior
-exactly — past smoke runs re-score identically under the default.  The judge is
-strictly opt-in via `--scorer judge`.
-
 ## Benchmark validity: prior saturation and material novelty
 
-The `C ≈ P` exclusion (drop a question when the learnable gap `C − P < ε`) is
-the right call — a benchmark that returns *null* on a question with no learnable
-signal is trustworthy, not broken. But it has a consequence that must be
-tracked: it makes the benchmark's **effective `n` model-dependent**.
+The `C ≈ P` exclusion (drop a curve when the learnable gap `C − P < ε`) is the
+right call — a benchmark that returns *null* when there is no learnable signal is
+trustworthy, not broken. But it has a consequence that must be tracked: it makes
+the benchmark's **effective signal model-dependent**.
 
-A question is excluded precisely when the SUT's base model *already knows the
-answer cold* (`P ≈ C`). As base models improve, more world-knowledge questions
-saturate their priors and fall out the bottom of the aggregate. This is not
-hypothetical: a smoke run excluded 4 of 5 questions (`n_usable = 1`)
-because a capable base model already answered them at prior.
+A band collapses precisely when the SUT's base model *already does the task at
+prior* (`P ≈ C`). As base models improve, more tasks/instances saturate their
+priors and the measurable band shrinks. This is not hypothetical: an early smoke
+run excluded 4 of 5 questions because a capable base model already answered them
+at prior.
 
-The implication reframes the synthetic-data track:
+The implication reframes the synthetic-data / task track:
 
-- **Material novelty is a validity requirement, not a variety nice-to-have.** A
-  renewable supply of material the model *provably has not seen* is what keeps
-  `C − P` open and the benchmark able to measure anything at all. As models
-  improve, only genuinely novel material keeps priors low enough to leave a
-  learnable gap. This makes a renewable supply of novel synthetic material
-  load-bearing for validity, not merely a source of variety.
-- **Target: keep mean `P` low** (well below `C`) on the questions that drive the
-  curve. Report mean `P` prominently (see "Baselines reported alongside the
-  curve") and treat a rising mean `P` across cohorts as a signal that the asset
-  pool is aging out, not as SUT improvement.
+- **Material novelty is a validity requirement, not a variety nice-to-have.** A renewable supply of material the model *provably has not seen* is what keeps `C − P` open and the benchmark able to measure anything at all. As models improve, only genuinely novel material keeps priors low enough to leave a learnable gap.
+- **Target: keep mean `P` low** (well below `C`). Report mean `P` prominently (see "Baselines reported alongside the curve") and treat a rising mean `P` across cohorts as a signal that the task pool is aging out, not as SUT improvement.
 
 This does **not** motivate removing the exclusion — the exclusion stays. It
 motivates feeding the benchmark novel material fast enough that prior saturation
-never starves the aggregate.
+never starves the signal.
 
 ## What is deliberately not measured in v1
 
-- **Failure-mode diagnostics** (was memory not stored, stored but not retrieved, retrieved but misapplied, corrupted across clears?). This is important for the benchmark's long-term diagnostic value but is deferred to task-level question design in v2.
-- **Transfer to novel tasks** post-clear. This is a lifelong-learning concern orthogonal to the retention question this benchmark measures and is better served by separate benchmarks.
-- **Weight-update catastrophic forgetting.** Deferred to a future extension.
+- **Failure-mode diagnostics** (was state not stored, stored but not retrieved, retrieved but misapplied, corrupted across resets?). Important for the benchmark's long-term diagnostic value but deferred to task-level design.
+- **Transfer to novel tasks** post-reset. A lifelong-learning concern orthogonal to the retention question this benchmark measures; better served by separate benchmarks.
+- **Weight-update catastrophic forgetting** as a first-class score. The constructive SUT class exercises weight updates, but quantifying forgetting is deferred to a future extension.

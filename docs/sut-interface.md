@@ -1,50 +1,43 @@
 ---
 title: SUT interface
 project: retention-bench
-status: v1 — current. Structured answers, entrypoint-array launch, 5-minute per-event timeout.
+status: v2 — current. `SubprocessSystem` one-line-JSON query/reply per CL-Bench instance; subprocess / container launch; hard-reset survive-dir.
 tags: [spec, data-contract, sut]
 ---
 
 # SUT interface
 
-The SUT (system under test) is launched and driven by the harness as a subprocess. The interface is intentionally process-level: anything that can be wrapped in a binary that speaks JSON Lines on stdin/stdout is a valid SUT, regardless of language or architecture (pure LLM call, agent scaffold, RAG system, constructive model, …).
+The SUT (system under test) is launched and driven by retention-bench as a subprocess that speaks **one JSON object per line** on stdin/stdout. The interface is intentionally process-level: anything that can be wrapped in a binary speaking JSON Lines is a valid SUT, regardless of language or architecture (pure LLM call, agent scaffold, RAG system, constructive train-and-grow model, …).
 
-It covers the tagged-section `STAGE_INPUT`, strict-verbatim self-report, the process-level contract (and the agentic / in-context leaderboard split), the reference SUT set, resource self-report, and hardware tiers.
-
-> **Note (C20).** This contract was authored for the retired book-track event
-> loop (`READ`/`QUIZ`/`RESET` over `STAGE_INPUT`). The live path is
-> `retention_bench.SubprocessSystem` driving CL-Bench tasks (a one-line-JSON
-> query/reply per instance); the launch, container, `DIR`, and `RESET`
-> mechanics below are unchanged and still authoritative, but the event vocabulary
-> and the `sut-manifest.json` `entrypoint` example are book-track. A full rewrite
-> to the `SubprocessSystem` contract is tracked separately.
+The live contract is [`retention_bench.SubprocessSystem`](../retention_bench/system.py): it wraps the SUT process as a Continual Learning Bench `ContinualLearningSystem`, drives it through CL-Bench's runner, and adds the two things CL-Bench cannot natively express — a **hard `RESET`** (SIGKILL + respawn, where only an on-disk survive-dir persists) and a **system-side reset schedule** (arbitrary reset density `k`). This doc covers the query/reply wire shape, the survive-dir / `RESET` mechanics, resource self-report, launch (subprocess / container), and the `sut-manifest.json` declaration.
 
 ## Invocation
 
-The harness launches the SUT once per session (a "session" runs from process spawn to `RESET` or end-of-run). The SUT process is:
+`SubprocessSystem` launches the SUT once per *session* — a session runs from process spawn to the next hard `RESET` (or end-of-run). The SUT process is:
 
-- Spawned with its **current working directory set to `DIR`** (the per-run persistent directory).
-- Inherits the harness's environment, plus any env vars the SUT declares it needs (e.g., `OPENROUTER_API_KEY`).
-- Receives no positional command-line arguments by default. SUTs that need configuration knobs read them from `sut-manifest.json` or env vars.
+- Spawned with its **current working directory set to the survive-dir** (the per-run persistent directory; equivalently `RETENTION_BENCH_DIR`, which the harness exports).
+- Inherits the harness's environment (subprocess mode) plus any env vars the SUT declares it needs (e.g., `OPENROUTER_API_KEY`).
+- Receives no positional command-line arguments by default. SUTs that need configuration knobs read them from env vars.
 - Connects to the harness via stdin / stdout / stderr (see "I/O channel" below).
 
-The SUT command is read from the manifest's `entrypoint` field as a Docker exec-form argv array (e.g., `["python", "-m", "no_state"]`). SUT developers point the harness at the SUT package directory (`--sut <dir>`); the harness reads `<dir>/sut-manifest.json` and launches what it declares.
+The SUT launch command is the `command` passed to `SubprocessSystem` — for example `["python", "-m", "bsm_accumulator.clbench_main"]`. On the `gain_curve` CLI it is the `--sut` string (`--sut "python -m bsm_accumulator.clbench_main"`, `shlex`-split). A `python`/`python3` argv[0] is rewritten to the harness interpreter, and `--extra-pythonpath` dirs are prepended to the SUT's `PYTHONPATH` so an uninstalled SUT package resolves.
+
+> **The live harness does not read `sut-manifest.json`.** The manifest (below) is a packaging/declaration artifact that ships with a SUT and records its canonical launch argv (`clbench_entrypoint`), hardware tier, and resource profile for humans and tooling. The live `SubprocessSystem` path takes the command directly (from `--sut` / the `command` arg); it does not parse the manifest. Keep the manifest's `clbench_entrypoint` in sync with the command you actually launch.
 
 ### Launch modes
 
-The harness chooses how to launch based on whether the manifest declares an `image`:
+`SubprocessSystem` launches as a bare host subprocess by default. Pass a `ContainerLaunch(image=…, env_names=…)` to launch inside a container instead (the subprocess path is the default and the only one the `gain_curve` CLI currently exposes; container launch is programmatic). Both reuse the same `harness.sut_process` engine.
 
-- **Subprocess** (no `image`): the harness invokes `subprocess.Popen(entrypoint, cwd=DIR, …)`, inheriting the harness's full environment. This is the path used by the built-in stubs and by tests; it is the original, default launch path.
-- **Container** (`image` present): the harness launches the SUT via `docker run -i --rm --name <unique> -v <DIR>:/dir -w /dir <image> <entrypoint…>`. The wire contract is identical — JSONL over the container's stdin/stdout. Differences from the subprocess path:
-  - **Environment is not inherited.** Only the env vars named in the manifest's `env` array are forwarded, by name (`docker run -e NAME`), so their values cross into the container without ever appearing in harness logs or process argv. A containerised SUT that needs a var it didn't declare will not see it.
-  - **`DIR` is bind-mounted** at the fixed container path `/dir`, which is also the working directory; `RETENTION_BENCH_DIR=/dir` is set so SUTs that read the env var rather than `cwd` resolve it too. The SUT package itself is expected to be installed in the image (no PYTHONPATH injection — that subprocess-only mechanism does not apply).
-  - **`RESET` tears the container down by name** (`docker rm -f`) before spawning a fresh one. Killing only the `docker run` client process does not reliably stop the container, so the harness removes it explicitly; this preserves the subprocess path's "RESET = hard kill + fresh spawn" semantics.
+- **Subprocess** (default): `subprocess.Popen(command, cwd=<survive-dir>, …)`, inheriting the harness's full environment. This is the path the smoke run, the `gain_curve` CLI, and the tests use.
+- **Container** (`ContainerLaunch`): the SUT is launched via `docker run -i --rm --name <unique> -v <survive-dir>:/dir -w /dir <image> <command…>`. The wire contract is identical — JSONL over the container's stdin/stdout. Differences from the subprocess path:
+  - **Environment is not inherited.** Only the env vars named in `env_names` are forwarded, by name (`docker run -e NAME`), so their values cross into the container without ever appearing in harness logs or process argv. A containerised SUT that needs a var it didn't declare will not see it.
+  - **The survive-dir is bind-mounted** at the fixed container path `/dir`, which is also the working directory; `RETENTION_BENCH_DIR=/dir` is set so SUTs that read the env var rather than `cwd` resolve it too. The SUT package itself is expected to be installed in the image (no `PYTHONPATH` injection — that subprocess-only mechanism does not apply, so `command` must name an entrypoint the *image* provides, e.g. `["python", "-m", "constructive.clbench_main"]`).
+  - **`RESET` tears the container down by name** (`docker rm -f`) before spawning a fresh one. Killing only the `docker run` client process does not reliably stop the container, so the harness removes it explicitly; this preserves the "RESET = hard kill + fresh spawn" semantics.
+  - **End-of-run teardown.** CL-Bench's runner has no end-of-run hook and never bounces the *last* spawned SUT, so call `SubprocessSystem.shutdown()` (or use the system as a context manager) to reap that final container. The two base images and the constructive SUT image are build-verified, and the containerised constructive SUT has run through CL-Bench's runner under a hard reset with state surviving the container kill.
 
-**DooD path translation.** When the harness itself runs inside a dev container that mounts the host's `docker.sock` (Docker-outside-of-Docker), the docker *daemon* runs on the host and resolves bind-mount paths against the **host** filesystem. Set `HOST_WORKSPACE` to the host path of the repo root; the harness then rewrites the dev-container `DIR` path (which must live under the repo root) to its host equivalent before passing it to `-v`. On a bare host (harness and daemon share a filesystem) leave `HOST_WORKSPACE` unset and no translation happens. Under the **Sysbox** nested daemon the daemon shares this filesystem, so `HOST_WORKSPACE` is unset and translation is a no-op.
+**DooD path translation.** When the harness itself runs inside a dev container that mounts the host's `docker.sock` (Docker-outside-of-Docker), the docker *daemon* runs on the host and resolves bind-mount paths against the **host** filesystem. Set `HOST_WORKSPACE` to the host path of the repo root (the survive-dir must live under it); the harness rewrites the dev-container survive-dir path to its host equivalent before passing it to `-v`. On a bare host — or under the Sysbox nested daemon — the daemon shares this filesystem, so leave `HOST_WORKSPACE` unset and translation is a no-op.
 
-**CL-Bench path (`SubprocessSystem`).** The same `harness.sut_process` engine backs the CL-Bench extension: `retention_bench.SubprocessSystem` launches its SUT in a container when constructed with a `ContainerLaunch(image=…, env_names=…)` (subprocess stays the default). It reuses the identical `docker run` argv, env-by-name forwarding, `DIR`→`/dir` bind-mount, and `docker rm -f`-on-RESET teardown described above. One CL-Bench-specific addition: CL-Bench's runner has no end-of-run hook and never bounces the *last* spawned SUT, so `SubprocessSystem.shutdown()` (or using the system as a context manager) reaps that final container. The two base images and the constructive SUT image are build-verified, and the containerised constructive SUT has been shown to run through CL-Bench's runner under a hard reset with state surviving the container kill.
-
-> **Note:** the harness never hardcodes provider env-var names; it forwards exactly what each manifest's `env` array declares. Switching a SUT's LLM backend is therefore a manifest edit, not a harness change.
+> **Note:** the harness never hardcodes provider env-var names; it forwards exactly the `env_names` a `ContainerLaunch` declares. Switching a SUT's LLM backend is a launch-config / env edit, not a harness change.
 
 ## I/O channel
 
@@ -52,172 +45,173 @@ JSON Lines over stdin/stdout. One line = one JSON object = one event. UTF-8. New
 
 Stderr is reserved for SUT-side diagnostics. The harness captures it but does not parse it.
 
-### Harness → SUT (stdin)
+### Harness → SUT (stdin): one query per line
 
-One JSON object per event the SUT must respond to:
+One JSON object per CL-Bench instance the SUT must respond to:
 
 ```json
-{"event_id":"evt-0001","event_type":"QUIZ","stage_input":"<META>...</META>\n<QUESTIONS>...</QUESTIONS>"}
+{"prompt":"<rendered instance text>","instance_id":"inst-0007","instance_index":7,"response_schema":{"type":"object","properties":{"transmitters":{"type":"array","items":{"$ref":"#/$defs/Transmitter"}}},"required":["transmitters"],"$defs":{"...":"..."}},"feedback":null}
 ```
 
 Fields:
 
 | Field | Type | Notes |
 |---|---|---|
-| `event_id` | string | Stable run-local ID. Echoed back in the response. |
-| `event_type` | string | `READ` \| `QUIZ`. (`RESET` is signalled by EOF on stdin + process kill; see "Lifecycle".) |
-| `stage_input` | string | The tagged-section payload. Already serialised; the SUT does not re-parse JSON to find it. |
+| `prompt` | string | The rendered CL-Bench instance text — the observation and the request for a structured report, already serialised. The SUT does not re-parse JSON to find it. |
+| `instance_id` | string \| null | Stable run-local instance ID. Echoed into the harness trace; not required in the reply. |
+| `instance_index` | integer \| null | 0-based ordinal of the instance within the run. |
+| `response_schema` | object | The **JSON Schema** of the task's expected response model. The reply's `action` MUST conform to it. |
+| `feedback` | string \| null | Optional feedback string the task supplied for this instance (CL-Bench feedback channel); `null` when none. |
 
-The harness will not send a second event line until the SUT has responded to the previous one. The SUT can rely on strict request/response ordering within a session.
+The harness will not send a second query line until the SUT has responded to the previous one. The SUT can rely on strict request/response ordering within a session.
 
-### SUT → Harness (stdout)
+### SUT → Harness (stdout): one reply per line
 
-One JSON object per completed event. Shape depends on `event_type`:
-
-**For `QUIZ` events**, the SUT emits a structured `answers` list:
-
-```json
-{"event_id":"evt-0001","answers":[{"id":"q1","text":"travelling salesman"},{"id":"q2","text":"the chief clerk"}]}
-```
-
-**For `READ` events**, the SUT emits an acknowledgement (any content):
+One JSON object per completed query:
 
 ```json
-{"event_id":"evt-0001","stage_output":""}
+{"action":{"transmitters":[{"center_freq":32.3,"bandwidth":14.8,"currently_active":true,"estimated_power":-39.0}]},"resource":{"flops":100,"tokens_in":256,"tokens_out":1,"model_id":"bsm-accumulator"}}
 ```
 
 Fields:
 
-| Field | Type | Required for | Notes |
+| Field | Type | Required | Notes |
 |---|---|---|---|
-| `event_id` | string | all | MUST equal the `event_id` of the event being responded to. |
-| `answers` | array[object] | QUIZ | One entry per answered question: `{"id": "<question_id>", "text": "<answer>"}`. Order is preserved in the trace; duplicates are recorded as "ambiguous" per-question (harness does not deduplicate). Missing question ids are recorded as "not_found" per-question; the SUT is free to omit answers it doesn't have. |
-| `stage_output` | string | READ (conventionally empty) | For READ, a trivial ack — usually `""`. Reserved for future event types that may carry free-form payloads. |
+| `action` | object | yes\* | Fields matching `response_schema`. The harness constructs `response_schema(**action)`, so the keys and types must satisfy the schema. |
+| `resource` | object | no | Free-form resource self-report (see below). The key is reserved. |
 
-**Why structured answers, not tagged text?** Earlier drafts had the SUT emit `<ANSWER id="…">…</ANSWER>` blocks inside a `stage_output` string and the harness regex-parsed them. This was later changed to make the harness genuinely SUT-agnostic: the harness no longer knows or cares about answer-tag conventions. SUT developers are free to use any internal convention (tagged system-prompt outputs, JSON-mode, structured-output APIs) to extract per-question answers from their underlying model — that's the SUT's business. The wire contract is structured.
+**\*The `action` wrapper is optional for trivial SUTs.** If the reply has no `action` key, the harness treats the **whole reply object minus the reserved `resource` key** as the action fields. So `{"transmitters":[…],"resource":{…}}` and `{"action":{"transmitters":[…]},"resource":{…}}` are equivalent.
 
-Optional fields the SUT MAY include on any response (harness logs them; absence is fine):
+**`resource` self-report.** Free-form; the harness lifts the recognised keys onto a per-response compute `UsageEvent` and preserves the whole dict under `metadata["sut_resource"]`. Recognised keys:
 
-| Field | Type | Notes |
+| Key | Type | Notes |
 |---|---|---|
-| `tokens_in` | integer | Tokens consumed for this event (API-tier SUTs). |
-| `tokens_out` | integer | Tokens emitted for this event. |
-| `api_call_count` | integer | Underlying model invocations made while handling this event. |
-| `notes` | string | Free-form SUT-side diagnostic. |
+| `flops` | integer | Compute spent handling this query (parametric / constructive SUTs). |
+| `tokens_in` | integer | Tokens consumed for this query (API-tier SUTs). |
+| `tokens_out` | integer | Tokens emitted for this query. |
+| `model_id` | string | Underlying model identifier; defaults to the system name if absent. |
+
+Any other keys (e.g. `api_call_count`, `param_count`, `train_steps`, `growth_count`) are preserved under `sut_resource` and surface in the trace, but are not specially interpreted. A no-state or counter SUT may omit `resource` entirely; the harness still records a zero-cost compute marker so there is one compute event per response regardless of SUT class.
+
+**Why a `response_schema`, not a fixed answer shape?** The book-track predecessor sent tagged `QUIZ` events and parsed a fixed `answers:[{id,text}]` list. The CL-Bench-native contract is generic: each task declares its own response model, the harness ships its JSON Schema per query, and the SUT returns any object conforming to it. The harness stays genuinely task-agnostic — how the SUT derives a conforming object from its model (tool-calling, JSON mode, structured-output APIs, regex over the prompt) is the SUT's business.
 
 ## Lifecycle
 
 ```
-spawn → [event → response]* → (EOF on stdin → exit) | (SIGKILL on RESET)
+spawn → [query → reply]* → (EOF on stdin → exit) | (SIGKILL on RESET)
 ```
 
-1. **Spawn.** Harness launches the SUT subprocess in `DIR`. The SUT performs any one-time init (e.g., load model handle, read `DIR` contents from a previous session).
-2. **Event loop.** Harness writes event lines to stdin; SUT writes response lines to stdout. Strict one-in-one-out within a session.
+1. **Spawn.** Harness launches the SUT process in the survive-dir. The SUT performs any one-time init (load a model handle, read survive-dir contents left by a previous session).
+2. **Query loop.** Harness writes one query line to stdin; SUT writes one reply line to stdout. Strict one-in-one-out within a session.
 3. **End of session.** Two terminations are possible:
-   - **Normal end-of-run.** Harness closes the SUT's stdin. SUT MUST detect EOF and exit cleanly (exit code `0`). The harness allows a short grace period (implementation-defined) before escalating to a signal.
-   - **`RESET`.** Harness sends `SIGKILL` to the SUT process (no graceful shutdown), snapshots `DIR`, then re-spawns a fresh SUT process pointed at the same `DIR`. The SUT therefore MUST NOT rely on a clean-shutdown hook for persistence — anything that needs to survive a `RESET` must already be on disk before the response that preceded the `RESET` was written.
+   - **`RESET`.** Between CL-Bench instances, when the system-side reset schedule fires, the harness sends `SIGKILL` to the SUT process (no graceful shutdown), then re-spawns a fresh SUT pointed at the same survive-dir. The SUT therefore MUST NOT rely on a clean-shutdown hook for persistence — anything that must survive a `RESET` has to already be on disk before the reply that preceded the `RESET` was written.
+   - **End-of-run.** The harness closes the SUT's stdin; the SUT MUST detect EOF and exit cleanly (exit code `0`). Because CL-Bench's runner never bounces the *last* SUT, end-of-run reaping is driven by `SubprocessSystem.shutdown()` / context-manager exit.
 
-`RESET` is invisible inside the SUT process: the SUT only ever sees its own session. The new session's process can read `DIR` to discover what its predecessor left behind (or, if it's a no-state SUT, ignore `DIR` entirely).
+`RESET` is invisible inside the SUT process: each session only ever sees its own queries. A fresh session can read the survive-dir to discover what its predecessor left behind (or, if it's a no-state SUT, ignore the survive-dir entirely). The stateless-baseline arm of a gain-curve sweep additionally **wipes** the survive-dir on each reset (`wipe_on_reset=True`) — see [`metrics.md`](metrics.md).
 
-## `DIR` rules
+## Survive-dir rules
 
-`DIR` is the per-run persistent directory. It is the SUT's working directory at spawn time.
+The survive-dir is the per-run persistent directory and the SUT's working directory at spawn. It is the **only** thing that crosses a hard `RESET`.
 
 **The SUT may:**
 
-- Create, read, modify, and delete any file or subdirectory under `DIR`, except those reserved by the harness (see below).
-- Assume `DIR` persists across `RESET` within the same run.
-- Assume `DIR` is empty on the very first session of a run, unless the task definition declares seed state.
+- Create, read, modify, and delete any file or subdirectory under the survive-dir, except those reserved by the harness (below).
+- Assume the survive-dir persists across `RESET` within the same run (unless the arm wipes it).
+- Assume the survive-dir is empty on the very first session of a run.
 
 **The SUT MUST NOT:**
 
-- Write outside `DIR` (no `/tmp`, no `$HOME`, no absolute paths). The harness may sandbox this in future; treat it as a contract today.
-- Touch anything under the `DIR/.harness/` prefix — this is reserved for harness-side bookkeeping.
+- Write outside the survive-dir (no `/tmp`, no `$HOME`, no absolute paths). Treat it as a contract today; the harness may sandbox it in future.
+- Touch anything under the `.harness/` prefix inside the survive-dir — reserved for harness-side bookkeeping.
 - Spawn unkillable child processes. Children MUST exit (or be killable by `SIGKILL` to the parent's process group) within the harness's grace period on `RESET` and end-of-run.
-- Assume `DIR` is empty on subsequent sessions — it carries whatever the previous session(s) left.
+- Assume the survive-dir is empty on subsequent sessions — it carries whatever previous session(s) left.
 
-**Verbatim-caching.** Whether the SUT persists verbatim spans of `READ` text into `DIR` is the SUT's choice; the harness does not enforce. The SUT self-declares `strict_verbatim` in its manifest. Auditors may diff `DIR` snapshots against `READ` payloads post-hoc.
+**Flush-before-reply.** Because `RESET` is a SIGKILL with no warning, any state the SUT wants to retain must be on disk *before* the reply that precedes the reset. The reference SUTs flush their state file (atomically — write-temp-then-`os.replace`) before writing each reply line.
+
+**Verbatim-caching.** Whether the SUT persists verbatim spans of the observation text into the survive-dir is the SUT's choice; the harness does not enforce. The SUT self-declares `strict_verbatim` in its manifest. Auditors may diff survive-dir snapshots against the prompts post-hoc.
 
 ## What the SUT MUST do
 
-1. Read newline-delimited JSON event objects from stdin in order.
-2. Write exactly one newline-delimited JSON response per event to stdout, with matching `event_id`.
-3. Flush stdout after each response (responses MUST NOT be buffered past the end of the event). Otherwise the harness will block waiting for output that's stuck in a libc buffer.
+1. Read newline-delimited JSON query objects from stdin in order.
+2. Write exactly one newline-delimited JSON reply per query to stdout, whose `action` conforms to that query's `response_schema`.
+3. Flush stdout after each reply (replies MUST NOT be buffered past the end of the query). Otherwise the harness blocks waiting for output stuck in a libc buffer.
 4. Exit cleanly on stdin EOF.
-5. Ship a `sut-manifest.json` (schema below) alongside the SUT entrypoint.
+5. Persist anything that must survive a `RESET` to the survive-dir *before* the preceding reply.
 
 ## What the SUT MUST NOT do
 
-1. Reorder or skip events.
-2. Emit unsolicited stdout lines (anything not a response to a pending event). Diagnostics belong on stderr.
-3. Pretty-print JSON responses (would break line framing).
-4. Write outside `DIR` or under `DIR/.harness/`.
-5. Block indefinitely. The harness applies a **per-event timeout (default: 300 seconds = 5 minutes)**, overridable per-task via the `event_timeout_seconds` field in the task definition. On timeout the harness SIGKILLs the SUT process and aborts the run with `exit_status: "timeout"` recorded in `run-manifest.json`.
+1. Reorder or skip queries.
+2. Emit unsolicited stdout lines (anything not a reply to a pending query). Diagnostics belong on stderr.
+3. Pretty-print JSON replies (would break line framing).
+4. Write outside the survive-dir or under its `.harness/` prefix.
+5. Block indefinitely. The harness applies a **per-response timeout (default: 300 seconds = 5 minutes)**, set via `SubprocessSystem(timeout_s=…)` / `gain_curve --timeout`. On timeout the harness SIGKILLs the SUT process and raises `SUTTimeout`.
 
 ## `sut-manifest.json`
 
-Ships with the SUT package. The harness reads it at run start and copies it into the run directory as `sut-manifest.json`.
-
-Schema:
+Ships with the SUT package as its declaration of record. The live `SubprocessSystem` path does not read it (the command is supplied directly), but it is the human- and tooling-facing source of truth for how to launch the SUT and what it costs. Canonical example — the keyless accumulator that backs the offline smoke (`suts/bsm_accumulator/sut-manifest.json`):
 
 ```json
 {
-  "name": "no-state",
+  "name": "bsm-accumulator",
   "version": "0.1.0",
-  "mode": "in-context",
-  "hardware_tier": "API",
+  "mode": "notes",
+  "hardware_tier": "open",
   "strict_verbatim": true,
-  "entrypoint": ["python", "-m", "no_state"],
-  "env": ["OPENROUTER_API_KEY", "NO_STATE_MODEL", "RETENTION_BENCH_BASE_URL"],
+  "image": null,
+  "entrypoint": null,
+  "clbench_entrypoint": ["python", "-m", "bsm_accumulator.clbench_main"],
+  "env": [],
   "resource_appendix": {
-    "kind": "api",
-    "model_id": "deepseek/deepseek-v4-flash"
+    "kind": "local",
+    "model_id": "bsm-accumulator",
+    "gpu_model": null
   }
 }
 ```
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `name` | string | yes | Stable SUT name. Used in leaderboard rows. |
+| `name` | string | yes | Stable SUT name. Used as the system / leaderboard-row label. |
 | `version` | string | yes | SemVer or freeform; logged for reproducibility. |
-| `mode` | enum | yes | `agentic` \| `in-context`. Determines which leaderboard the run lands on. |
+| `mode` | string | yes | Descriptive **system-class** self-label — e.g. `in-context`, `notes`, `agentic`, `constructive`. Informational only (see "System class & leaderboard" below); it does not route the SUT to a separate leaderboard. |
 | `hardware_tier` | enum | yes | `consumer` \| `1xH100` \| `8xH100` \| `API` \| `open`. |
-| `strict_verbatim` | bool | yes | Self-report. `true` means the SUT does not persist verbatim `READ` spans into `DIR`. |
-| `entrypoint` | array[string] | yes | argv the harness uses to launch the SUT. In subprocess mode, run in `DIR`; in container mode (see `image`), the in-container argv run with workdir `/dir`. |
-| `image` | string | no | Docker image to launch the SUT in. When present, the harness launches via `docker run` instead of a bare subprocess (see "Launch modes"). When absent, the subprocess path is used. |
-| `env` | array[string] | no | Env vars the SUT requires (names only — values come from the harness's environment). In container mode these are the **only** vars forwarded into the container (`docker run -e NAME`); in subprocess mode the full environment is inherited and this list is advisory. |
-| `resource_appendix` | object | no | Self-reported resource profile. `kind: "api"` → `model_id` etc.; `kind: "local"` → `gpu_model`, etc. Per-event token counts may also be emitted in response lines and aggregated by the harness. |
+| `strict_verbatim` | bool | yes | Self-report. `true` means the SUT does not persist verbatim observation spans into the survive-dir. |
+| `clbench_entrypoint` | array[string] | yes | The live wire launch argv — the `command` you pass to `SubprocessSystem` / `--sut`. The CL-Bench-native entrypoint (e.g. `…clbench_main`). |
+| `entrypoint` | array[string] \| null | no | Legacy book-track launch argv (the retired `READ`/`QUIZ` event loop). Kept for history; `null` on SUTs with no book-track entrypoint. **Not** the live launch path. |
+| `image` | string \| null | no | Docker image to launch the SUT in (paired with a `ContainerLaunch`). `null` / absent → subprocess. |
+| `env` | array[string] | no | Env vars the SUT requires (names only — values come from the harness's environment). In container mode these are the **only** vars forwarded (`docker run -e NAME`); in subprocess mode the full environment is inherited and this list is advisory. |
+| `resource_appendix` | object | no | Self-reported resource profile. `kind: "api"` → `model_id` etc.; `kind: "local"` → `model_id`, `gpu_model`, etc. Per-response token/FLOP counts are also emitted in reply `resource` objects and aggregated by the harness. |
 
-Missing optional fields are logged but do not fail the run. Missing required fields fail at run start.
+## Worked example — one query round-trip
 
-## Worked example — one QUIZ round-trip
-
-Harness writes to SUT stdin:
-
-```
-{"event_id":"evt-0001","event_type":"QUIZ","stage_input":"<META>\ntype: quiz\nprobe: prior\nevent_id: evt-0001\n</META>\n<QUESTIONS>\n<QUESTION id=\"q1\">What is Gregor's profession?</QUESTION>\n</QUESTIONS>"}
-```
-
-SUT writes to its stdout:
+The keyless `bsm_accumulator` SUT on CL-Bench's `blind_spectrum_monitoring`. Harness writes to SUT stdin (abridged schema):
 
 ```
-{"event_id":"evt-0001","answers":[{"id":"q1","text":"travelling salesman"}],"tokens_in":42,"tokens_out":7,"api_call_count":1}
+{"prompt":"Spectrum scan 7...\n  - peak_id: peak-12 | freq: 32.3 MHz | power: -39.0 dBm | width: 14.8 MHz\n...","instance_id":"inst-0007","instance_index":7,"response_schema":{"type":"object","properties":{"transmitters":{"type":"array"}},"required":["transmitters"]},"feedback":null}
 ```
 
-The SUT may internally have prompted its underlying model for `<ANSWER>`-tagged output and parsed those tags itself — but that's the SUT's implementation detail; the harness sees only the structured `answers` list.
+The SUT parses this scan's peaks from `prompt`, unions them into its survive-dir state file (flushed atomically *before* replying, so it survives a `RESET` SIGKILL), and reports every transmitter accumulated so far. It writes to stdout:
+
+```
+{"action":{"transmitters":[{"center_freq":32.3,"bandwidth":14.8,"currently_active":true,"estimated_power":-39.0}]},"resource":{"flops":100,"tokens_in":256,"tokens_out":1,"model_id":"bsm-accumulator"}}
+```
+
+A reset between instance 7 and the next instance would SIGKILL this process; the fresh process re-reads the survive-dir on spawn and continues from the accumulated set (or, in the stateless-baseline arm, finds the survive-dir wiped and starts cold).
+
+## System class & leaderboard
+
+retention-bench does **not** maintain its own `agentic | in-context` two-leaderboard split. CL-Bench owns the leaderboard; retention-bench contributes the net-new **reset-density `k` axis** (see [`metrics.md`](metrics.md)) over the same systems. The manifest's `mode` is therefore a *descriptive* system-class self-label, not a leaderboard router.
+
+A weights-mutating, train-and-grow SUT is a first-class system here: it speaks the same one-line-JSON process contract, persists across `RESET` through the survive-dir, and self-declares `strict_verbatim` honestly (weights, not cached verbatim spans). Such a SUT typically declares `hardware_tier: open` and `resource_appendix.kind: "local"`, reports `flops` / `param_count` / `train_steps` / `growth_count` in its reply `resource`, and produces a **variable-size** survive-dir (storage grows on a growth event) — which the harness already accounts for via the per-instance storage `UsageEvent`.
 
 ## Reference implementations
 
-The reference set is three SUTs (the book-track `no_state` and `naive_rag` SUTs
-were dropped by C20: `gain_curve`'s prior arm `P` already supplies the stateless
-floor intrinsically, and CL-Bench ships stateless / Mem0 baselines).
+Three reference SUTs ship (the book-track `no_state` and `naive_rag` SUTs were dropped by C20: the gain-curve's prior arm `P` supplies the stateless floor intrinsically, and CL-Bench ships stateless / Mem0 baselines).
 
-- **`suts/bsm_accumulator/`** — keyless, stdlib-only accumulator. Drives CL-Bench's `blind_spectrum_monitoring` with **no API key and no model weights**: it unions every peak it has seen into a survive-dir JSON (flushed atomically before each reply so it survives the `RESET` SIGKILL) and reports the accumulated set each scan. Backs the canonical offline `./run.sh smoke`; the cleanest illustration of the hard-reset thesis (state survives the kill via `DIR`).
-- **`suts/notes_llm/`** — cumulative-notes SUT; persists running notes to `DIR` and survives `RESET` via them. Calls an OpenAI-compatible API (via the `openai` SDK pointed at `RETENTION_BENCH_BASE_URL`).
-- **`suts/constructive/`** — train-and-grow SUT. The only reference that learns by **mutating its own weights** as it reads: each READ takes a bounded next-token gradient step on the READ text and (deterministically, once) grows capacity by adding a transformer block; it flushes a `DIR/checkpoint.pt` (config + weights) *before* each READ ack so the grown model survives `RESET`, and answers QUIZ by generating from current weights. Integration example, not a quality baseline — gibberish answers are expected. Reports `param_count` / `train_steps` / `train_flops` / `growth_count` via the `notes` field.
-
-**A weights-mutating SUT is still a valid `in-context` SUT.** The `agentic | in-context` enum is about *how files reach the model* — the SUT's own scaffold (`agentic`) versus handed to it in context (`in-context`) — not about whether training happens. A SUT that folds `READ` text into its weights and grows its architecture is `in-context` and raises no leaderboard or contract problem: it speaks the same JSONL process contract, persists across `RESET` through `DIR`, and self-declares `strict_verbatim` honestly (weights, not cached verbatim spans). Such a SUT typically declares `hardware_tier: open` and `resource_appendix.kind: "local"`, and produces a **variable-size** `DIR` (storage grows on a growth event) — which the harness already accounts for via the per-`RESET` `DIR` snapshot.
+- **`suts/bsm_accumulator/`** — keyless, stdlib-only accumulator. Drives `blind_spectrum_monitoring` with **no API key and no model weights**: it unions every peak it has seen into a survive-dir JSON (flushed atomically before each reply) and reports the accumulated set each scan. Backs the canonical offline `./run.sh smoke`; the cleanest illustration of the hard-reset thesis (state survives the kill via the survive-dir).
+- **`suts/notes_llm/`** — cumulative-notes SUT. Per query it makes one LLM call to revise `DIR/notes.md` from the new observation, then a second call to emit a `response_schema`-conforming report from the notes alone; the notes are the retained artifact and survive `RESET`. Calls an OpenAI-compatible API (via the `openai` SDK pointed at `RETENTION_BENCH_BASE_URL`).
+- **`suts/constructive/`** — train-and-grow SUT. The only reference that learns by **mutating its own weights**: each query takes a bounded next-token gradient step on the prompt and (deterministically, once) grows capacity by adding a transformer block; it flushes `DIR/checkpoint.pt` (config + weights) before replying, so the grown model survives `RESET`, and answers by generating from current weights. Integration example, not a quality baseline — gibberish answers are expected. Reports `param_count` / `train_steps` / `train_flops` / `growth_count` via the reply `resource`.
 
 ## Cross-references
 
-- `docs/metrics.md` — how the SUT's answers become a retention curve.
+- [`metrics.md`](metrics.md) — how the SUT's per-instance rewards become a reset-axis retention curve.

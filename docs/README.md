@@ -9,13 +9,14 @@ and interpreting its results; the project overview and quickstart are in the
 
 | Doc | What it covers |
 |---|---|
-| [`sut-interface.md`](sut-interface.md) | The system-under-test process contract — how a SUT reads stages, mutates the survive-dir, reports, and is launched (subprocess / container). Start here if you're building a SUT. |
-| [`metrics.md`](metrics.md) | The retention metric — normalised `(R − P) / (C − P)`, the reset (`k`) axis, the `C ≈ P` exclusion rule, and reconciliation with CL-Bench's gain. |
+| [`sut-interface.md`](sut-interface.md) | The system-under-test process contract — the `SubprocessSystem` one-line-JSON query/reply per CL-Bench instance, the survive-dir / hard-`RESET` mechanics, resource self-report, and launch (subprocess / container). Start here if you're building a SUT. |
+| [`metrics.md`](metrics.md) | The retention metric — the reset-axis gain curve `norm_gain(k) = (R − P) / max(C − P, ε)`, the `C ≈ P` exclusion rule, and reconciliation with CL-Bench's gain. |
 
 > **Constructive SUT integration contract** — a dedicated requirements contract
 > for constructive (train-and-grow) systems is in progress and not yet listed
 > here; the `sut-interface.md` contract above already applies to constructive
-> SUTs (a weights-mutating SUT is a valid `in-context` SUT).
+> SUTs (a weights-mutating, train-and-grow system is a first-class SUT — see
+> "System class & leaderboard").
 
 > **History.** retention-bench began life as a standalone benchmark (working name
 > "CL-N") before the 2026-06 pivot onto CL-Bench. Those earlier standalone-era
