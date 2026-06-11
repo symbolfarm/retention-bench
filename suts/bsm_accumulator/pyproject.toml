@@ -1,0 +1,13 @@
+[project]
+name = "retention-bench-sut-bsm-accumulator"
+version = "0.1.0"
+description = "Keyless accumulator reference SUT for retention-bench. Backs the offline smoke on blind_spectrum_monitoring; stdlib-only, no model, no API key."
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["bsm_accumulator*"]
