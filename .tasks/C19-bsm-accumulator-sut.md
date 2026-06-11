@@ -79,6 +79,28 @@ band (ceiling > stateless prior) when driven through `gain_curve` on the BSM
   empty `ScanReport` collapses the band (`C ≈ P` → curve excluded) and makes a
   useless smoke.
 
+## Implementation notes (from pre-build re-read)
+
+- **Peaks arrive as rendered prose, not structured fields.** `SubprocessSystem`
+  forwards only `query.prompt` (+ `instance_id`, `instance_index`,
+  `response_schema`, `feedback`) — *not* the structured `detected_peaks`. So the
+  SUT regex-parses peaks out of `instance.j2`'s rendered lines, which are clean:
+  `  - peak_id: … | freq: 32.3 MHz | power: -39.0 dBm | width: 14.8 MHz`.
+- **What to accumulate / report.** Union the observed `(freq, width, power)`
+  peaks into survive-dir state; emit one `Transmitter(center_freq=freq,
+  bandwidth=width, currently_active=<in this scan>, estimated_power=power)` per
+  accumulated peak. Scoring (`_score_report`) normalises/merges the reported
+  occupied intervals itself, so dedup is optional — the union is enough.
+- **Why this shows a band (IoU direction).** GT-available = complement of *all
+  persistent* occupied regions (incl. currently-dormant transmitters). A
+  stateless arm reports only currently-active peaks → under-reports occupied →
+  over-claims available → lower IoU. The accumulator recovers dormant
+  transmitters seen on earlier scans → reported-occupied matches GT → higher IoU.
+- **Known simplification (acceptable for a smoke):** the rendered prompt drops
+  the peak `source`, so the SUT can't filter interference vs. channel peaks.
+  Interference is sparse in this corpus; genuine channels dominate and the band
+  still holds. Don't over-engineer a filter.
+
 ## Out of scope
 
 - Repointing `./run.sh smoke`, retiring the book-track, doc/README changes — all
