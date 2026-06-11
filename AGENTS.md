@@ -74,7 +74,7 @@ All hard-blockers + soft-blockers resolved 2026-05-20. See `docs/decisions-check
 
 ## Sibling-project context
 
-- **constructive-neural-networks** (in `symbolfarm/meta-research/projects/constructive-neural-networks/`) depends on this evaluator existing. CNN's target is constructive *transformers* (growth in attention/embeddings/MLPs of a pre-trained reasoning LM) — see auto-memory `project_constructive_transformers.md`.
+- **constructive-retention** (`symbolfarm/constructive-retention`, its own repo; checked out beside this one at `../constructive-retention` in the dev workspace) is the headline SUT this evaluator exists to measure. It is a *from-scratch tiny constructive transformer* that grows capacity and mutates weights across instances — see its `docs/brief.md` and auto-memory `project_constructive_transformers.md`. It is a **separate repo, not co-edited from here**: the harness is a pinned dependency for it; harness changes it needs are filed as tasks *here* (prefix `RB-`/`C`) and land first. The dev-loop drives it out-of-tree via `--extra-pythonpath ../constructive-retention` (see its `AGENTS.md` for the exact gain-curve command).
 - The cross-project framing (this eval as the *measurement* slot in a trigger-operator-measurement triple) lives in `symbolfarm/meta-research/projects/research-stack-synthesis.md`.
 
 ## Session log (recent)
