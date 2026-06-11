@@ -1,13 +1,17 @@
-"""B4a: harness docker-run launch path.
+"""B4a: SUT docker-run launch path (the ``harness.sut_process`` container primitives).
 
 Two layers:
-  - Pure-function tests for `build_docker_argv` + `host_path_for_mount` and the
-    `_make_container_spec` manifest wiring. These run everywhere and carry the
-    real coverage of the argv-construction / path-translation logic.
+  - Pure-function tests for `build_docker_argv` + `host_path_for_mount`. These
+    run everywhere and carry the real coverage of the argv-construction /
+    path-translation logic that `retention_bench.SubprocessSystem`'s container
+    mode rides on.
   - A docker-gated integration test that actually round-trips a containerised
-    echo SUT through the harness (skipped when no docker daemon is reachable).
-    B4c's smoke test is the authoritative end-to-end validation; this is a
-    cheap regression guard for the launch/RESET lifecycle on the docker path.
+    echo SUT (skipped when no docker daemon is reachable) — a cheap regression
+    guard for the launch/RESET lifecycle on the docker path.
+
+(The book-track ``event_loop._make_container_spec`` manifest-wiring tests were
+retired with the book-track harness by C20; the argv/teardown primitives they
+exercised live in ``sut_process`` and are covered above.)
 """
 
 from __future__ import annotations
@@ -18,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from harness import event_loop, sut_process
+from harness import sut_process
 from harness.sut_process import (
     DIR_CONTAINER_PATH,
     SHIM_CONTAINER_PATH,
@@ -104,56 +108,6 @@ def test_docker_argv_no_shim_by_default():
     argv = build_docker_argv(_spec(), ["python", "-m", "no_state"])
     assert not any("PYTHONPATH" in tok for tok in argv)
     assert SHIM_CONTAINER_PATH not in " ".join(argv)
-
-
-# --- _make_container_spec (manifest wiring) ------------------------------
-
-
-def _config(manifest):
-    # Minimal RunConfig stand-in: _make_container_spec only reads sut_manifest.
-    return event_loop.RunConfig(
-        task=None,  # unused by _make_container_spec
-        sut_command=["python", "-m", "no_state"],
-        runs_root=REPO_ROOT / "runs",
-        sut_manifest=manifest,
-    )
-
-
-def test_no_container_spec_without_image():
-    """A manifest without `image` keeps the subprocess path (spec is None)."""
-    cfg = _config({"entrypoint": ["python", "-m", "no_state"], "env": ["X"]})
-    assert event_loop._make_container_spec(cfg, "run", REPO_ROOT / "d", 0) is None
-
-
-def test_no_container_spec_without_manifest():
-    cfg = _config(None)
-    assert event_loop._make_container_spec(cfg, "run", REPO_ROOT / "d", 0) is None
-
-
-def test_container_spec_built_from_manifest(monkeypatch):
-    monkeypatch.delenv("HOST_WORKSPACE", raising=False)
-    monkeypatch.delenv("RETENTION_BENCH_SHIM_DIR", raising=False)
-    cfg = _config({
-        "image": "retention-bench/no-state:latest",
-        "entrypoint": ["python", "-m", "no_state"],
-        "env": ["OPENROUTER_API_KEY", "NO_STATE_MODEL"],
-    })
-    dir_path = REPO_ROOT / "runs" / "r" / "dir"
-    spec = event_loop._make_container_spec(cfg, "run-xyz", dir_path, 2)
-    assert spec is not None
-    assert spec.image == "retention-bench/no-state:latest"
-    assert spec.container_name == "retbench-run-xyz-02"  # unique per invocation
-    assert spec.env_names == ["OPENROUTER_API_KEY", "NO_STATE_MODEL"]
-    assert spec.shim_host_path is None
-
-
-def test_container_spec_includes_shim_when_env_set(monkeypatch):
-    monkeypatch.delenv("HOST_WORKSPACE", raising=False)
-    shim = REPO_ROOT / "tests" / "fake_openai_shim"
-    monkeypatch.setenv("RETENTION_BENCH_SHIM_DIR", str(shim))
-    cfg = _config({"image": "img:latest", "env": []})
-    spec = event_loop._make_container_spec(cfg, "run", REPO_ROOT / "d", 0)
-    assert spec.shim_host_path == str(shim)
 
 
 # --- docker round-trip (skipped without a daemon) ------------------------

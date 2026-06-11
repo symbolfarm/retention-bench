@@ -15,7 +15,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "PyYAML>=6.0",
     # Continual Learning Bench (Asawa et al.) — not on PyPI, so pin an exact
     # commit of the GitHub source for reproducibility. Imports as `src.*`; see
     # retention_bench/_clbench.py for the single re-export chokepoint. This dep
@@ -26,13 +25,18 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4",
+    # The fake-OpenAI test shim + test_notes_clbench read/write YAML response
+    # fixtures. Test-only — the shipped package imports no YAML.
+    "PyYAML>=6.0",
 ]
-no-state-sut = [
+# OpenAI-compatible client for the LLM-backed reference SUTs (e.g. notes_llm).
+# The canonical `./run.sh smoke` (bsm_accumulator) needs none of this.
+llm-sut = [
     "openai>=1.40.0",
 ]
 
 [project.scripts]
-retention-bench = "harness.__main__:main"
+retention-bench = "retention_bench.gain_curve:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

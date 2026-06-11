@@ -9,7 +9,15 @@ tags: [spec, data-contract, sut]
 
 The SUT (system under test) is launched and driven by the harness as a subprocess. The interface is intentionally process-level: anything that can be wrapped in a binary that speaks JSON Lines on stdin/stdout is a valid SUT, regardless of language or architecture (pure LLM call, agent scaffold, RAG system, constructive model, …).
 
-It covers the tagged-section `STAGE_INPUT`, strict-verbatim self-report, the process-level contract (and the agentic / in-context leaderboard split), the reference SUT set, resource self-report, and hardware tiers. `docs/trace-schema.md` defines what the harness records about each event.
+It covers the tagged-section `STAGE_INPUT`, strict-verbatim self-report, the process-level contract (and the agentic / in-context leaderboard split), the reference SUT set, resource self-report, and hardware tiers.
+
+> **Note (C20).** This contract was authored for the retired book-track event
+> loop (`READ`/`QUIZ`/`RESET` over `STAGE_INPUT`). The live path is
+> `retention_bench.SubprocessSystem` driving CL-Bench tasks (a one-line-JSON
+> query/reply per instance); the launch, container, `DIR`, and `RESET`
+> mechanics below are unchanged and still authoritative, but the event vocabulary
+> and the `sut-manifest.json` `entrypoint` example are book-track. A full rewrite
+> to the `SubprocessSystem` contract is tracked separately.
 
 ## Invocation
 
@@ -148,7 +156,7 @@ spawn → [event → response]* → (EOF on stdin → exit) | (SIGKILL on RESET)
 
 ## `sut-manifest.json`
 
-Ships with the SUT package. The harness reads it at run start and copies it into the run directory as `sut-manifest.json` (see `docs/trace-schema.md`).
+Ships with the SUT package. The harness reads it at run start and copies it into the run directory as `sut-manifest.json`.
 
 Schema:
 
@@ -200,15 +208,16 @@ The SUT may internally have prompted its underlying model for `<ANSWER>`-tagged 
 
 ## Reference implementations
 
-- **`suts/no_state/`** — minimum-viable in-context SUT. Calls an OpenAI-compatible API (via the `openai` SDK pointed at `RETENTION_BENCH_BASE_URL`) with the question text only, ignores `DIR`. Reference for the contract; floor row on the leaderboard.
-- **`suts/notes_llm/`** — cumulative-notes SUT; persists running notes to `DIR` and survives `RESET` via them.
-- **`suts/naive_rag/`** — naive dense-retrieval RAG SUT; embeds chunks into a `DIR/index.jsonl` index and retrieves at QUIZ time.
+The reference set is three SUTs (the book-track `no_state` and `naive_rag` SUTs
+were dropped by C20: `gain_curve`'s prior arm `P` already supplies the stateless
+floor intrinsically, and CL-Bench ships stateless / Mem0 baselines).
+
+- **`suts/bsm_accumulator/`** — keyless, stdlib-only accumulator. Drives CL-Bench's `blind_spectrum_monitoring` with **no API key and no model weights**: it unions every peak it has seen into a survive-dir JSON (flushed atomically before each reply so it survives the `RESET` SIGKILL) and reports the accumulated set each scan. Backs the canonical offline `./run.sh smoke`; the cleanest illustration of the hard-reset thesis (state survives the kill via `DIR`).
+- **`suts/notes_llm/`** — cumulative-notes SUT; persists running notes to `DIR` and survives `RESET` via them. Calls an OpenAI-compatible API (via the `openai` SDK pointed at `RETENTION_BENCH_BASE_URL`).
 - **`suts/constructive/`** — train-and-grow SUT. The only reference that learns by **mutating its own weights** as it reads: each READ takes a bounded next-token gradient step on the READ text and (deterministically, once) grows capacity by adding a transformer block; it flushes a `DIR/checkpoint.pt` (config + weights) *before* each READ ack so the grown model survives `RESET`, and answers QUIZ by generating from current weights. Integration example, not a quality baseline — gibberish answers are expected. Reports `param_count` / `train_steps` / `train_flops` / `growth_count` via the `notes` field.
 
 **A weights-mutating SUT is still a valid `in-context` SUT.** The `agentic | in-context` enum is about *how files reach the model* — the SUT's own scaffold (`agentic`) versus handed to it in context (`in-context`) — not about whether training happens. A SUT that folds `READ` text into its weights and grows its architecture is `in-context` and raises no leaderboard or contract problem: it speaks the same JSONL process contract, persists across `RESET` through `DIR`, and self-declares `strict_verbatim` honestly (weights, not cached verbatim spans). Such a SUT typically declares `hardware_tier: open` and `resource_appendix.kind: "local"`, and produces a **variable-size** `DIR` (storage grows on a growth event) — which the harness already accounts for via the per-`RESET` `DIR` snapshot.
 
 ## Cross-references
 
-- `docs/trace-schema.md` — what the harness records about each event, including the `sut-manifest.json` it copies.
-- `docs/task-definition-schema.md` — input contract producing the events the SUT sees.
 - `docs/metrics.md` — how the SUT's answers become a retention curve.

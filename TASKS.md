@@ -40,22 +40,24 @@ Marked `superseded` in the log; see their debriefs.
 
 ---
 
-## Historical: standalone-benchmark era (M1–M7, B1–B16) — SUPERSEDED by the pivot
+## Historical: standalone-benchmark era (M1–M7, B1–B16) — SUPERSEDED, then RETIRED
 
-Kept for context and "why" archaeology. The completed work below (the harness,
-scorer, and reference SUTs) is the source of what we now **reuse** as
-contributions — chiefly `harness/sut_process.py`, `harness/dir_lifecycle.py`,
-and `suts/constructive/`. See the reuse/retire table in the pivot plan.
+**Retired by C20 (2026-06-11).** The book-track path is gone, not just
+superseded: the event-loop harness (`harness/event_loop.py`, `task_loader.py`,
+`trace_writer.py`, `__main__.py`), the per-question scorer (`scorer/`'s
+exact-match/judge/curve/CLI — only `EPSILON` + `normalised_retention` survive in
+`scorer/aggregate.py`), the `tasks/smoke-test/` fixture, the `no_state` +
+`naive_rag` reference SUTs, and their tests were deleted. `./run.sh smoke` now
+runs the keyless `bsm_accumulator` SUT through `retention_bench.gain_curve` on
+CL-Bench's `blind_spectrum_monitoring`, offline and keyless. What the pivot
+**reused** stays: `harness/sut_process.py`, `harness/dir_lifecycle.py`,
+`scorer.aggregate`'s band primitives, and `suts/constructive/`. The book-track
+input/output schema docs were re-archived to `docs/archive/` (dev-only).
 
-**Operational MVP for the book-track.** Goal: a runnable end-to-end smoke test
-where the harness drives a no-state reference SUT through a toy book-track task,
-produces a trace, scores it, and renders a retention curve. No cohort-1 assets,
-no LLM-judge scoring, no container packaging — just the smallest thing that
-exercises the full pipeline.
-
-Definition of done for MVP: `./run.sh smoke-test` produces a JSONL trace and a
-printed `P`/`C`/`R(k)` retention curve, end-to-end, on the no-state SUT.
-**Status: ✓ met at M7 (2026-05-20).**
+The MVP build order (M1–M7) and backlog (B1–B16) below are kept for "why"
+archaeology only. For reference, the book-track MVP's definition of done was a
+`./run.sh smoke-test` that drove a no-state SUT end-to-end to a `P`/`C`/`R(k)`
+curve (✓ met at M7, 2026-05-20); that pipeline no longer exists.
 
 **Stack (decided 2026-05-20):** Python for harness + reference SUTs. Anthropic
 SDK for the no-state SUT's LLM calls. Rust port of the harness is a possible

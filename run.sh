@@ -2,8 +2,8 @@
 # retention-bench convenience wrapper.
 #
 # Usage:
-#   ./run.sh smoke                       # canonical MVP smoke run
-#   ./run.sh <task.yaml> [harness args]  # arbitrary task; pass-through
+#   ./run.sh smoke              # canonical offline, keyless smoke (gain curve)
+#   ./run.sh [gain_curve args]  # arbitrary CL-Bench task; pass-through
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,23 +22,19 @@ cmd="${1:-}"
 
 if [[ "$cmd" == "smoke" ]]; then
   shift || true
-  task="tasks/smoke-test/task.yaml"
-  sut="suts/no_state"
-
-  # Harness prints the run-dir as its last stdout line; capture it so we
-  # can hand it straight to the scorer without a manual copy-paste.
-  run_dir="$(python3 -m harness "$task" --sut "$sut" "$@" | tee /dev/stderr | tail -n 1)"
-
-  if [[ ! -d "$run_dir" ]]; then
-    echo "smoke: harness did not produce a usable run directory: $run_dir" >&2
-    exit 1
-  fi
-
-  echo ""
-  echo "=== Scoring $run_dir ==="
-  python3 -m scorer "$run_dir"
-  exit 0
+  # Canonical smoke: the keyless, offline BSM accumulator SUT driven through the
+  # CL-Bench-native gain-curve sweep on blind_spectrum_monitoring. No API key and
+  # no model weights — it proves the full reset/retention pipeline end-to-end and
+  # prints the P / C / R(k) curve. See suts/bsm_accumulator/README.md.
+  exec python3 -m retention_bench.gain_curve \
+    --task blind_spectrum_monitoring \
+    --task-kwarg variant=five_ch_wide \
+    --sut "python -m bsm_accumulator.clbench_main" \
+    --extra-pythonpath suts/bsm_accumulator \
+    --reset-every 1 --reset-every 2 \
+    "$@"
 fi
 
-# Fall through: pass-through to the harness for any other task.
-exec python3 -m harness "$@"
+# Fall through: pass-through to the gain-curve driver for any other CL-Bench
+# task / SUT (it is SUT-agnostic; see `--help` and `--list-tasks`).
+exec python3 -m retention_bench.gain_curve "$@"

@@ -1,38 +1,15 @@
-"""Aggregate logic: normalised retention math + C≈P exclusion."""
+"""Retention-curve band primitives: the normalised-retention formula + ε.
+
+The book-track per-question aggregation (``aggregate_records`` /
+``aggregate_curve`` / ``aggregate_curve_by_type`` and the ``QuestionAggregate``
+rollup) was retired with the book-track scorer (C20). Only the band math
+survives, because it is all the CL-Bench-native ``gain_curve`` path needs;
+``test_gain_curve`` exercises it in the reset-axis context.
+"""
 
 from __future__ import annotations
 
-from scorer.aggregate import (
-    EPSILON,
-    aggregate_curve,
-    aggregate_curve_by_type,
-    aggregate_records,
-    normalised_retention,
-)
-
-
-def _rec(
-    qid: str,
-    probe: str,
-    sut: str,
-    gold: str,
-    k: int | None = None,
-    qtype: str = "surface_factual",
-) -> dict:
-    return {
-        "record_id": f"evt-{qid}-{probe}",
-        "event_id": f"evt-{probe}",
-        "question_id": qid,
-        "probe_type": probe,
-        "k": k,
-        "question_text": "?",
-        "gold_answer": gold,
-        "sut_answer": sut,
-        "question_type": qtype,
-        "material_ref": "m1",
-        "question_seen_before": 0,
-        "parsing_status": "ok",
-    }
+from scorer.aggregate import EPSILON, normalised_retention
 
 
 def test_normalised_retention_formula() -> None:
@@ -44,148 +21,10 @@ def test_normalised_retention_formula() -> None:
     assert normalised_retention(0.0, 1.0, 1.0, epsilon=0.05) == (0.0 - 1.0) / 0.05
 
 
-def test_aggregate_records_collects_pcr() -> None:
-    # q1: learnable; P=0, C=1, R(1)=1 → norm 1.0
-    records = [
-        _rec("q1", "prior", "wrong", "right"),
-        _rec("q1", "ceiling", "right", "right"),
-        _rec("q1", "retention", "right", "right", k=1),
-    ]
-    _, per_q = aggregate_records(records)
-    agg = per_q["q1"]
-    assert agg.prior == 0.0
-    assert agg.ceiling == 1.0
-    assert agg.retention_at(1) == 1.0
-    assert not agg.is_excluded()
-
-
-def test_aggregate_excludes_c_approx_p() -> None:
-    # q1: learnable (P=0, C=1)
-    # q2: not learnable (P=1, C=1) → excluded from aggregate
-    # q3: not learnable (P=0, C=0) → excluded from aggregate
-    records = [
-        _rec("q1", "prior", "wrong", "right"),
-        _rec("q1", "ceiling", "right", "right"),
-        _rec("q1", "retention", "right", "right", k=1),
-        _rec("q2", "prior", "right", "right"),
-        _rec("q2", "ceiling", "right", "right"),
-        _rec("q2", "retention", "right", "right", k=1),
-        _rec("q3", "prior", "wrong", "right"),
-        _rec("q3", "ceiling", "wrong", "right"),
-        _rec("q3", "retention", "wrong", "right", k=1),
-    ]
-    _, per_q = aggregate_records(records)
-    assert per_q["q1"].is_excluded() is False
-    assert per_q["q2"].is_excluded() is True
-    assert per_q["q3"].is_excluded() is True
-
-    curve = aggregate_curve(per_q)
-    # Only q1 contributes.
-    assert curve == {1: (1.0, 1)}
-
-
-def test_aggregate_curve_mean_across_questions() -> None:
-    # q1: P=0, C=1, R(1)=1 → norm 1.0
-    # q2: P=0, C=1, R(1)=0 → norm 0.0
-    # mean at k=1 = 0.5 over 2 usable questions.
-    records = [
-        _rec("q1", "prior", "wrong", "right"),
-        _rec("q1", "ceiling", "right", "right"),
-        _rec("q1", "retention", "right", "right", k=1),
-        _rec("q2", "prior", "wrong", "right"),
-        _rec("q2", "ceiling", "right", "right"),
-        _rec("q2", "retention", "wrong", "right", k=1),
-    ]
-    _, per_q = aggregate_records(records)
-    curve = aggregate_curve(per_q)
-    assert curve[1] == (0.5, 2)
-
-
-def test_aggregate_handles_multiple_k() -> None:
-    records = [
-        _rec("q1", "prior", "wrong", "right"),
-        _rec("q1", "ceiling", "right", "right"),
-        _rec("q1", "retention", "right", "right", k=1),
-        _rec("q1", "retention", "wrong", "right", k=2),
-    ]
-    _, per_q = aggregate_records(records)
-    assert per_q["q1"].retention_at(1) == 1.0
-    assert per_q["q1"].retention_at(2) == 0.0
-    curve = aggregate_curve(per_q)
-    assert curve[1] == (1.0, 1)
-    assert curve[2] == (0.0, 1)
-
-
-def test_parsing_status_failures_score_zero() -> None:
-    # not_found / ambiguous should score 0 even if the sut_answer happens
-    # to match the gold.
-    records = [
-        _rec("q1", "prior", "wrong", "right"),
-        _rec("q1", "ceiling", "right", "right"),
-        {
-            **_rec("q1", "retention", "right", "right", k=1),
-            "parsing_status": "not_found",
-        },
-    ]
-    _, per_q = aggregate_records(records)
-    assert per_q["q1"].retention_at(1) == 0.0
-
-
-def test_missing_p_or_c_is_excluded() -> None:
-    records = [
-        _rec("q1", "prior", "wrong", "right"),
-        # No ceiling.
-        _rec("q1", "retention", "right", "right", k=1),
-    ]
-    _, per_q = aggregate_records(records)
-    assert per_q["q1"].is_excluded() is True
-    assert aggregate_curve(per_q) == {}
-
-
-def test_question_type_captured_on_aggregate() -> None:
-    records = [
-        _rec("q1", "prior", "wrong", "right", qtype="multi_hop"),
-        _rec("q1", "ceiling", "right", "right", qtype="multi_hop"),
-    ]
-    _, per_q = aggregate_records(records)
-    assert per_q["q1"].question_type == "multi_hop"
-
-
-def test_curve_by_type_separates_question_types() -> None:
-    # surface_factual question retains (norm 1.0); multi_hop collapses (norm 0.0).
-    # The pooled curve averages to 0.5, but the per-type breakdown must keep
-    # them legible — this is the stenography-vs-understanding signal (B15).
-    records = [
-        _rec("sf1", "prior", "wrong", "right", qtype="surface_factual"),
-        _rec("sf1", "ceiling", "right", "right", qtype="surface_factual"),
-        _rec("sf1", "retention", "right", "right", k=1, qtype="surface_factual"),
-        _rec("mh1", "prior", "wrong", "right", qtype="multi_hop"),
-        _rec("mh1", "ceiling", "right", "right", qtype="multi_hop"),
-        _rec("mh1", "retention", "wrong", "right", k=1, qtype="multi_hop"),
-    ]
-    _, per_q = aggregate_records(records)
-
-    # Pooled curve hides the separation.
-    assert aggregate_curve(per_q)[1] == (0.5, 2)
-
-    # Per-type curve exposes it.
-    by_type = aggregate_curve_by_type(per_q)
-    assert by_type["surface_factual"][1] == (1.0, 1)
-    assert by_type["multi_hop"][1] == (0.0, 1)
-
-
-def test_curve_by_type_excludes_within_group() -> None:
-    # A multi_hop question with no learnable signal (C≈P) is excluded from its
-    # own group's curve, just as in the pooled aggregate.
-    records = [
-        _rec("mh1", "prior", "right", "right", qtype="multi_hop"),  # excluded
-        _rec("mh1", "ceiling", "right", "right", qtype="multi_hop"),
-        _rec("mh1", "retention", "right", "right", k=1, qtype="multi_hop"),
-    ]
-    _, per_q = aggregate_records(records)
-    by_type = aggregate_curve_by_type(per_q)
-    # Group exists but has no usable questions → empty curve for that type.
-    assert by_type["multi_hop"] == {}
+def test_normalised_retention_floors_band_at_epsilon() -> None:
+    # When the raw band C − P is below ε, the denominator is clamped to ε so the
+    # formula never divides by a vanishing (or negative) band.
+    assert normalised_retention(0.5, 0.0, 0.0, epsilon=0.05) == 0.5 / 0.05
 
 
 def test_epsilon_constant() -> None:

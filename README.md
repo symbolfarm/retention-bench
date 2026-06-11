@@ -17,7 +17,8 @@ explicitly lacks:
   that survives must have been carried through the survive-dir.
 - **A constructive / parametric system class** — a train-and-grow reference
   learner that grows capacity across reads, with compute accounting, alongside
-  the agent-memory reference SUTs (no-state, notes, naive-RAG).
+  the agent-memory reference SUTs (a keyless accumulator and a cumulative-notes
+  LLM).
 
 Because the SUT interface is **mechanism-agnostic** (read a stage, optionally
 mutate the survive-dir, write a response), fine-tuning, structural growth,
@@ -29,47 +30,53 @@ harness can't tell them apart.
 Requires **Python 3.13+** (the `cl-benchmark` dependency sets this floor).
 
 ```bash
-# 1. Install (editable), with the no-state reference SUT's dependencies:
-pip install -e ".[no-state-sut]"
+# 1. Install (editable):
+pip install -e .
 
-# 2. Provide an API key for the OpenAI-compatible endpoint (OpenRouter default):
-cp .env.example .env
-#   then edit .env and set OPENROUTER_API_KEY=...
-
-# 3. Run the canonical end-to-end smoke test:
+# 2. Run the canonical end-to-end smoke test (offline, no API key):
 ./run.sh smoke
 ```
 
-This drives `tasks/smoke-test/task.yaml` (a public-domain text + 5 questions)
-through the harness and the **no-state** reference SUT, then scores the trace and
-prints a `P` / `C` / `R(k)` retention table. The no-state SUT is the floor row —
-it never reads the source — so every question is correctly excluded by the
-`C ≈ P` rule (see [`docs/metrics.md`](docs/metrics.md)).
+This drives the **keyless `bsm-accumulator`** reference SUT through CL-Bench's
+`blind_spectrum_monitoring` task on the gain-curve sweep, printing the
+`P` / `C` / `R(k)` retention table. It runs **offline with no API key and no
+model weights** — the accumulator just unions every spectrum peak it has seen
+into the survive-dir — so the smoke proves the full reset/retention pipeline
+end-to-end without network or credentials.
 
-Runs are written to `runs/<run-id>/` (gitignored): `trace.jsonl`,
-`questions.jsonl`, run/SUT manifests, the survive-`dir/`, snapshots, stage I/O,
-and SUT stderr — the full audit trail.
+The reset axis is swept by `--reset-every`; each arm gets a fresh survive-dir.
+The prior arm `P` (survive-dir wiped on every reset) is the stateless floor, the
+ceiling `C` (no reset) is the best the system can do, and `R(k)` shows how
+retention holds as `k` hard resets accumulate. See
+[`suts/bsm_accumulator/README.md`](suts/bsm_accumulator/README.md).
 
-For an arbitrary task: `./run.sh <task.yaml> --sut <sut-dir>` (or call
-`python -m harness ...` and `python -m scorer <run-dir>` directly).
+For an arbitrary CL-Bench task / SUT, the gain-curve driver is SUT-agnostic:
+
+```bash
+python -m retention_bench.gain_curve --list-tasks
+python -m retention_bench.gain_curve --task <task> --sut "<launch command>" \
+  --extra-pythonpath <sut-dir> --reset-every 1 --reset-every 2
+```
+
+(LLM-backed reference SUTs like `notes_llm` need an OpenAI-compatible endpoint —
+copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.)
 
 ## How retention is scored
 
-Each question is probed three ways: `P` (prior knowledge, before any reading),
-`C` (capability ceiling, with the text fresh in the same process), and `R(k)`
-(retention after `k` resets). The headline metric is **normalised retention**
-`(R − P) / (C − P)` — how much of what was *learnable in principle* survived the
-resets. Questions where `C ≈ P` (nothing was learnable, or priors already
-saturate) are excluded rather than scored. Full definitions, the reset axis, and
+Each CL-Bench instance is scored by the task's own reward; we run three kinds of
+arm from a fresh survive-dir: `P` (prior — stateless, survive-dir wiped every
+reset), `C` (ceiling — no reset, state accumulates unbroken), and `R(k)`
+(retention after `k` hard resets). The headline metric is **normalised
+retention** `(R − P) / (C − P)` — how much of the *learnable band* survived the
+resets. A band where `C ≈ P` (nothing was learnable, or priors already saturate)
+is excluded rather than scored. Full definitions, the reset axis, and
 reconciliation with CL-Bench's gain are in [`docs/metrics.md`](docs/metrics.md).
 
 ## Documentation
 
 See [`docs/`](docs/) — start with [`docs/sut-interface.md`](docs/sut-interface.md)
 (the SUT process contract) and [`docs/metrics.md`](docs/metrics.md) (how retention
-is scored). The input/output data contracts are in
-[`docs/task-definition-schema.md`](docs/task-definition-schema.md) and
-[`docs/trace-schema.md`](docs/trace-schema.md).
+is scored).
 
 ## License
 

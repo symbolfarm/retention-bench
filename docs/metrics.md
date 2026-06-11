@@ -93,12 +93,14 @@ Summary statistics should always be reported with the curve, not instead of it.
 
 ## Reset-axis curve on Continual Learning Bench (the pivot's net-new axis)
 
-Everything above is the book-track formulation (per-question `P`/`C`/`R(k)`
-probes inside one run). The same normalisation is also
-applied to **whole-run rewards on a Continual Learning Bench task**, where the
-axis is the number of *hard resets* `k` the run executed. This is the thing
+Everything above is the original per-question `P`/`C`/`R(k)` formulation (probes
+inside one run), which the retired book-track harness produced; it is kept here
+as the definition of the band metric. The **live** path applies the same
+normalisation to **whole-run rewards on a Continual Learning Bench task**, where
+the axis is the number of *hard resets* `k` the run executed. This is the thing
 CL-Bench cannot express: its `mean_gain` is a single number at one implicit
-reset density.
+reset density. (A pass to fold the per-question background into this section is
+tracked separately — see the C20 debrief.)
 
 `retention_bench.gain_curve.run_reset_sweep` runs three kinds of arm on one
 CL-Bench task + system, each from a *fresh* survive-dir:
@@ -110,8 +112,8 @@ CL-Bench task + system, each from a *fresh* survive-dir:
 - **points `R(k)`** — one stateful (non-wiping) arm per requested schedule; `k`
   is the *measured* `system.scheduled_resets`, not the nominal density.
 
-The per-point number is the **same** band normalisation as the book-track curve,
-reusing `scorer.aggregate.normalised_retention`:
+The per-point number is the **same** band normalisation as the per-question
+curve above, reusing `scorer.aggregate.normalised_retention`:
 
 ```
 norm_gain(k) = (R(k) − P) / max(C − P, ε)
