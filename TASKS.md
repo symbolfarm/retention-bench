@@ -19,18 +19,14 @@ discontinuity where only an on-disk survive-dir persists) and a
 The C0-C4 pivot path is complete: the CL-Bench adapter seam works, the production
 `SubprocessSystem` owns hard process-kill resets and reset schedules, the
 constructive reference SUT runs through CL-Bench, and `gain_curve` renders the
-reset-axis retention table with CL-Bench mean-gain reconciliation.
+reset-axis retention table with CL-Bench mean-gain reconciliation. The first
+small curriculum substrate has also landed: `symbolic_associative_retention` is
+a deterministic, exact-scored Retention Bench task with a keyless JSON-state
+reference SUT (`suts/associative_memory`) that demonstrates a non-excluded
+hard-reset retention band.
 
 **Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
-- **RB-2a** — pre-brief/spec for the first small curriculum task. Pins the
-  associative-retention substrate, metadata/scoring shape, reference SUT
-  behavior, and repeated-exposure door before implementation.
-- **RB-2b** — implement the deterministic associative curriculum
-  `ContinualLearningTask` with exact scoring and memorization-vs-transfer
-  metrics.
-- **RB-2c** — add the keyless JSON-state reference SUT, gain-curve smoke, and
-  docs proving the curriculum has a retention band.
 - **RB-3** — repeated-exposure curriculum variant for sample-efficiency /
   RL-adjacent exploration after the first substrate lands.
 - **C5** — author outreach draft, gated on Toby review before anything is sent.

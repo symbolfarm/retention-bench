@@ -188,7 +188,7 @@ python -m retention_bench.gain_curve \
   --reset-every 1 --reset-every 2 --name associative-memory
 ```
 
-The smoke test should assert:
+RB-2c implements this as `suts/associative_memory/`. The smoke test asserts:
 
 - the curve is not excluded;
 - `ceiling > prior`;
