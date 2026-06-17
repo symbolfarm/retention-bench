@@ -42,4 +42,4 @@
 {"id":"C19","status":"completed","priority":"high","blocked_by":[],"task_file":"C19-bsm-accumulator-sut.md","commit":"2897100","created_at":"2026-06-11T13:12:37Z","completed_at":"2026-06-11T13:12:37Z"}
 {"id":"C20","status":"completed","priority":"high","blocked_by":["C19"],"task_file":"C20-retire-booktrack.md","commit":"12fe995","created_at":"2026-06-11T13:12:37Z","completed_at":"2026-06-11T14:35:00Z"}
 {"id":"C21","status":"completed","priority":"medium","blocked_by":[],"task_file":"C21-docs-reconcile-subprocesssystem.md","commit":"2e977ab","created_at":"2026-06-11T14:30:00Z","completed_at":"2026-06-11T00:00:00Z"}
-{"id":"RB-1","status":"pending","priority":"high","blocked_by":[],"task_file":"RB-1-env-and-task-docs.md","commit":null,"created_at":"2026-06-17T03:53:41Z","completed_at":null}
+{"id":"RB-1","status":"in_progress","priority":"high","blocked_by":[],"task_file":"RB-1-env-and-task-docs.md","commit":null,"created_at":"2026-06-17T03:53:41Z","completed_at":null}
