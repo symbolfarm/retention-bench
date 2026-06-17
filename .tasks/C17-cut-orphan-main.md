@@ -1,7 +1,7 @@
 # C17 Cut orphan `main` — first public release
 
 **Priority:** medium
-**Blocked by:** C13, C14, C15, C16
+**Blocked by:** nothing (C13/C14/C15/C16/C20/C21 completed)
 **Touches:** branch structure (`main`), uses `scripts/promote.sh`
 
 ## Context

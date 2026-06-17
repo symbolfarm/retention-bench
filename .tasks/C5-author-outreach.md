@@ -1,7 +1,7 @@
 # C5 Author outreach — offer the reset+constructive contribution
 
 **Priority:** medium
-**Blocked by:** C3, C4
+**Blocked by:** nothing (C3/C4 completed)
 **Touches:** `unknown` (comms, no repo changes)
 
 ## Context

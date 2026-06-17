@@ -1,7 +1,8 @@
 # RB-3 Repeated-exposure curriculum variant
 
 **Priority:** medium
-**Blocked by:** RB-2c
+**Status:** paused
+**Blocked by:** nothing
 **Touches:** `retention_bench/`, `tests/`, `docs/`
 
 ## Context
@@ -13,6 +14,10 @@ repetitions are needed before recall and transfer become reliable?
 This is adjacent to reinforcement learning but should start smaller. The first
 step is not a reward-feedback policy loop; it is an exposure schedule and metrics
 variant that measures sample efficiency under repeated train/probe events.
+
+Paused 2026-06-17: keep this task as the right future direction, but wait until
+constructive-retention SUT development has advanced enough that exposure-count
+curves would measure something meaningful.
 
 ## Goal
 

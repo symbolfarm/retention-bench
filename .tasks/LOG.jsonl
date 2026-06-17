@@ -24,11 +24,11 @@
 {"id":"C2","status":"completed","priority":"high","blocked_by":[],"task_file":"C2-subprocess-system.md","commit":"572ee98","created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-07T07:30:00Z"}
 {"id":"C3","status":"completed","priority":"high","blocked_by":["C1","C2"],"task_file":"C3-constructive-system.md","commit":"657c3d9","created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-07T13:00:00Z"}
 {"id":"C4","status":"completed","priority":"medium","blocked_by":["C3"],"task_file":"C4-reset-axis-reporting.md","commit":"af158d0","created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-07T15:30:00Z"}
-{"id":"C5","status":"pending","priority":"medium","blocked_by":["C3","C4"],"task_file":"C5-author-outreach.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":null}
+{"id":"C5","status":"pending","priority":"medium","blocked_by":[],"task_file":"C5-author-outreach.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":null}
 {"id":"C6","status":"superseded","priority":"medium","blocked_by":["C1"],"task_file":"C6-constructive-task.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-17T05:01:00Z","superseded_by":["RB-2"]}
 {"id":"C7","status":"pending","priority":"low","blocked_by":[],"task_file":"C7-upstream-prs.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":null}
 {"id":"C0","status":"completed","priority":"high","blocked_by":[],"task_file":"C0-integration-spike.md","commit":"9edfd93","created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-07T05:59:21Z"}
-{"id":"C8","status":"pending","priority":"low","blocked_by":["C2"],"task_file":"C8-multistep-sut-adapter.md","commit":null,"created_at":"2026-06-07T06:45:00Z","completed_at":null}
+{"id":"C8","status":"superseded","priority":"low","blocked_by":[],"task_file":"C8-multistep-sut-adapter.md","commit":null,"created_at":"2026-06-07T06:45:00Z","completed_at":"2026-06-17T06:26:02Z","superseded_by":["deferred-post-curriculum-agentic-adapter"]}
 {"id":"C9","status":"completed","priority":"medium","blocked_by":[],"task_file":"C9-containerized-sut-launch.md","commit":"aaf29e4","created_at":"2026-06-07T13:30:00Z","completed_at":"2026-06-08T15:15:00Z"}
 {"id":"C10","status":"completed","priority":"medium","blocked_by":[],"task_file":"C10-drift-corpus.md","commit":"5b5437e","created_at":"2026-06-07T15:35:00Z","completed_at":"2026-06-07T17:55:00Z"}
 {"id":"C11","status":"completed","priority":"high","blocked_by":[],"task_file":"C11-incontext-validation-sut.md","commit":"8f9b99c","created_at":"2026-06-08T15:30:00Z","completed_at":"2026-06-08T15:50:00Z"}
@@ -37,7 +37,7 @@
 {"id":"C14","status":"completed","priority":"high","blocked_by":["C13"],"task_file":"C14-public-readme.md","commit":"1db3570","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-10T09:45:00Z"}
 {"id":"C15","status":"completed","priority":"high","blocked_by":["C13"],"task_file":"C15-license-attribution.md","commit":"541c48b","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-10T09:05:00Z"}
 {"id":"C16","status":"completed","priority":"medium","blocked_by":["C13"],"task_file":"C16-docs-triage.md","commit":"781475b","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-10T09:25:00Z"}
-{"id":"C17","status":"pending","priority":"medium","blocked_by":["C13","C14","C15","C16","C20","C21"],"task_file":"C17-cut-orphan-main.md","commit":null,"created_at":"2026-06-10T07:30:00Z","completed_at":null}
+{"id":"C17","status":"pending","priority":"medium","blocked_by":[],"task_file":"C17-cut-orphan-main.md","commit":null,"created_at":"2026-06-10T07:30:00Z","completed_at":null}
 {"id":"C18","status":"completed","priority":"medium","blocked_by":[],"task_file":"C18-docs-scrub.md","commit":"83c8dee","created_at":"2026-06-10T10:30:00Z","completed_at":"2026-06-10T11:15:00Z"}
 {"id":"C19","status":"completed","priority":"high","blocked_by":[],"task_file":"C19-bsm-accumulator-sut.md","commit":"2897100","created_at":"2026-06-11T13:12:37Z","completed_at":"2026-06-11T13:12:37Z"}
 {"id":"C20","status":"completed","priority":"high","blocked_by":["C19"],"task_file":"C20-retire-booktrack.md","commit":"12fe995","created_at":"2026-06-11T13:12:37Z","completed_at":"2026-06-11T14:35:00Z"}
@@ -47,4 +47,4 @@
 {"id":"RB-2a","status":"completed","priority":"high","blocked_by":[],"task_file":"RB-2a-curriculum-prebrief.md","commit":"577d8e4","created_at":"2026-06-17T05:54:31Z","completed_at":"2026-06-17T05:59:03Z"}
 {"id":"RB-2b","status":"completed","priority":"high","blocked_by":["RB-2a"],"task_file":"RB-2b-associative-curriculum-task.md","commit":"c912d0a","created_at":"2026-06-17T05:54:31Z","completed_at":"2026-06-17T06:05:51Z"}
 {"id":"RB-2c","status":"completed","priority":"high","blocked_by":["RB-2b"],"task_file":"RB-2c-curriculum-reference-sut.md","commit":"62b4463","created_at":"2026-06-17T05:54:31Z","completed_at":"2026-06-17T06:10:18Z"}
-{"id":"RB-3","status":"pending","priority":"medium","blocked_by":["RB-2c"],"task_file":"RB-3-repeated-exposure-curriculum.md","commit":null,"created_at":"2026-06-17T05:54:31Z","completed_at":null}
+{"id":"RB-3","status":"paused","priority":"medium","blocked_by":[],"task_file":"RB-3-repeated-exposure-curriculum.md","commit":null,"created_at":"2026-06-17T05:54:31Z","completed_at":null}

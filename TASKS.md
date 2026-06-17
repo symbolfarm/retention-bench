@@ -27,12 +27,12 @@ hard-reset retention band.
 
 **Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
-- **RB-3** — repeated-exposure curriculum variant for sample-efficiency /
-  RL-adjacent exploration after the first substrate lands.
+- **RB-3** — paused repeated-exposure curriculum variant for sample-efficiency /
+  RL-adjacent exploration; resume after constructive-retention SUTs have advanced
+  enough to make exposure-count curves informative.
 - **C5** — author outreach draft, gated on Toby review before anything is sent.
 - **C6** — superseded by **RB-2** after the curriculum-learning strategy pivot.
 - **C7** — optional upstream PRs / plugin-hook work.
-- **C8** — multi-step SUT adapter for agentic CL-Bench tasks.
 - **C12** — non-root SUT containers.
 - **C17** — cut the orphan public `main` release branch; stop before pushing.
 
@@ -42,9 +42,11 @@ checkout at `/home/agent/src/cl-bench` when local debugging is needed. `./run.sh
 prefers `.venv/bin/python` automatically; override with
 `RETENTION_BENCH_PYTHON=/path/to/python` if needed.
 
-**Dropped by the pivot:** B4c (docker/tier — CL-Bench owns packaging), B14 (judge
-quality — no judge anymore), B16 (token proxy — CL-Bench owns cost accounting).
-Marked `superseded` in the log; see their debriefs.
+**Dropped by the pivot / later queue cleanup:** B4c (docker/tier — CL-Bench owns
+packaging), B14 (judge quality — no judge anymore), B16 (token proxy — CL-Bench
+owns cost accounting), C8 (agentic multi-step adapter deferred behind the
+curriculum/constructive-SUT path). Marked `superseded` in the log; see their
+debriefs.
 
 ---
 
