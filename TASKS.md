@@ -23,9 +23,12 @@ reset-axis retention table with CL-Bench mean-gain reconciliation.
 
 **Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
+- **RB-2** — first small curriculum task for constructive retention. This is now
+  the next research substrate for `../constructive-retention`: tiny-model-first,
+  deterministic, exact-scored, and aimed at controlled retention/transfer rather
+  than frontier-agent competence.
 - **C5** — author outreach draft, gated on Toby review before anything is sent.
-- **C6** — constructive-friendly task with shallow-recall vs deep-adaptation
-  reward, if the CL-Bench task set does not carry the understanding signal.
+- **C6** — superseded by **RB-2** after the curriculum-learning strategy pivot.
 - **C7** — optional upstream PRs / plugin-hook work.
 - **C8** — multi-step SUT adapter for agentic CL-Bench tasks.
 - **C12** — non-root SUT containers.

@@ -25,7 +25,7 @@
 {"id":"C3","status":"completed","priority":"high","blocked_by":["C1","C2"],"task_file":"C3-constructive-system.md","commit":"657c3d9","created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-07T13:00:00Z"}
 {"id":"C4","status":"completed","priority":"medium","blocked_by":["C3"],"task_file":"C4-reset-axis-reporting.md","commit":"af158d0","created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-07T15:30:00Z"}
 {"id":"C5","status":"pending","priority":"medium","blocked_by":["C3","C4"],"task_file":"C5-author-outreach.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":null}
-{"id":"C6","status":"pending","priority":"medium","blocked_by":["C1"],"task_file":"C6-constructive-task.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":null}
+{"id":"C6","status":"superseded","priority":"medium","blocked_by":["C1"],"task_file":"C6-constructive-task.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-17T05:01:00Z","superseded_by":["RB-2"]}
 {"id":"C7","status":"pending","priority":"low","blocked_by":[],"task_file":"C7-upstream-prs.md","commit":null,"created_at":"2026-06-07T05:59:21Z","completed_at":null}
 {"id":"C0","status":"completed","priority":"high","blocked_by":[],"task_file":"C0-integration-spike.md","commit":"9edfd93","created_at":"2026-06-07T05:59:21Z","completed_at":"2026-06-07T05:59:21Z"}
 {"id":"C8","status":"pending","priority":"low","blocked_by":["C2"],"task_file":"C8-multistep-sut-adapter.md","commit":null,"created_at":"2026-06-07T06:45:00Z","completed_at":null}
@@ -43,3 +43,4 @@
 {"id":"C20","status":"completed","priority":"high","blocked_by":["C19"],"task_file":"C20-retire-booktrack.md","commit":"12fe995","created_at":"2026-06-11T13:12:37Z","completed_at":"2026-06-11T14:35:00Z"}
 {"id":"C21","status":"completed","priority":"medium","blocked_by":[],"task_file":"C21-docs-reconcile-subprocesssystem.md","commit":"2e977ab","created_at":"2026-06-11T14:30:00Z","completed_at":"2026-06-11T00:00:00Z"}
 {"id":"RB-1","status":"completed","priority":"high","blocked_by":[],"task_file":"RB-1-env-and-task-docs.md","commit":"1c9f3fb","created_at":"2026-06-17T03:53:41Z","completed_at":"2026-06-17T04:00:00Z"}
+{"id":"RB-2","status":"pending","priority":"high","blocked_by":[],"task_file":"RB-2-small-curriculum-task.md","commit":null,"created_at":"2026-06-17T05:01:00Z","completed_at":null}
