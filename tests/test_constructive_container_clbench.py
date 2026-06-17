@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
+from shutil import which
 from pathlib import Path
 
 import pytest
@@ -59,6 +60,8 @@ TINY_ENV = {
 
 
 def _docker_ok() -> bool:
+    if which("docker") is None:
+        return False
     if not subprocess.run(
         ["docker", "info"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     ).returncode == 0:

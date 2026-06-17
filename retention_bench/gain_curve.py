@@ -271,10 +271,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         prog="python -m retention_bench.gain_curve",
         description="Sweep a SUT over hard-reset densities and render the gain-vs-k curve.",
     )
-    parser.add_argument("--task", required=True, help="CL-Bench task name (see --list-tasks).")
+    parser.add_argument("--task", help="CL-Bench or Retention Bench task name (see --list-tasks).")
     parser.add_argument(
         "--sut",
-        required=True,
         help='SUT launch command, e.g. "python -m constructive.clbench_main".',
     )
     parser.add_argument(
@@ -319,6 +318,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.list_tasks:
         print("\n".join(sorted(list_tasks())))
         return 0
+    if not args.task:
+        parser.error("the following arguments are required: --task")
+    if not args.sut:
+        parser.error("the following arguments are required: --sut")
 
     task_cls = get_task_class(args.task)
     task_kwargs = _parse_kwargs(args.task_kwarg)

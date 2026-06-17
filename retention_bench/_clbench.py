@@ -19,6 +19,7 @@ try:
     from src.interface import (  # noqa: F401
         ContinualLearningSystem,
         ContinualLearningTask,
+        EvalMetrics,
         InstanceOutcome,
         Observation,
         Query,
@@ -29,7 +30,8 @@ try:
         serialize_instance_outcome,
         standard_evaluate,
     )
-    from src.registry import get_task_class, list_tasks  # noqa: F401
+    from src.registry import get_task_class as _clbench_get_task_class
+    from src.registry import list_tasks as _clbench_list_tasks
     from src.runtime.runner import run_task  # noqa: F401
     from src.tasks.blind_spectrum_monitoring.corpus import (  # noqa: F401
         build_rollout_corpus,
@@ -49,9 +51,32 @@ except ModuleNotFoundError as exc:  # pragma: no cover - exercised via env, not 
     ) from exc
 
 
+def _local_tasks() -> dict[str, type[ContinualLearningTask]]:
+    from retention_bench.tasks import LOCAL_TASKS
+
+    return LOCAL_TASKS
+
+
+def get_task_class(name: str) -> type[ContinualLearningTask]:
+    """Resolve a task from CL-Bench first, then Retention Bench-owned tasks."""
+    try:
+        return _clbench_get_task_class(name)
+    except KeyError:
+        local = _local_tasks()
+        if name in local:
+            return local[name]
+        raise
+
+
+def list_tasks() -> list[str]:
+    """List upstream CL-Bench tasks plus Retention Bench-owned local tasks."""
+    return sorted(set(_clbench_list_tasks()) | set(_local_tasks()))
+
+
 __all__ = [
     "ContinualLearningSystem",
     "ContinualLearningTask",
+    "EvalMetrics",
     "InstanceOutcome",
     "Observation",
     "Query",
