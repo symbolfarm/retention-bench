@@ -43,4 +43,8 @@
 {"id":"C20","status":"completed","priority":"high","blocked_by":["C19"],"task_file":"C20-retire-booktrack.md","commit":"12fe995","created_at":"2026-06-11T13:12:37Z","completed_at":"2026-06-11T14:35:00Z"}
 {"id":"C21","status":"completed","priority":"medium","blocked_by":[],"task_file":"C21-docs-reconcile-subprocesssystem.md","commit":"2e977ab","created_at":"2026-06-11T14:30:00Z","completed_at":"2026-06-11T00:00:00Z"}
 {"id":"RB-1","status":"completed","priority":"high","blocked_by":[],"task_file":"RB-1-env-and-task-docs.md","commit":"1c9f3fb","created_at":"2026-06-17T03:53:41Z","completed_at":"2026-06-17T04:00:00Z"}
-{"id":"RB-2","status":"pending","priority":"high","blocked_by":[],"task_file":"RB-2-small-curriculum-task.md","commit":null,"created_at":"2026-06-17T05:01:00Z","completed_at":null}
+{"id":"RB-2","status":"superseded","priority":"high","blocked_by":[],"task_file":"RB-2-small-curriculum-task.md","commit":null,"created_at":"2026-06-17T05:01:00Z","completed_at":"2026-06-17T05:54:31Z","superseded_by":["RB-2a","RB-2b","RB-2c","RB-3"]}
+{"id":"RB-2a","status":"pending","priority":"high","blocked_by":[],"task_file":"RB-2a-curriculum-prebrief.md","commit":null,"created_at":"2026-06-17T05:54:31Z","completed_at":null}
+{"id":"RB-2b","status":"pending","priority":"high","blocked_by":["RB-2a"],"task_file":"RB-2b-associative-curriculum-task.md","commit":null,"created_at":"2026-06-17T05:54:31Z","completed_at":null}
+{"id":"RB-2c","status":"pending","priority":"high","blocked_by":["RB-2b"],"task_file":"RB-2c-curriculum-reference-sut.md","commit":null,"created_at":"2026-06-17T05:54:31Z","completed_at":null}
+{"id":"RB-3","status":"pending","priority":"medium","blocked_by":["RB-2c"],"task_file":"RB-3-repeated-exposure-curriculum.md","commit":null,"created_at":"2026-06-17T05:54:31Z","completed_at":null}

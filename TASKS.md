@@ -23,10 +23,16 @@ reset-axis retention table with CL-Bench mean-gain reconciliation.
 
 **Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
-- **RB-2** — first small curriculum task for constructive retention. This is now
-  the next research substrate for `../constructive-retention`: tiny-model-first,
-  deterministic, exact-scored, and aimed at controlled retention/transfer rather
-  than frontier-agent competence.
+- **RB-2a** — pre-brief/spec for the first small curriculum task. Pins the
+  associative-retention substrate, metadata/scoring shape, reference SUT
+  behavior, and repeated-exposure door before implementation.
+- **RB-2b** — implement the deterministic associative curriculum
+  `ContinualLearningTask` with exact scoring and memorization-vs-transfer
+  metrics.
+- **RB-2c** — add the keyless JSON-state reference SUT, gain-curve smoke, and
+  docs proving the curriculum has a retention band.
+- **RB-3** — repeated-exposure curriculum variant for sample-efficiency /
+  RL-adjacent exploration after the first substrate lands.
 - **C5** — author outreach draft, gated on Toby review before anything is sent.
 - **C6** — superseded by **RB-2** after the curriculum-learning strategy pivot.
 - **C7** — optional upstream PRs / plugin-hook work.
