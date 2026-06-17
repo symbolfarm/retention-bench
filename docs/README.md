@@ -11,6 +11,7 @@ and interpreting its results; the project overview and quickstart are in the
 |---|---|
 | [`sut-interface.md`](sut-interface.md) | The system-under-test process contract — the `SubprocessSystem` one-line-JSON query/reply per CL-Bench instance, the survive-dir / hard-`RESET` mechanics, resource self-report, and launch (subprocess / container). Start here if you're building a SUT. |
 | [`metrics.md`](metrics.md) | The retention metric — the reset-axis gain curve `norm_gain(k) = (R − P) / max(C − P, ε)`, the `C ≈ P` exclusion rule, and reconciliation with CL-Bench's gain. |
+| [`associative-curriculum.md`](associative-curriculum.md) | Implementation spec for the first small constructive-retention curriculum task: deterministic symbolic associations, exact scoring, memorization-vs-transfer probes, and the repeated-exposure extension path. |
 
 > **Constructive SUT integration contract** — a dedicated requirements contract
 > for constructive (train-and-grow) systems is in progress and not yet listed

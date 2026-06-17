@@ -15,6 +15,8 @@ Unlike `blind_spectrum_monitoring`, this task is not intended as an external
 validity target. It is a developmental substrate for tiny models: exact,
 procedural, reproducible, and small enough that failures are interpretable.
 
+The implementation spec is `docs/associative-curriculum.md`.
+
 ## Goal
 
 Implement the CL-Bench-compatible associative curriculum task with deterministic
@@ -40,6 +42,7 @@ instance generation, exact scoring, phase/component metadata, and unit tests.
 ## Relevant files
 
 - `retention_bench/`
+- `docs/associative-curriculum.md`
 - `tests/`
 - `/home/agent/src/cl-bench/src/interface.py`
 - `/home/agent/src/cl-bench/src/tasks/`

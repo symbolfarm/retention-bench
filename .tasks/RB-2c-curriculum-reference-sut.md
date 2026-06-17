@@ -16,6 +16,8 @@ The reference SUT is deliberately not the constructive SUT. It is a small JSON
 state baseline that demonstrates task mechanics and gives future model work a
 known-good comparison.
 
+The implementation spec is `docs/associative-curriculum.md`.
+
 ## Goal
 
 Add the stateful JSON reference SUT, an end-to-end gain-curve smoke test, and
@@ -40,6 +42,7 @@ the constructive-retention M2 loop.
 ## Relevant files
 
 - `suts/`
+- `docs/associative-curriculum.md`
 - `retention_bench/gain_curve.py`
 - `retention_bench/system.py`
 - `tests/`
