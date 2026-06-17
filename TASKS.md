@@ -1,10 +1,9 @@
 # Tasks
 
 > **Agents:** read this file at the start of every session, then consult
-> `.tasks/LOG.jsonl` for the current task queue. The `task-cycle` skill
-> (in `~/.claude/skills/task-cycle/SKILL.md`) describes how to start and complete
-> tasks. Use `~/.claude/skills/task-cycle/assets/task-template.md` when creating
-> new task files.
+> `.tasks/LOG.jsonl` for the current task queue. The `task-cycle` skill describes
+> how to start and complete tasks; use its task template when creating new task
+> files.
 
 ## Current focus
 
@@ -17,22 +16,26 @@ discontinuity where only an on-disk survive-dir persists) and a
 [`docs/archive/clbench-pivot-plan.md`](docs/archive/clbench-pivot-plan.md)
 (archived dev-only by C18). See also [[project_clbench_pivot]].
 
-The **C0 integration spike** (done, commit `9edfd93`; debrief
-`.tasks/debriefs/C0-integration-spike.md`) proved the adapter seam against CL-Bench's real runner:
-our `SubprocessSystem` (reusing `harness.sut_process`) runs through their runner,
-hard reset rides on the existing `reset_between_instances` hook with **zero core
-changes**, and the harness discriminates retention (survive-dir 1.0 vs wiped
-baseline 0.2). Key finding: the k-axis (reset density) is owned **system-side**,
-so no upstream change blocks us.
+The C0-C4 pivot path is complete: the CL-Bench adapter seam works, the production
+`SubprocessSystem` owns hard process-kill resets and reset schedules, the
+constructive reference SUT runs through CL-Bench, and `gain_curve` renders the
+reset-axis retention table with CL-Bench mean-gain reconciliation.
 
-**Unblocked tasks available now:** **C1** (triage CL-Bench's 6 tasks for
-cross-reset purity + shape + the understanding signal) and **C2** (productionize
-the `SubprocessSystem` + reset schedule + compute accounting). Then C3 (wire the
-constructive SUT) → C4 (retention-curve reporting) → C5 (author outreach, gated)
-/ C6 (constructive-friendly task, if C1 shows a gap) / C7 (upstream PRs, optional).
+**Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
-The CL-Bench env lives at `/home/agent/src/cl-bench` (py3.13 venv, `cl-benchmark`
-installed `-e`). Use `/home/agent/src/cl-bench/.venv/bin/python`.
+- **C5** — author outreach draft, gated on Toby review before anything is sent.
+- **C6** — constructive-friendly task with shallow-recall vs deep-adaptation
+  reward, if the CL-Bench task set does not carry the understanding signal.
+- **C7** — optional upstream PRs / plugin-hook work.
+- **C8** — multi-step SUT adapter for agentic CL-Bench tasks.
+- **C12** — non-root SUT containers.
+- **C17** — cut the orphan public `main` release branch; stop before pushing.
+
+The repo-local dev loop uses `.venv/bin/python` (Python 3.13). CL-Bench is
+installed into that venv from the pinned dependency, with the editable source
+checkout at `/home/agent/src/cl-bench` when local debugging is needed. `./run.sh`
+prefers `.venv/bin/python` automatically; override with
+`RETENTION_BENCH_PYTHON=/path/to/python` if needed.
 
 **Dropped by the pivot:** B4c (docker/tier — CL-Bench owns packaging), B14 (judge
 quality — no judge anymore), B16 (token proxy — CL-Bench owns cost accounting).
