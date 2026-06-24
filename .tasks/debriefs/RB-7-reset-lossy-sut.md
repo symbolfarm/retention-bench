@@ -1,7 +1,7 @@
 # Debrief: RB-7 Reset-lossy reference SUT — the graded normalised rung
 
 **Completed:** 2026-06-24
-**Commit:** 08976bd
+**Commit:** 08976bd (initial); refined to geometric decay in a follow-up (see Design decisions)
 
 ## What shipped
 
@@ -26,18 +26,19 @@ The graded normalised rung the RB-6 figure was missing — keyless, offline, det
 
 `suts/` and `tests/` are whitelisted wholesale in `PUBLIC_PATHS`, so all of this ships.
 
-## Numbers (default rate 0.3, deterministic, from `./run.sh ladder`)
+## Numbers (default rate 0.05, geometric decay, deterministic, from `./run.sh ladder`)
 
 | arm | k | P | C | R(k) | norm `(R−P)/(C−P)` |
 |---|---:|---:|---:|---:|---:|
 | ceiling (no reset) | 0 | 0.000 | 0.615 | 0.615 | — |
-| every_2 | 12 | 0.000 | 0.615 | 0.1538 (4/26) | **0.250** |
-| every_1 | 25 | 0.000 | 0.615 | 0.0769 (2/26) | **0.125** |
+| every_2 | 12 | 0.000 | 0.615 | 0.3077 (8/26) | **0.500** |
+| every_1 | 25 | 0.000 | 0.615 | 0.2308 (6/26) | **0.375** |
 
-- **Rate used:** 0.3 (default, `RESET_LOSSY_RATE`-overridable).
-- **0 < norm < 1:** confirmed at both arms (0.250 and 0.125).
-- **Decays with k:** confirmed — every_1 (k=25, R=0.077) sits strictly below
-  every_2 (k=12, R=0.154). First reference SUT where reset *count* matters.
+- **Rate used:** 0.05 (default, `RESET_LOSSY_RATE`-overridable) — "loses 5% of
+  still-recalled facts per reset".
+- **0 < norm < 1:** confirmed at both arms (0.500 and 0.375).
+- **Decays with k:** confirmed — every_1 (k=25, R=0.231) sits strictly below
+  every_2 (k=12, R=0.308). First reference SUT where reset *count* matters.
 - **Reproducible:** fixed BLAKE2b hash + persisted load counter, no per-run
   randomness or seed file; re-runs reproduce exactly.
 
@@ -51,15 +52,18 @@ Full suite: **78 passed, 2 skipped**. `scripts/promote.sh dryrun` clean (leak ch
   on-disk state has survived when a probe is answered. At k=0 the gate is wide open
   (full-band ceiling intact); the every_2 / every_1 sweeps produce load_count 13 / 26
   (verified by inspecting the persisted state).
-- **`log2(1 + k)` exponent damping — deviation from the brief's raw `(1-rate)**k`,
-  taken under the brief's explicit "equivalent deterministic scheme" allowance.** This
-  task drives 12–25 hard resets *before* the probes run. Raw per-reset 0.3 compounding
-  gives `0.7**12 ≈ 0.014`, below every fact's uniform `u`, so the literal formula
-  wipes everything out and collapses the rung onto the floor (verified: R=0 at both
-  arms before the change). Damping the exponent preserves the two properties the brief
-  actually requires — strict monotone decay in `k` and full reproducibility — while
-  landing the curve in the graded band the rung exists to populate. `rate` stays the
-  per-reset loss knob. Documented in the module docstring, SUT README, and here.
+- **Geometric forgetting `(1-rate)**k`, small default rate 0.05** (refined with Toby
+  after initial completion). The initial implementation hit a real snag: this task
+  drives 12–25 hard resets *before* the probes run, so the brief's literal per-reset
+  0.3 loss compounds to `0.7**12 ≈ 0.014` < every fact's `u` and wipes the rung onto
+  the floor. The first fix damped the exponent to `(1-rate)**log2(1+k)`, which lands
+  graded but is a curve with no standard interpretation. For a *public reference* SUT
+  that reads better as a recognizable mechanism, we instead kept the canonical
+  geometric form `(1-rate)**k` and lowered the default rate to **0.05** ("loses 5% of
+  recalled facts per reset" = textbook exponential forgetting). It lands cleanly graded
+  (norm 0.500 → 0.375) and, as a bonus, `R` vs `k` now traces a genuine exponential
+  decay curve. `rate` is the per-reset loss fraction (`RESET_LOSSY_RATE`-overridable).
+  Documented in the module docstring + SUT README.
 - **Facts are never deleted from disk; only the answer gate moves.** Keeps the
   mechanism cleanly distinct from `bounded_memory`'s capacity eviction (reset-coupled
   loss vs a smaller box). The full fact set persists; the SUT just declines to answer
@@ -77,7 +81,8 @@ Full suite: **78 passed, 2 skipped**. `scripts/promote.sh dryrun` clean (leak ch
 - **C17 narrative now has a genuinely graded normalised axis** (floor → leaky →
   retainers). The RB-6 debrief flagged that the metric only separated floor-vs-retainers;
   reset_lossy fixes that. Worth folding into the public writeup when C17 is cut.
-- **A linear-in-k variant** (`rate` interpreted as total loss spread across the run's
-  resets, no log damping) could be offered if a future task wants the per-reset rate to
-  read literally against the observed reset count rather than via the log dampener.
-  Dropped here to keep one clean, documented mechanism.
+- **Rate is task-tuned, not universal.** The default 0.05 is chosen so the curve is
+  visibly graded across *this* task's k=12/25 range; a task with a very different reset
+  count would want a different default to stay in-band. That is inherent to using a
+  fixed-fraction forgetting model as an illustrative rung — noted so a future agent
+  doesn't treat 0.05 as physically canonical.

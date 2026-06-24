@@ -6,8 +6,9 @@ no-state floor and the full retainers on the normalised-retention axis.
 
 It mirrors [`associative_memory`](../associative_memory/) — train prompts are
 parsed into the survive-dir and recall/transfer probes are answered from it — but
-it loses a **deterministic fraction of its answers on each hard reset**, so its
-retention *decays with the reset count* `k`. This is the first reference SUT
+it loses a **fixed fraction of its still-recalled facts on each hard reset**
+(geometric/exponential forgetting), so its retention *decays with the reset count*
+`k`. This is the first reference SUT
 where the number of resets matters: the `every_1` arm (more resets) sits below
 the `every_2` arm.
 
@@ -27,20 +28,22 @@ loss.
   survived when a probe is answered.
 - Each fact gets a stable pseudo-uniform value `u(fact) ∈ [0, 1)` from a fixed
   BLAKE2b hash of its identity (no per-run randomness, no seed file). A fact is
-  answered only while `u(fact) < (1 − rate) ** log2(1 + k)`. The threshold is
-  monotone-decreasing in `k`, so retention decays smoothly and reproducibly.
-- The `log2(1 + k)` damping on the exponent is a deterministic equivalent of the
-  brief's suggested raw `(1 − rate) ** k` gate. This task drives 12–25 hard
-  resets before the probes run, where a raw per-reset 0.3 loss compounds to total
-  wipe-out (`0.7 ** 12 ≈ 0.014`, below every fact's `u`) and collapses the rung
-  onto the floor. Damping keeps the properties the rung requires — strictly
-  monotone decay in `k`, full reproducibility — while landing the curve in the
-  graded band (`0 < norm < 1`).
+  answered only while `u(fact) < (1 − rate) ** k`. This is textbook **geometric
+  (exponential) forgetting**: a constant fraction `rate` of the still-recalled
+  facts is dropped on each hard reset, so the answered fraction is `(1 − rate) ** k`
+  after `k` resets — monotone-decreasing, fully deterministic, and reproducible.
+  Because retention is a genuine exponential in `k`, `R(k)` traces a real decay
+  curve.
 
 ## The loss rate
 
-- **Default rate: 0.3** (per-reset loss knob; raising it shrinks the answered
-  fraction at every `k`).
+- **Default rate: 0.05** (per-reset loss fraction — "loses ~5% of recalled facts
+  per reset"). It is deliberately *small*: this task drives 12–25 hard resets
+  before its probes, so a large per-reset rate compounds to a total wipe-out
+  (e.g. `0.7 ** 12 ≈ 0.014`) and collapses the rung onto the floor. A small rate
+  keeps the curve in the graded band (`0 < norm < 1`) with an honest
+  interpretation. (Note: the right default is task-dependent — it is tuned to this
+  task's reset count, not a universal constant.)
 - Override with the `RESET_LOSSY_RATE` environment variable (a float in
   `[0, 1)`; out-of-range or non-numeric values fall back to the default).
 
@@ -54,7 +57,7 @@ python -m retention_bench.gain_curve \
   --reset-every 1 --reset-every 2 --name reset-lossy-graded
 ```
 
-Expected shape (default rate 0.3): the no-reset ceiling holds the full band
+Expected shape (default rate 0.05): the no-reset ceiling holds the full band
 (`C = 16/26 ≈ 0.615`, `k = 0`), and the hard-reset arms decay — `R(every_2)`
-(k=12) `= 4/26 ≈ 0.154` (norm 0.250) sits above `R(every_1)` (k=25)
-`= 2/26 ≈ 0.077` (norm 0.125). Both land strictly inside `0 < norm < 1`.
+(k=12) `= 8/26 ≈ 0.308` (norm 0.500) sits above `R(every_1)` (k=25)
+`= 6/26 ≈ 0.231` (norm 0.375). Both land strictly inside `0 < norm < 1`.

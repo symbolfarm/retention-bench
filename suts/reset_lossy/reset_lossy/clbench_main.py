@@ -24,21 +24,21 @@ survived at the moment this process answers a probe.
 
 Each fact is assigned a stable pseudo-uniform value ``u(fact) in [0, 1)`` via a
 fixed BLAKE2b hash of its identity (no per-run randomness, no seed file). A fact
-is *answered* only while ``u(fact) < (1 - rate) ** log2(1 + k)``. That survival
-threshold is monotone-decreasing in ``k``, so retention decays smoothly with
-reset count and the whole curve is fully reproducible. Facts are never deleted
-from disk — only the answer gate moves — which keeps the mechanism cleanly
-distinct from capacity eviction.
+is *answered* only while ``u(fact) < (1 - rate) ** k``. This is textbook
+**geometric (exponential) forgetting**: a constant fraction ``rate`` of the
+still-recalled facts is dropped on each hard reset, so the answered fraction is
+``(1 - rate) ** k`` after ``k`` resets — monotone-decreasing in ``k``, fully
+deterministic, and (unlike a capacity cap) reset-*count*-sensitive. Facts are
+never deleted from disk — only the answer gate moves — which keeps the mechanism
+cleanly distinct from ``bounded_memory``'s capacity eviction. Because retention
+is a genuine exponential in ``k``, ``R(k)`` traces a real decay curve.
 
-The ``log2(1 + k)`` damping on the exponent is a deliberate, deterministic
-equivalent of the brief's suggested raw ``(1 - rate) ** k`` gate: this task drives
-12-25 hard resets before the probes run, and a raw per-reset 0.3 loss compounds
-to total wipe-out over that many resets (``0.7 ** 12 ≈ 0.014`` < every fact's
-``u``), collapsing the rung onto the floor. Damping the exponent keeps the same
-properties the brief actually requires — strictly monotone decay in ``k`` and full
-reproducibility — while landing the curve in the graded band (``0 < norm < 1``)
-the rung exists to populate. ``rate`` stays the per-reset loss knob: raising it
-shrinks the threshold and the answered fraction at every ``k``.
+``rate`` is the per-reset loss fraction. The default is deliberately *small*
+(``DEFAULT_RATE``) because this task drives 12-25 hard resets before its probes
+run: a large per-reset rate compounds to a total wipe-out over that many resets
+(e.g. ``0.7 ** 12 ≈ 0.014``), collapsing the rung onto the floor. A small rate
+lands the curve in the graded band (``0 < norm < 1``) while keeping the
+interpretation honest — "loses a few percent of recallable facts per reset".
 
 Loss rate defaults to ``DEFAULT_RATE`` and is overridable via the
 ``RESET_LOSSY_RATE`` environment variable (a float in ``[0, 1)``; out-of-range
@@ -49,7 +49,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import os
 import re
 import sys
@@ -57,7 +56,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 STATE_FILENAME = "reset_lossy.json"
-DEFAULT_RATE = 0.3
+DEFAULT_RATE = 0.05
 
 _OBJECT_RE = re.compile(r"^object:\s*(?P<object>\S+)\s*$", re.MULTILINE)
 _ATTRIBUTE_RE = re.compile(r"^attribute:\s*(?P<attribute>\S+)\s*$", re.MULTILINE)
@@ -119,12 +118,11 @@ def _u(kind: str, key: str) -> float:
 def _survives(kind: str, key: str, resets: int, rate: float) -> bool:
     """True iff the fact is still answered after ``resets`` hard resets.
 
-    The exponent is ``log2(1 + resets)`` rather than ``resets`` directly so the
-    gate degrades gracefully over the 12-25 resets this task drives before its
-    probes (see module docstring): monotone-decreasing in ``resets``, fully
-    deterministic, and graded rather than a total wipe-out.
+    Geometric forgetting: a fact survives while ``u(fact) < (1 - rate) ** resets``,
+    so the answered fraction decays as a constant ``rate`` per reset (see module
+    docstring). Monotone-decreasing in ``resets``, fully deterministic.
     """
-    threshold = (1.0 - rate) ** math.log2(1 + resets)
+    threshold = (1.0 - rate) ** resets
     return _u(kind, key) < threshold
 
 

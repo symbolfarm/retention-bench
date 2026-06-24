@@ -21,17 +21,18 @@ are deterministic, so a re-run should reproduce them exactly.
 | SUT | Mechanism | Prior `P` | Ceiling `C` | `R(k=12)` | `R(k=25)` | Normalised retention `(R−P)/(C−P)` |
 |---|---|---:|---:|---:|---:|---:|
 | `no_state` | in-RAM only; never touches the survive-dir | 0.000 | 0.615 | 0.000 | 0.000 | **0.000** |
-| `reset_lossy` | deterministic reset-coupled loss (rate 0.3) | 0.000 | 0.615 | 0.154 | 0.077 | **0.250 → 0.125** |
+| `reset_lossy` | geometric forgetting — 5% of recalled facts lost per reset (rate 0.05) | 0.000 | 0.615 | 0.308 | 0.231 | **0.500 → 0.375** |
 | `bounded_memory` | FIFO-capped survive-dir window (cap 8) | 0.000 | 0.462 | 0.462 | 0.462 | **1.000** |
 | `associative_memory` | full survive-dir persistence | 0.000 | 0.615 | 0.615 | 0.615 | **1.000** |
 
 `R(k)` is identical at `every_1` (k=25) and `every_2` (k=12) for every rung
 *except* `reset_lossy` — for the other three, retention is reset-count-insensitive
 and the discriminator is *mechanism*, not *how many* resets. `reset_lossy` is the
-exception by design: it loses a deterministic fraction of its answers on each
-reset, so its retention *decays with `k`* (the `every_1` arm sits below `every_2`),
-and it is the only rung that lands strictly between the floor and the retainers on
-the normalised axis.
+exception by design: it loses a fixed fraction (5%) of its still-recalled facts
+on every reset — textbook **geometric/exponential forgetting** — so its retention
+*decays with `k`* (the `every_1` arm sits below `every_2`), and it is the only
+rung that lands strictly between the floor and the retainers on the normalised
+axis.
 
 ## Two readings, two things measured
 
@@ -42,8 +43,8 @@ raw score moves with `k`):
 ```
 R(k)   0.0 |---------------------------------------| 0.62
 no_state            ·                                      0.000
-reset_lossy (k=25)  |====·                                 0.077
-reset_lossy (k=12)  |=========·                            0.154
+reset_lossy (k=25)  |==============·                       0.231
+reset_lossy (k=12)  |===================·                  0.308
 bounded_memory      |==============================·       0.462
 associative_memory  |======================================| 0.615
 ```
@@ -55,15 +56,15 @@ resets.** This is the headline metric, and it now reads as a graded axis —
 ```
 norm   0.0 |---------------------------------------| 1.0
 no_state            ·                                      0.000
-reset_lossy (k=25)  |=====·                                0.125
-reset_lossy (k=12)  |==========·                           0.250
+reset_lossy (k=25)  |==============·                       0.375
+reset_lossy (k=12)  |===================·                  0.500
 bounded_memory      |======================================| 1.000
 associative_memory  |======================================| 1.000
 ```
 
 `reset_lossy` is the rung that makes the headline metric look *graded*: it lands
 strictly inside `0 < norm < 1` and, alone among the rungs, *moves down as `k`
-grows* (0.250 at k=12 → 0.125 at k=25). It keeps every fact it was taught on disk
+grows* (0.500 at k=12 → 0.375 at k=25). It keeps every fact it was taught on disk
 but answers a deterministic, shrinking fraction of them after each reset — so the
 metric reads degree of retention, not merely its presence.
 

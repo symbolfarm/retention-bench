@@ -26,12 +26,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 RESET_LOSSY_PKG = REPO_ROOT / "suts" / "reset_lossy"
 RESET_LOSSY_CMD = ["python", "-m", "reset_lossy.clbench_main"]
 
-# Pinned default rate. The deterministic hash-gate makes these exact.
-PINNED_RATE = "0.3"
-# every_2 -> k=12 resets at probe time: 2 recalls + 2 transfers = 4/26.
-EXPECTED_R_EVERY_2 = 4 / 26
-# every_1 -> k=25 resets at probe time: 1 recall + 1 transfer = 2/26.
-EXPECTED_R_EVERY_1 = 2 / 26
+# Pinned rate. Geometric decay + the deterministic hash-gate make these exact.
+PINNED_RATE = "0.05"
+# every_2 -> k=12 resets at probe time: survivors give 4 recalls + 4 transfers = 8/26.
+EXPECTED_R_EVERY_2 = 8 / 26
+# every_1 -> k=25 resets at probe time: 3 recalls + 3 transfers = 6/26.
+EXPECTED_R_EVERY_1 = 6 / 26
 
 
 @pytest.fixture(autouse=True)
@@ -73,7 +73,7 @@ def _sweep():
 
 
 def test_reset_lossy_ceiling_is_full_band():
-    """k=0 (no reset): log2(1+0)=0 -> every fact survives, full band ceiling."""
+    """k=0 (no reset): (1-rate)**0 = 1 -> every fact survives, full band ceiling."""
     curve = _sweep()
     assert not curve.excluded
     assert curve.prior == pytest.approx(0.0)
