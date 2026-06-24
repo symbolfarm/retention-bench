@@ -37,7 +37,7 @@
 {"id":"C14","status":"completed","priority":"high","blocked_by":["C13"],"task_file":"C14-public-readme.md","commit":"1db3570","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-10T09:45:00Z"}
 {"id":"C15","status":"completed","priority":"high","blocked_by":["C13"],"task_file":"C15-license-attribution.md","commit":"541c48b","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-10T09:05:00Z"}
 {"id":"C16","status":"completed","priority":"medium","blocked_by":["C13"],"task_file":"C16-docs-triage.md","commit":"781475b","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-10T09:25:00Z"}
-{"id":"C17","status":"pending","priority":"medium","blocked_by":[],"task_file":"C17-cut-orphan-main.md","commit":null,"created_at":"2026-06-10T07:30:00Z","completed_at":null}
+{"id":"C17","status":"completed","priority":"medium","blocked_by":[],"task_file":"C17-cut-orphan-main.md","commit":"5183639","created_at":"2026-06-10T07:30:00Z","completed_at":"2026-06-24T02:30:00Z"}
 {"id":"C18","status":"completed","priority":"medium","blocked_by":[],"task_file":"C18-docs-scrub.md","commit":"83c8dee","created_at":"2026-06-10T10:30:00Z","completed_at":"2026-06-10T11:15:00Z"}
 {"id":"C19","status":"completed","priority":"high","blocked_by":[],"task_file":"C19-bsm-accumulator-sut.md","commit":"2897100","created_at":"2026-06-11T13:12:37Z","completed_at":"2026-06-11T13:12:37Z"}
 {"id":"C20","status":"completed","priority":"high","blocked_by":["C19"],"task_file":"C20-retire-booktrack.md","commit":"12fe995","created_at":"2026-06-11T13:12:37Z","completed_at":"2026-06-11T14:35:00Z"}
