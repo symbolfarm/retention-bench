@@ -51,4 +51,4 @@
 {"id":"RB-4","status":"completed","priority":"high","blocked_by":[],"task_file":"RB-4-nostate-floor-sut.md","commit":"e5a1db2","created_at":"2026-06-24T00:46:48Z","completed_at":"2026-06-24T01:30:00Z"}
 {"id":"RB-5","status":"completed","priority":"high","blocked_by":[],"task_file":"RB-5-bounded-memory-sut.md","commit":"45fc5edf37f9f6696f00580dec37fed6776ae31d","created_at":"2026-06-24T00:46:48Z","completed_at":"2026-06-24T00:59:04Z"}
 {"id":"RB-6","status":"completed","priority":"high","blocked_by":["RB-4","RB-5"],"task_file":"RB-6-reference-ladder-figure.md","commit":"82e7a51","created_at":"2026-06-24T00:48:54Z","completed_at":"2026-06-24T01:55:00Z"}
-{"id":"RB-7","status":"pending","priority":"medium","blocked_by":[],"task_file":"RB-7-reset-lossy-sut.md","commit":null,"created_at":"2026-06-24T01:12:12Z","completed_at":null}
+{"id":"RB-7","status":"in_progress","priority":"medium","blocked_by":[],"task_file":"RB-7-reset-lossy-sut.md","commit":null,"created_at":"2026-06-24T01:12:12Z","completed_at":null}
