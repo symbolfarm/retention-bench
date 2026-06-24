@@ -50,12 +50,14 @@ if [[ "$cmd" == "ladder" ]]; then
   # Reference ladder: the three KEYLESS reference SUTs on the same task
   # (symbolic_associative_retention), swept over the reset axis, so their
   # retention curves can be read on one figure (see docs/reference-ladder.md).
-  # Offline, no API key, no model weights. Order: floor -> partial -> full.
+  # Offline, no API key, no model weights. Order: floor -> graded -> retainers.
   #   no_state        ephemeral, never touches the survive-dir   -> retention floor
-  #   bounded_memory  FIFO-capped survive-dir window             -> partial retention
+  #   reset_lossy     deterministic reset-coupled loss           -> graded retention (0<norm<1)
+  #   bounded_memory  FIFO-capped survive-dir window             -> capacity-limited retainer
   #   associative_memory  full survive-dir persistence           -> full-retention ceiling
   for entry in \
     "no-state-floor:no_state:suts/no_state" \
+    "reset-lossy-graded:reset_lossy:suts/reset_lossy" \
     "bounded-memory-partial:bounded_memory:suts/bounded_memory" \
     "associative-memory-full:associative_memory:suts/associative_memory"; do
     name="${entry%%:*}"; rest="${entry#*:}"; pkg="${rest%%:*}"; path="${rest#*:}"

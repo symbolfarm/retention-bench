@@ -1,0 +1,16 @@
+{
+  "name": "reset-lossy",
+  "version": "0.1.0",
+  "mode": "notes",
+  "hardware_tier": "open",
+  "strict_verbatim": true,
+  "image": null,
+  "entrypoint": null,
+  "clbench_entrypoint": ["python", "-m", "reset_lossy.clbench_main"],
+  "env": ["RESET_LOSSY_RATE"],
+  "resource_appendix": {
+    "kind": "local",
+    "model_id": "reset-lossy",
+    "gpu_model": null
+  }
+}

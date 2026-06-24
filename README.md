@@ -18,9 +18,11 @@ explicitly lacks:
 - **A constructive / parametric system class** — a train-and-grow reference
   learner that grows capacity across reads, with compute accounting, alongside
   the agent-memory reference SUTs. The keyless reference set spans a retention
-  *ladder* — `no_state` (in-RAM only; the floor), `bounded_memory` (FIFO-capped
-  survive-dir), and `associative_memory` / `bsm_accumulator` (full persistence) —
-  plus the `notes_llm` cumulative-notes LLM and the `constructive` learner. See
+  *ladder* — `no_state` (in-RAM only; the floor), `reset_lossy` (deterministic
+  reset-coupled loss; the graded `0 < norm < 1` rung), `bounded_memory`
+  (FIFO-capped survive-dir), and `associative_memory` / `bsm_accumulator` (full
+  persistence) — plus the `notes_llm` cumulative-notes LLM and the `constructive`
+  learner. See
   [`docs/reference-ladder.md`](docs/reference-ladder.md).
 
 Because the SUT interface is **mechanism-agnostic** (read a stage, optionally

@@ -12,45 +12,63 @@ Regenerate (offline, no API key, no model weights):
 ./run.sh ladder
 ```
 
-This sweeps three keyless reference SUTs over the reset axis
+This sweeps four keyless reference SUTs over the reset axis
 (`--reset-every 1 --reset-every 2`). Numbers below were produced this way; they
 are deterministic, so a re-run should reproduce them exactly.
 
-## The three rungs
+## The four rungs
 
-| SUT | Mechanism | Prior `P` | Ceiling `C` | `R(k)` | Normalised retention `(R−P)/(C−P)` |
-|---|---|---:|---:|---:|---:|
-| `no_state` | in-RAM only; never touches the survive-dir | 0.000 | 0.615 | 0.000 | **0.000** |
-| `bounded_memory` | FIFO-capped survive-dir window (cap 8) | 0.000 | 0.462 | 0.462 | **1.000** |
-| `associative_memory` | full survive-dir persistence | 0.000 | 0.615 | 0.615 | **1.000** |
+| SUT | Mechanism | Prior `P` | Ceiling `C` | `R(k=12)` | `R(k=25)` | Normalised retention `(R−P)/(C−P)` |
+|---|---|---:|---:|---:|---:|---:|
+| `no_state` | in-RAM only; never touches the survive-dir | 0.000 | 0.615 | 0.000 | 0.000 | **0.000** |
+| `reset_lossy` | deterministic reset-coupled loss (rate 0.3) | 0.000 | 0.615 | 0.154 | 0.077 | **0.250 → 0.125** |
+| `bounded_memory` | FIFO-capped survive-dir window (cap 8) | 0.000 | 0.462 | 0.462 | 0.462 | **1.000** |
+| `associative_memory` | full survive-dir persistence | 0.000 | 0.615 | 0.615 | 0.615 | **1.000** |
 
-(`R(k)` is identical at `every_1` (k=25) and `every_2` (k=12) for all three —
-retention here is reset-count-insensitive; the discriminator is *mechanism*, not
-*how many* resets.)
+`R(k)` is identical at `every_1` (k=25) and `every_2` (k=12) for every rung
+*except* `reset_lossy` — for the other three, retention is reset-count-insensitive
+and the discriminator is *mechanism*, not *how many* resets. `reset_lossy` is the
+exception by design: it loses a deterministic fraction of its answers on each
+reset, so its retention *decays with `k`* (the `every_1` arm sits below `every_2`),
+and it is the only rung that lands strictly between the floor and the retainers on
+the normalised axis.
 
 ## Two readings, two things measured
 
-**Raw score `R(k)` — absolute capability across resets.** The three rungs separate
-cleanly:
+**Raw score `R(k)` — absolute capability across resets.** The rungs separate
+cleanly (`reset_lossy` shown at both reset arms, since it is the one rung whose
+raw score moves with `k`):
 
 ```
 R(k)   0.0 |---------------------------------------| 0.62
-no_state           ·                                       0.000
-bounded_memory     |==============================·        0.462
-associative_memory |======================================| 0.615
+no_state            ·                                      0.000
+reset_lossy (k=25)  |====·                                 0.077
+reset_lossy (k=12)  |=========·                            0.154
+bounded_memory      |==============================·       0.462
+associative_memory  |======================================| 0.615
 ```
 
 **Normalised retention `(R−P)/(C−P)` — did the *learnable band* survive the
-resets.** This is the headline metric, and it separates **floor vs retainers**:
+resets.** This is the headline metric, and it now reads as a graded axis —
+**floor → leaky → retainers** — rather than a binary floor-vs-retainers split:
 
 ```
 norm   0.0 |---------------------------------------| 1.0
-no_state           ·                                       0.000
-bounded_memory     |======================================| 1.000
-associative_memory |======================================| 1.000
+no_state            ·                                      0.000
+reset_lossy (k=25)  |=====·                                0.125
+reset_lossy (k=12)  |==========·                           0.250
+bounded_memory      |======================================| 1.000
+associative_memory  |======================================| 1.000
 ```
 
-The key, honest point: **`bounded_memory` is capacity-limited, not reset-lossy.**
+`reset_lossy` is the rung that makes the headline metric look *graded*: it lands
+strictly inside `0 < norm < 1` and, alone among the rungs, *moves down as `k`
+grows* (0.250 at k=12 → 0.125 at k=25). It keeps every fact it was taught on disk
+but answers a deterministic, shrinking fraction of them after each reset — so the
+metric reads degree of retention, not merely its presence.
+
+The key, honest point about the retainers: **`bounded_memory` is capacity-limited,
+not reset-lossy.**
 Because the task trains all facts before probing, the FIFO cap evicts the two
 oldest facts immediately — so the cap lowers `bounded_memory`'s *ceiling* (0.462
 vs 0.615), but everything it *can* hold survives every hard reset intact, giving
@@ -67,10 +85,6 @@ conflated the two would rank `no_state`'s 0.615 single-process ceiling above
 
 ## Not yet on the ladder
 
-- **A reset-lossy rung** — a SUT that retains *some but not all* of its band
-  *across each reset* (e.g. probabilistic survive-dir corruption per reset) would
-  populate a middle point on the *normalised* axis (0 < norm < 1), distinct from
-  `bounded_memory`'s capacity limit. Candidate future reference SUT.
 - **LLM (`notes_llm`) and constructive (`constructive`)** SUTs are deliberately
   excluded here so this figure stays keyless/offline and reproducible without
   credentials or model weights. They extend the same ladder upward.
