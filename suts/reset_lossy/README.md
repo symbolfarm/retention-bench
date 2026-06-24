@@ -1,0 +1,63 @@
+# reset_lossy reference SUT
+
+Keyless JSON-state reference SUT for `symbolic_associative_retention`, the
+**graded** rung of the reference ladder — the one that lands strictly between the
+no-state floor and the full retainers on the normalised-retention axis.
+
+It mirrors [`associative_memory`](../associative_memory/) — train prompts are
+parsed into the survive-dir and recall/transfer probes are answered from it — but
+it loses a **fixed fraction of its still-recalled facts on each hard reset**
+(geometric/exponential forgetting), so its retention *decays with the reset count*
+`k`. This is the first reference SUT
+where the number of resets matters: the `every_1` arm (more resets) sits below
+the `every_2` arm.
+
+This is distinct from [`bounded_memory`](../bounded_memory/): that SUT's FIFO cap
+lowers its *ceiling* but lets everything it holds survive every reset intact
+(normalised retention 1.0). `reset_lossy` keeps every fact it was taught on disk,
+yet answers fewer of them after each reset — capacity-independent, reset-coupled
+loss.
+
+## Deterministic decay mechanism
+
+- The survive-dir holds the full fact set (`reset_lossy.json`, never pruned) plus
+  a `load_count` that is incremented and persisted once per process start. A
+  fresh run starts the process once (`load_count == 1`); each hard reset
+  SIGKILLs the process and the runner respawns it, bumping the counter. So
+  `k = load_count - 1` is exactly the number of resets the on-disk state has
+  survived when a probe is answered.
+- Each fact gets a stable pseudo-uniform value `u(fact) ∈ [0, 1)` from a fixed
+  BLAKE2b hash of its identity (no per-run randomness, no seed file). A fact is
+  answered only while `u(fact) < (1 − rate) ** k`. This is textbook **geometric
+  (exponential) forgetting**: a constant fraction `rate` of the still-recalled
+  facts is dropped on each hard reset, so the answered fraction is `(1 − rate) ** k`
+  after `k` resets — monotone-decreasing, fully deterministic, and reproducible.
+  Because retention is a genuine exponential in `k`, `R(k)` traces a real decay
+  curve.
+
+## The loss rate
+
+- **Default rate: 0.05** (per-reset loss fraction — "loses ~5% of recalled facts
+  per reset"). It is deliberately *small*: this task drives 12–25 hard resets
+  before its probes, so a large per-reset rate compounds to a total wipe-out
+  (e.g. `0.7 ** 12 ≈ 0.014`) and collapses the rung onto the floor. A small rate
+  keeps the curve in the graded band (`0 < norm < 1`) with an honest
+  interpretation. (Note: the right default is task-dependent — it is tuned to this
+  task's reset count, not a universal constant.)
+- Override with the `RESET_LOSSY_RATE` environment variable (a float in
+  `[0, 1)`; out-of-range or non-numeric values fall back to the default).
+
+## Run
+
+```bash
+python -m retention_bench.gain_curve \
+  --task symbolic_associative_retention \
+  --sut "python -m reset_lossy.clbench_main" \
+  --extra-pythonpath suts/reset_lossy \
+  --reset-every 1 --reset-every 2 --name reset-lossy-graded
+```
+
+Expected shape (default rate 0.05): the no-reset ceiling holds the full band
+(`C = 16/26 ≈ 0.615`, `k = 0`), and the hard-reset arms decay — `R(every_2)`
+(k=12) `= 8/26 ≈ 0.308` (norm 0.500) sits above `R(every_1)` (k=25)
+`= 6/26 ≈ 0.231` (norm 0.375). Both land strictly inside `0 < norm < 1`.

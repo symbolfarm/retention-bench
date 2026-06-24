@@ -1,0 +1,7 @@
+# Build context hygiene — keep image layers reproducible and small.
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/
+.gitignore
+Dockerfile
+README.md

@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retention-bench"
+version = "0.1.0"
+description = "Benchmark measuring LLM-agent retention across working-state discontinuities."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Toby Lightheart" }, { name = "Symbol Farm" }]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    # Continual Learning Bench (Asawa et al.) — not on PyPI, so pin an exact
+    # commit of the GitHub source for reproducibility. Imports as `src.*`; see
+    # retention_bench/_clbench.py for the single re-export chokepoint. This dep
+    # drives the py>=3.13 floor (cl-benchmark requires 3.13).
+    "cl-benchmark @ git+https://github.com/pgasawa/continual-learning-bench.git@9cc63c0f429048b843e8d43ac4f2b0ea4df13724",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    # The fake-OpenAI test shim + test_notes_clbench read/write YAML response
+    # fixtures. Test-only — the shipped package imports no YAML.
+    "PyYAML>=6.0",
+]
+# OpenAI-compatible client for the LLM-backed reference SUTs (e.g. notes_llm).
+# The canonical `./run.sh smoke` (bsm_accumulator) needs none of this.
+llm-sut = [
+    "openai>=1.40.0",
+]
+
+[project.scripts]
+retention-bench = "retention_bench.gain_curve:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["harness*", "retention_bench*"]
+exclude = ["tests*", "runs*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
