@@ -1,0 +1,16 @@
+{
+  "name": "no-state",
+  "version": "0.1.0",
+  "mode": "notes",
+  "hardware_tier": "open",
+  "strict_verbatim": true,
+  "image": null,
+  "entrypoint": null,
+  "clbench_entrypoint": ["python", "-m", "no_state.clbench_main"],
+  "env": [],
+  "resource_appendix": {
+    "kind": "local",
+    "model_id": "no-state",
+    "gpu_model": null
+  }
+}
