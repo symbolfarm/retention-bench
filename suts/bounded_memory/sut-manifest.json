@@ -1,0 +1,16 @@
+{
+  "name": "bounded-memory",
+  "version": "0.1.0",
+  "mode": "notes",
+  "hardware_tier": "open",
+  "strict_verbatim": true,
+  "image": null,
+  "entrypoint": null,
+  "clbench_entrypoint": ["python", "-m", "bounded_memory.clbench_main"],
+  "env": ["BOUNDED_MEMORY_CAP"],
+  "resource_appendix": {
+    "kind": "local",
+    "model_id": "bounded-memory",
+    "gpu_model": null
+  }
+}
