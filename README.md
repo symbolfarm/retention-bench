@@ -17,8 +17,11 @@ explicitly lacks:
   that survives must have been carried through the survive-dir.
 - **A constructive / parametric system class** — a train-and-grow reference
   learner that grows capacity across reads, with compute accounting, alongside
-  the agent-memory reference SUTs (a keyless accumulator and a cumulative-notes
-  LLM).
+  the agent-memory reference SUTs. The keyless reference set spans a retention
+  *ladder* — `no_state` (in-RAM only; the floor), `bounded_memory` (FIFO-capped
+  survive-dir), and `associative_memory` / `bsm_accumulator` (full persistence) —
+  plus the `notes_llm` cumulative-notes LLM and the `constructive` learner. See
+  [`docs/reference-ladder.md`](docs/reference-ladder.md).
 
 Because the SUT interface is **mechanism-agnostic** (read a stage, optionally
 mutate the survive-dir, write a response), fine-tuning, structural growth,
@@ -49,6 +52,18 @@ The prior arm `P` (survive-dir wiped on every reset) is the stateless floor, the
 ceiling `C` (no reset) is the best the system can do, and `R(k)` shows how
 retention holds as `k` hard resets accumulate. See
 [`suts/bsm_accumulator/README.md`](suts/bsm_accumulator/README.md).
+
+To see what the metric discriminates, run the keyless **reference ladder** — the
+floor / capacity-limited / full-retention SUTs on one task, offline:
+
+```bash
+./run.sh ladder
+```
+
+The committed numbers and interpretation are in
+[`docs/reference-ladder.md`](docs/reference-ladder.md): normalised retention
+cleanly separates a non-retainer (floor) from retainers, while raw score adds the
+capacity tier.
 
 For an arbitrary CL-Bench task / SUT, the gain-curve driver is SUT-agnostic:
 

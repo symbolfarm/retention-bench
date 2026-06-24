@@ -3,6 +3,7 @@
 #
 # Usage:
 #   ./run.sh smoke              # canonical offline, keyless smoke (gain curve)
+#   ./run.sh ladder             # offline, keyless reference-ladder sweep (floor/partial/full)
 #   ./run.sh [gain_curve args]  # arbitrary CL-Bench task; pass-through
 set -euo pipefail
 
@@ -42,6 +43,32 @@ if [[ "$cmd" == "smoke" ]]; then
     --extra-pythonpath suts/bsm_accumulator \
     --reset-every 1 --reset-every 2 \
     "$@"
+fi
+
+if [[ "$cmd" == "ladder" ]]; then
+  shift || true
+  # Reference ladder: the three KEYLESS reference SUTs on the same task
+  # (symbolic_associative_retention), swept over the reset axis, so their
+  # retention curves can be read on one figure (see docs/reference-ladder.md).
+  # Offline, no API key, no model weights. Order: floor -> partial -> full.
+  #   no_state        ephemeral, never touches the survive-dir   -> retention floor
+  #   bounded_memory  FIFO-capped survive-dir window             -> partial retention
+  #   associative_memory  full survive-dir persistence           -> full-retention ceiling
+  for entry in \
+    "no-state-floor:no_state:suts/no_state" \
+    "bounded-memory-partial:bounded_memory:suts/bounded_memory" \
+    "associative-memory-full:associative_memory:suts/associative_memory"; do
+    name="${entry%%:*}"; rest="${entry#*:}"; pkg="${rest%%:*}"; path="${rest#*:}"
+    echo "===== ${name} ====="
+    "$PYTHON_BIN" -m retention_bench.gain_curve \
+      --task symbolic_associative_retention \
+      --sut "python -m ${pkg}.clbench_main" \
+      --extra-pythonpath "$path" \
+      --reset-every 1 --reset-every 2 \
+      --name "$name" "$@"
+    echo
+  done
+  exit 0
 fi
 
 # Fall through: pass-through to the gain-curve driver for any other CL-Bench
