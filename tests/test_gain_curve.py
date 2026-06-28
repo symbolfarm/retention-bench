@@ -165,12 +165,27 @@ def test_cli_reset_at_builds_explicit_boundary_arms():
 
 
 _BYO_TASK_SRC = '''
+from __future__ import annotations
+
+from dataclasses import dataclass
+
 from retention_bench._clbench import ContinualLearningTask
+
+
+@dataclass(frozen=True)
+class _Row:
+    """A dataclass exercises sys.modules registration during file-load: dataclass
+    type resolution looks the defining module up in sys.modules."""
+
+    prompt: str
+    scored: bool
 
 
 class MyByoTask(ContinualLearningTask):
     """Minimal BYO task — only needs to be a ContinualLearningTask subclass for
     resolution; load_task_spec returns the class without instantiating it."""
+
+    rows = (_Row("p", True),)
 
     @property
     def name(self) -> str:

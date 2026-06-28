@@ -18,6 +18,7 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import os
+import sys
 from pathlib import Path
 
 try:
@@ -112,6 +113,10 @@ def load_task_spec(spec: str) -> type[ContinualLearningTask]:
         if module_spec is None or module_spec.loader is None:
             raise ImportError(f"could not load task module from {path}")
         module = importlib.util.module_from_spec(module_spec)
+        # Register before exec so the module's own classes resolve their
+        # __module__ (dataclasses, pickling, typing.get_type_hints all look the
+        # module up in sys.modules during/after class definition).
+        sys.modules[mod_name] = module
         module_spec.loader.exec_module(module)
     else:
         module = importlib.import_module(target)
