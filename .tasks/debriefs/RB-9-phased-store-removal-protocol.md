@@ -1,7 +1,7 @@
 # Debrief: RB-9 Phased store-removal protocol
 
 **Completed:** 2026-06-28
-**Commit:** (this commit)
+**Commit:** d6d3c0f
 
 ## What shipped
 
