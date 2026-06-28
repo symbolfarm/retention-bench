@@ -1,7 +1,7 @@
 # Debrief: RB-8 Bring-your-own task via --task-spec
 
 **Completed:** 2026-06-28
-**Commit:** (this commit)
+**Commit:** f7156c0
 
 ## What shipped
 
