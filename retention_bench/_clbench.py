@@ -15,6 +15,11 @@ candidate C7 upstream PR), this is the only file that changes.
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
+import os
+from pathlib import Path
+
 try:
     from src.interface import (  # noqa: F401
         ContinualLearningSystem,
@@ -73,6 +78,55 @@ def list_tasks() -> list[str]:
     return sorted(set(_clbench_list_tasks()) | set(_local_tasks()))
 
 
+def load_task_spec(spec: str) -> type[ContinualLearningTask]:
+    """Resolve a *bring-your-own* task from a ``TARGET:ClassName`` spec.
+
+    ``TARGET`` is either a dotted module path (``my_pkg.tasks``) importable by
+    this (harness) interpreter, or a path to a ``.py`` file (``/abs/task.py`` or
+    ``./rel/task.py``). This lets a SUT repo ship its own task without editing
+    retention-bench (BYO-task) — see RB-8.
+
+    The task is imported and run **in the harness process**, not the SUT
+    subprocess, so the file must be importable here: keep it dependency-light
+    (pydantic/stdlib; no torch). Raises ``ValueError`` / ``FileNotFoundError`` /
+    ``ImportError`` / ``AttributeError`` / ``TypeError`` with an actionable
+    message; the CLI converts these to ``parser.error``.
+    """
+    if ":" not in spec:
+        raise ValueError(
+            f"task-spec must be 'module:Class' or '/path/to/file.py:Class', got {spec!r}"
+        )
+    target, _, cls_name = spec.rpartition(":")
+    if not target or not cls_name:
+        raise ValueError(
+            f"task-spec must be 'module:Class' or '/path/to/file.py:Class', got {spec!r}"
+        )
+
+    looks_like_file = target.endswith(".py") or os.sep in target or target.startswith(".")
+    if looks_like_file:
+        path = Path(target).expanduser().resolve()
+        if not path.is_file():
+            raise FileNotFoundError(f"task-spec file not found: {path}")
+        mod_name = f"_rb_byo_task_{path.stem}"
+        module_spec = importlib.util.spec_from_file_location(mod_name, path)
+        if module_spec is None or module_spec.loader is None:
+            raise ImportError(f"could not load task module from {path}")
+        module = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(module)
+    else:
+        module = importlib.import_module(target)
+
+    try:
+        cls = getattr(module, cls_name)
+    except AttributeError as exc:
+        raise AttributeError(f"task class {cls_name!r} not found in {target!r}") from exc
+    if not (isinstance(cls, type) and issubclass(cls, ContinualLearningTask)):
+        raise TypeError(
+            f"{cls_name!r} from {target!r} is not a ContinualLearningTask subclass"
+        )
+    return cls
+
+
 __all__ = [
     "ContinualLearningSystem",
     "ContinualLearningTask",
@@ -89,6 +143,7 @@ __all__ = [
     "default_corpus_paths",
     "get_task_class",
     "list_tasks",
+    "load_task_spec",
     "observation_marks_instance_complete",
     "run_task",
     "serialize_instance_outcome",

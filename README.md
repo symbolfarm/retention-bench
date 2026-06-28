@@ -78,6 +78,21 @@ python -m retention_bench.gain_curve --task <task> --sut "<launch command>" \
 (LLM-backed reference SUTs like `notes_llm` need an OpenAI-compatible endpoint —
 copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.)
 
+### Bring your own task
+
+You don't have to register a task in this repo to run it. `--task-spec` imports a
+`ContinualLearningTask` subclass dynamically, by dotted module path or `.py` file
+path, so a task can live in the SUT's own repo:
+
+```bash
+python -m retention_bench.gain_curve \
+  --task-spec /path/to/my_repo/my_task.py:MyTask \
+  --sut "<launch command>" --reset-every 1 --reset-every 2
+```
+
+The task is imported and run in the **harness** interpreter (not the SUT
+subprocess), so keep BYO task files dependency-light — pydantic/stdlib, no torch.
+
 ## How retention is scored
 
 Each CL-Bench instance is scored by the task's own reward; we run three kinds of

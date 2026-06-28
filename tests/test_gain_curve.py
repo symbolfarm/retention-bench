@@ -164,6 +164,104 @@ def test_cli_reset_at_builds_explicit_boundary_arms():
     assert labels == ["boundaries:30,60", "boundaries:35,65"]
 
 
+_BYO_TASK_SRC = '''
+from retention_bench._clbench import ContinualLearningTask
+
+
+class MyByoTask(ContinualLearningTask):
+    """Minimal BYO task — only needs to be a ContinualLearningTask subclass for
+    resolution; load_task_spec returns the class without instantiating it."""
+
+    @property
+    def name(self) -> str:
+        return "my_byo_task"
+'''
+
+
+def test_load_task_spec_from_file(tmp_path):
+    from retention_bench._clbench import load_task_spec
+
+    f = tmp_path / "byo_task.py"
+    f.write_text(_BYO_TASK_SRC)
+    from src.interface import ContinualLearningTask
+
+    cls = load_task_spec(f"{f}:MyByoTask")
+    assert issubclass(cls, ContinualLearningTask)
+    assert cls.__name__ == "MyByoTask"
+
+
+def test_load_task_spec_from_module():
+    from retention_bench._clbench import load_task_spec
+
+    cls = load_task_spec(
+        "retention_bench.tasks.symbolic_associative_retention:SymbolicAssociativeRetentionTask"
+    )
+    assert cls.__name__ == "SymbolicAssociativeRetentionTask"
+
+
+def test_load_task_spec_rejects_missing_colon():
+    from retention_bench._clbench import load_task_spec
+
+    with pytest.raises(ValueError):
+        load_task_spec("no_colon_here")
+
+
+def test_load_task_spec_rejects_missing_file(tmp_path):
+    from retention_bench._clbench import load_task_spec
+
+    with pytest.raises(FileNotFoundError):
+        load_task_spec(f"{tmp_path / 'nope.py'}:Whatever")
+
+
+def test_load_task_spec_rejects_non_task_class():
+    from retention_bench._clbench import load_task_spec
+
+    # builtins:int resolves but is not a ContinualLearningTask subclass.
+    with pytest.raises(TypeError):
+        load_task_spec("builtins:int")
+
+
+def test_cli_task_spec_resolves(tmp_path):
+    """--task-spec routes through load_task_spec and reaches the sweep."""
+    from retention_bench import gain_curve as gc
+
+    f = tmp_path / "byo_task.py"
+    f.write_text(_BYO_TASK_SRC)
+
+    captured: dict = {}
+
+    def fake_sweep(make_system, make_task, schedules, **kwargs):
+        captured["kwargs"] = kwargs
+        return _sweep([NoReset()], num_instances=1)
+
+    monkey = pytest.MonkeyPatch()
+    monkey.setattr(gc, "run_reset_sweep", fake_sweep)
+    try:
+        rc = gc.main(["--task-spec", f"{f}:MyByoTask", "--sut", "python -m noop"])
+    finally:
+        monkey.undo()
+
+    assert rc == 0
+    # name defaults to the class label parsed from the spec.
+    assert captured["kwargs"]["system_name"] == "MyByoTask"
+
+
+def test_cli_rejects_both_task_and_task_spec():
+    from retention_bench import gain_curve as gc
+
+    with pytest.raises(SystemExit):
+        gc.main(
+            ["--task", "x", "--task-spec", "m:Z", "--sut", "python -m noop"]
+        )
+
+
+def test_cli_requires_a_task():
+    from retention_bench import gain_curve as gc
+
+    with pytest.raises(SystemExit):
+        gc.main(["--sut", "python -m noop"])
+
+
 def test_render_table_contains_band_and_rows(capsys):
     curve = _sweep([EveryNInstances(1), EveryNInstances(2)], num_instances=5)
     table = render_curve(curve)

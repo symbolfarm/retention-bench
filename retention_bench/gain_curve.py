@@ -59,6 +59,7 @@ from ._clbench import (
     build_benchmark_aggregate,
     get_task_class,
     list_tasks,
+    load_task_spec,
     run_task,
     serialize_instance_outcome,
 )
@@ -271,7 +272,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         prog="python -m retention_bench.gain_curve",
         description="Sweep a SUT over hard-reset densities and render the gain-vs-k curve.",
     )
-    parser.add_argument("--task", help="CL-Bench or Retention Bench task name (see --list-tasks).")
+    task_src = parser.add_mutually_exclusive_group()
+    task_src.add_argument(
+        "--task", help="CL-Bench or Retention Bench task name (see --list-tasks)."
+    )
+    task_src.add_argument(
+        "--task-spec",
+        metavar="TARGET:CLASS",
+        help="Bring-your-own task: a dotted 'module:Class' or '/path/to/file.py:Class'. "
+        "Imported and run in the harness process (keep it torch-free). "
+        "Alternative to --task; lets a task live outside this repo.",
+    )
     parser.add_argument(
         "--sut",
         help='SUT launch command, e.g. "python -m constructive.clbench_main".',
@@ -318,16 +329,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.list_tasks:
         print("\n".join(sorted(list_tasks())))
         return 0
-    if not args.task:
-        parser.error("the following arguments are required: --task")
+    if not args.task and not args.task_spec:
+        parser.error("one of the arguments --task or --task-spec is required")
     if not args.sut:
         parser.error("the following arguments are required: --sut")
 
-    task_cls = get_task_class(args.task)
+    if args.task_spec:
+        try:
+            task_cls = load_task_spec(args.task_spec)
+        except (ValueError, FileNotFoundError, ImportError, AttributeError, TypeError) as exc:
+            parser.error(str(exc))
+        task_label = args.task_spec.rpartition(":")[2]
+    else:
+        task_cls = get_task_class(args.task)
+        task_label = args.task
     task_kwargs = _parse_kwargs(args.task_kwarg)
     command = shlex.split(args.sut)
     extra_pythonpath = [Path(p).resolve() for p in args.extra_pythonpath]
-    name = args.name or args.task
+    name = args.name or task_label
     schedules: list[ResetSchedule] = [EveryNInstances(n) for n in args.reset_every]
     for spec in args.reset_at:
         ordinals = [int(tok) for tok in spec.split(",") if tok.strip()]
