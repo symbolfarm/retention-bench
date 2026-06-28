@@ -302,9 +302,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         default=[],
         metavar="O1,O2,...",
         help="Add a stateful arm that hard-resets after exactly the listed 1-based "
-        "completed-instance ordinals (ExplicitBoundaries; repeatable). Use to place "
-        'resets on vs just-off a concept-drift boundary, e.g. --reset-at "30,60" '
-        '--reset-at "35,65" on the BSM default schedule (drifts at 30 and 60).',
+        "completed-instance ordinals (ExplicitBoundaries; repeatable). Two main uses: "
+        "(1) place resets on vs just-off a concept-drift boundary, e.g. "
+        '--reset-at "30,60" --reset-at "35,65" on the BSM default schedule (drifts at '
+        "30 and 60); (2) the phased store-removal protocol — reset once at the "
+        'train/probe boundary, e.g. --reset-at "10", to measure what migrated into '
+        "weights after the store is removed (see docs/phased-store-removal.md).",
     )
     parser.add_argument(
         "--task-kwarg",

@@ -78,6 +78,11 @@ python -m retention_bench.gain_curve --task <task> --sut "<launch command>" \
 (LLM-backed reference SUTs like `notes_llm` need an OpenAI-compatible endpoint —
 copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.)
 
+The uniform `--reset-every k` sweep is the headline retention curve (graceful
+degradation across repeated erasure). To instead ask *did capability migrate into
+the weights* — reset **once** at the train/probe boundary with `--reset-at` — see
+[`docs/phased-store-removal.md`](docs/phased-store-removal.md).
+
 ### Bring your own task
 
 You don't have to register a task in this repo to run it. `--task-spec` imports a

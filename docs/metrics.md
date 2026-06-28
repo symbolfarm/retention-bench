@@ -14,6 +14,13 @@ CL-Bench task + system, each from a *fresh* survive-dir:
 - **points `R(k)`** — one stateful (non-wiping) arm per requested schedule; `k`
   is the *measured* `system.scheduled_resets`, not the nominal density.
 
+> The uniform sweep above measures **graceful degradation** across repeated
+> erasure. A different question — *did capability migrate into the durable
+> artifact?* — needs the **phased store-removal** protocol (reset once at the
+> train/probe boundary via `--reset-at`), because uniform resets wipe a SUT's
+> store mid-learning and conflate "nothing migrated" with "no time to learn". See
+> [`phased-store-removal.md`](phased-store-removal.md).
+
 Each point is the band-normalised gain, reusing
 `scorer.aggregate.normalised_retention`:
 
