@@ -54,3 +54,8 @@
 {"id":"RB-7","status":"completed","priority":"medium","blocked_by":[],"task_file":"RB-7-reset-lossy-sut.md","commit":"08976bd559f0fe8cd167faa85984f570dc3308b0","created_at":"2026-06-24T01:12:12Z","completed_at":"2026-06-24T01:57:24Z"}
 {"id":"RB-8","status":"completed","priority":"high","blocked_by":[],"task_file":"RB-8-byo-task-spec.md","commit":"f7156c0","created_at":"2026-06-28T00:00:00Z","completed_at":"2026-06-28T00:00:00Z"}
 {"id":"RB-9","status":"completed","priority":"high","blocked_by":[],"task_file":"RB-9-phased-store-removal-protocol.md","commit":"d6d3c0f","created_at":"2026-06-28T00:00:00Z","completed_at":"2026-06-28T00:00:00Z"}
+{"id":"RB-10","status":"pending","priority":"high","blocked_by":[],"task_file":"RB-10-subprocess-reset-integrity.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}
+{"id":"RB-11","status":"pending","priority":"high","blocked_by":[],"task_file":"RB-11-package-scorer-and-ci.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}
+{"id":"RB-12","status":"pending","priority":"medium","blocked_by":[],"task_file":"RB-12-metric-variance-and-reset-signal.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}
+{"id":"RB-13","status":"pending","priority":"medium","blocked_by":[],"task_file":"RB-13-robustness-correctness-batch.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}
+{"id":"RB-14","status":"pending","priority":"medium","blocked_by":[],"task_file":"RB-14-public-doc-pass.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}

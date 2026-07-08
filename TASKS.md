@@ -35,6 +35,25 @@ hard-reset retention band.
 - **C7** — optional upstream PRs / plugin-hook work.
 - **C12** — non-root SUT containers.
 - **C17** — cut the orphan public `main` release branch; stop before pushing.
+  **Land RB-14 (doc pass) first** so the first public snapshot is already clean.
+
+**From the 2026-07-07 v0.1 review** (`docs/reviews/2026-07-07-v0.1-review.md`):
+
+- **RB-10** *(high)* — subprocess RESET integrity: `setsid`+`killpg` process-group kill,
+  kill-on-timeout, `_readline_with_timeout` buffering fix, doc alignment + tests. The hard
+  RESET currently SIGKILLs only the direct child, so a spawned helper survives the
+  discontinuity — a hole in the benchmark's core semantic for agent-scaffold SUTs.
+- **RB-11** *(high)* — package `scorer` (shipped code imports it but it isn't packaged →
+  broken non-editable install) + add CI on 3.13 with a non-editable install step to guard it.
+- **RB-12** *(med-high)* — variance story (bootstrap CIs over per-instance outcomes) +
+  post-reset-window reward beside whole-run `R(k)` (which dilutes the reset signal /
+  can't tell "retained" from "relearned fast"); scale ε with `r_max`.
+- **RB-13** *(medium)* — robustness batch: sweep context-manager (container leak),
+  `--stderr-log` default-on, fail-loud env-var knobs, `_split_reply` error taxonomy,
+  per-schedule `r_max`, `.harness/` dir drift.
+- **RB-14** *(medium)* — public-facing doc pass: strip pivot codenames, fix dangling refs,
+  kill the dev-container path in `_clbench.py`'s error, mark metrics specified/implemented.
+  Prereq for C17.
 
 The repo-local dev loop uses `.venv/bin/python` (Python 3.13). CL-Bench is
 installed into that venv from the pinned dependency, with the editable source
