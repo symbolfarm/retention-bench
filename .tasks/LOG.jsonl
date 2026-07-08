@@ -59,3 +59,4 @@
 {"id":"RB-12","status":"pending","priority":"medium","blocked_by":[],"task_file":"RB-12-metric-variance-and-reset-signal.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}
 {"id":"RB-13","status":"pending","priority":"medium","blocked_by":[],"task_file":"RB-13-robustness-correctness-batch.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}
 {"id":"RB-14","status":"pending","priority":"medium","blocked_by":[],"task_file":"RB-14-public-doc-pass.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}
+{"id":"RB-15","status":"pending","priority":"high","blocked_by":[],"task_file":"RB-15-m2-constructed-mode-gain-curve.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}

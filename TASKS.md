@@ -55,6 +55,14 @@ hard-reset retention band.
   kill the dev-container path in `_clbench.py`'s error, mark metrics specified/implemented.
   Prereq for C17.
 
+**Cross-repo keystone:**
+
+- **RB-15** *(high, BLOCKED on constructive-retention CR-22)* — claim **Milestone 2**: wire
+  the constructed-hop-2 SUT into a `--mode` and take the gain-vs-`k` curve (with RB-12's
+  bootstrap CIs). The constructive SUT currently renders `EXCLUDED`; a real additive-by-
+  construction increment should give the first non-degenerate band (retention flat in `k`).
+  **Do not start until CR-22 lands.**
+
 The repo-local dev loop uses `.venv/bin/python` (Python 3.13). CL-Bench is
 installed into that venv from the pinned dependency, with the editable source
 checkout at `/home/agent/src/cl-bench` when local debugging is needed. `./run.sh`
