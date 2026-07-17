@@ -24,9 +24,9 @@ Normalised retention at each point is
 
     norm_gain(k) = (R(k) − P) / max(C − P, ε)
 
-— exactly :func:`scorer.aggregate.normalised_retention`, the same band
-normalisation the book-track scorer uses. We reuse it verbatim rather than
-defining a competing formula.
+— exactly :func:`retention_bench.scoring.normalised_retention`, the same band
+normalisation the book-track scorer used before RB-11 folded it into this
+package. We reuse it verbatim rather than defining a competing formula.
 
 ### Reconciliation with CL-Bench
 
@@ -52,7 +52,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Sequence
 
-from scorer.aggregate import EPSILON, normalised_retention
+from .scoring import EPSILON, normalised_retention
 
 from ._clbench import (
     ContinualLearningTask,
@@ -120,7 +120,7 @@ class GainCurve:
     def excluded(self) -> bool:
         """``True`` if there is no learnable band (``C − P < ε``).
 
-        Mirrors the ``scorer.aggregate`` exclusion rule: with no band, the
+        Mirrors the ``retention_bench.scoring`` exclusion rule: with no band, the
         normalised curve is undefined and every point reports ``None``.
         """
         return self.band < self.epsilon

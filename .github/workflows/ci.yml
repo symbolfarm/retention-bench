@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # Non-editable install on purpose: this is the packaging shape a real
+      # user gets from `pip install retention-bench` / a wheel, and it is
+      # exactly what an editable install (`pip install -e .`) papers over by
+      # leaking the repo root onto sys.path. RB-11 (2026-07-07 v0.1 review,
+      # finding 4): `scorer` used to be shipped-but-unpackaged, so this step
+      # is the regression guard against that class of bug recurring.
+      - name: Install (non-editable)
+        run: pip install .
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      # We deliberately do NOT install `cl-benchmark` here: it's a heavy,
+      # non-PyPI, Python->=3.13-only dependency, and the suite is written to
+      # skip cleanly without it (see tests/test_gain_curve.py and friends,
+      # which `pytest.importorskip("src.interface", ...)`). This job only
+      # needs to prove the package installs and the dep-free tests pass;
+      # a deps-installed job exercising the full cl-benchmark path can be
+      # added later (out of scope for RB-11).
+      - name: Run test suite
+        run: pytest
