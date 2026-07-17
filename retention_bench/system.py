@@ -37,10 +37,11 @@ is free-form self-report; recognised keys (``flops``, ``tokens_in``,
 ``tokens_out``, ``model_id``) are lifted onto the compute ``UsageEvent`` and the
 entire dict is preserved under ``metadata["sut_resource"]``.
 
-This deliberately does **not** reuse ``harness.sut_process.send_event``: that
-helper hard-codes the book-track ``READ``/``QUIZ`` → ``answers:[{id,text}]``
-framing, which cannot carry CL-Bench's arbitrary per-query ``response_schema``.
-We reuse the *process lifecycle* (spawn/kill) and define our own framing.
+This deliberately does not reuse the retired book-track ``send_event`` framing
+helper (hard-coded ``READ``/``QUIZ`` → ``answers:[{id,text}]`` shape, which
+cannot carry CL-Bench's arbitrary per-query ``response_schema`` — see
+``harness.sut_process``). We reuse the *process lifecycle* (spawn/kill) and
+define our own framing.
 """
 
 from __future__ import annotations
@@ -53,6 +54,8 @@ import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
+
+import pydantic
 
 from harness import dir_lifecycle, sut_process
 
@@ -85,8 +88,8 @@ class ContainerLaunch:
             system's ``command`` as the in-container entrypoint, so ``command``
             must name an entrypoint the *image* provides (e.g. for the
             constructive SUT, ``["python", "-m", "constructive.clbench_main"]``
-            — the CL-Bench wire entrypoint, **not** the book-track
-            ``constructive`` module the manifest's ``entrypoint`` field names).
+            — the CL-Bench wire entrypoint recorded as ``clbench_entrypoint``
+            in the SUT's ``sut-manifest.json``).
         env_names: harness-environment variable *names* forwarded into the
             container by name only (``-e NAME``), so secret values never appear
             in argv or logs.
@@ -139,6 +142,10 @@ class SubprocessSystem(ContinualLearningSystem):
         self._command = list(command)
         self._state_dir = Path(state_dir)
         self._state_dir.mkdir(parents=True, exist_ok=True)
+        # Match dir_lifecycle.create_dir: reserve `.harness/` up front so the
+        # two dir-creation paths (harness-driven runs vs. a bare SubprocessSystem)
+        # don't drift on what's excluded from account_dir/snapshot_dir.
+        (self._state_dir / dir_lifecycle.HARNESS_RESERVED_PREFIX).mkdir(exist_ok=True)
         self._schedule = reset_schedule
         self._name = name
         self._wipe_on_reset = wipe_on_reset
@@ -290,7 +297,17 @@ class SubprocessSystem(ContinualLearningSystem):
         reply = self._exchange(request)
 
         action_fields, resource = _split_reply(reply)
-        action = query.response_schema(**action_fields)
+        try:
+            action = query.response_schema(**action_fields)
+        except pydantic.ValidationError as exc:
+            # A schema-nonconforming reply is a contract violation by the SUT,
+            # same class of error as a malformed 'resource' or non-JSON reply —
+            # surface it as SUTError, not a raw pydantic error, so the error
+            # taxonomy is consistent at the contract boundary.
+            raise sut_process.SUTError(
+                f"SUT reply for instance {request.get('instance_id')} does not match "
+                f"the query's response_schema: {exc}"
+            ) from exc
         self._emit_compute_event(resource, query)
         return Response(action=action, metadata={"sut_resource": resource} if resource else None)
 
@@ -438,7 +455,14 @@ def _split_reply(reply: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]
     """
     if not isinstance(reply, dict):
         raise sut_process.SUTError(f"SUT reply must be a JSON object, got {type(reply).__name__}")
-    resource = reply.get(_RESERVED_REPLY_KEY) or {}
+    # NB: default via a sentinel, not `reply.get(key) or {}` — the `or` form
+    # would silently coerce a *present* falsy non-dict value (0, "", false)
+    # into {} before the isinstance check below ever sees it, masking exactly
+    # the malformed replies that check exists to catch. An explicit ``null``
+    # resource is treated as "none reported", same as the key being absent.
+    resource = reply.get(_RESERVED_REPLY_KEY, {})
+    if resource is None:
+        resource = {}
     if not isinstance(resource, dict):
         raise sut_process.SUTError(f"SUT reply 'resource' must be an object, got {resource!r}")
     if "action" in reply:

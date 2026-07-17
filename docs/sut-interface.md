@@ -158,7 +158,6 @@ Ships with the SUT package as its declaration of record. The live `SubprocessSys
   "hardware_tier": "open",
   "strict_verbatim": true,
   "image": null,
-  "entrypoint": null,
   "clbench_entrypoint": ["python", "-m", "bsm_accumulator.clbench_main"],
   "env": [],
   "resource_appendix": {
@@ -177,7 +176,6 @@ Ships with the SUT package as its declaration of record. The live `SubprocessSys
 | `hardware_tier` | enum | yes | `consumer` \| `1xH100` \| `8xH100` \| `API` \| `open`. |
 | `strict_verbatim` | bool | yes | Self-report. `true` means the SUT does not persist verbatim observation spans into the survive-dir. |
 | `clbench_entrypoint` | array[string] | yes | The live wire launch argv — the `command` you pass to `SubprocessSystem` / `--sut`. The CL-Bench-native entrypoint (e.g. `…clbench_main`). |
-| `entrypoint` | array[string] \| null | no | Legacy book-track launch argv (the retired `READ`/`QUIZ` event loop). Kept for history; `null` on SUTs with no book-track entrypoint. **Not** the live launch path. |
 | `image` | string \| null | no | Docker image to launch the SUT in (paired with a `ContainerLaunch`). `null` / absent → subprocess. |
 | `env` | array[string] | no | Env vars the SUT requires (names only — values come from the harness's environment). In container mode these are the **only** vars forwarded (`docker run -e NAME`); in subprocess mode the full environment is inherited and this list is advisory. |
 | `resource_appendix` | object | no | Self-reported resource profile. `kind: "api"` → `model_id` etc.; `kind: "local"` → `model_id`, `gpu_model`, etc. Per-response token/FLOP counts are also emitted in reply `resource` objects and aggregated by the harness. |

@@ -16,9 +16,11 @@ exercised live in ``sut_process`` and are covered above.)
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -28,11 +30,61 @@ from harness.sut_process import (
     SHIM_CONTAINER_PATH,
     ContainerSpec,
     SUTError,
+    SUTHandle,
+    SUTTimeout,
     build_docker_argv,
     host_path_for_mount,
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _send_event(
+    handle: "SUTHandle",
+    event_id: str,
+    event_type: str,
+    stage_input: str,
+    timeout_s: float = 300.0,
+) -> dict[str, Any]:
+    """Test-only helper: speak the retired book-track READ/QUIZ framing.
+
+    Demoted from ``harness.sut_process.send_event`` (removed as dead code on
+    the live path — RB-13/2026-07-07 review "Book-track residue" — the live
+    ``SubprocessSystem`` speaks its own per-instance JSON contract, see
+    ``retention_bench.system._exchange``). Kept here only so the docker
+    round-trip test below can still drive the inline echo SUT, which speaks
+    this shape, over the real spawn/kill launch path.
+    """
+    msg = {"event_id": event_id, "event_type": event_type, "stage_input": stage_input}
+    line = json.dumps(msg, ensure_ascii=False) + "\n"
+    try:
+        assert handle.process.stdin is not None
+        handle.process.stdin.write(line)
+        handle.process.stdin.flush()
+    except (BrokenPipeError, OSError) as e:
+        raise SUTError(f"failed writing to SUT stdin for {event_id}: {e}") from e
+
+    assert handle.process.stdout is not None
+    reply = sut_process._readline_with_timeout(handle.process.stdout, timeout_s)
+    if reply is None:
+        raise SUTTimeout(f"SUT did not respond to {event_id} within {timeout_s:.0f}s")
+    if not reply:
+        rc = handle.process.poll()
+        raise SUTError(f"SUT closed stdout before replying to {event_id} (exit={rc})")
+    try:
+        parsed = json.loads(reply)
+    except json.JSONDecodeError as e:
+        raise SUTError(f"SUT reply for {event_id} not valid JSON: {e}: {reply!r}") from e
+    if parsed.get("event_id") != event_id:
+        raise SUTError(
+            f"SUT reply event_id mismatch: sent {event_id!r}, got {parsed.get('event_id')!r}"
+        )
+    if event_type == "QUIZ":
+        if "answers" not in parsed:
+            raise SUTError(f"SUT QUIZ reply for {event_id} missing 'answers' list: {parsed!r}")
+        if not isinstance(parsed["answers"], list):
+            raise SUTError(f"SUT QUIZ reply 'answers' for {event_id} must be a list: {parsed!r}")
+    return parsed
 
 
 # --- host_path_for_mount -------------------------------------------------
@@ -156,7 +208,7 @@ def test_docker_round_trip(tmp_path):
         container=spec,
     )
     try:
-        reply = sut_process.send_event(handle, "evt-0001", "READ", "hello", timeout_s=60)
+        reply = _send_event(handle, "evt-0001", "READ", "hello", timeout_s=60)
         assert reply["event_id"] == "evt-0001"
     finally:
         sut_process.kill_sut(handle)

@@ -42,7 +42,9 @@ interpretation honest — "loses a few percent of recallable facts per reset".
 
 Loss rate defaults to ``DEFAULT_RATE`` and is overridable via the
 ``RESET_LOSSY_RATE`` environment variable (a float in ``[0, 1)``; out-of-range
-or non-numeric values fall back to the default).
+or non-numeric values raise ``ValueError`` rather than silently falling back —
+for a benchmark, a typo'd experiment parameter running the default unnoticed is
+worse than a crash).
 """
 
 from __future__ import annotations
@@ -73,9 +75,15 @@ def _rate() -> float:
         return DEFAULT_RATE
     try:
         value = float(raw)
-    except ValueError:
-        return DEFAULT_RATE
-    return value if 0.0 <= value < 1.0 else DEFAULT_RATE
+    except ValueError as exc:
+        raise ValueError(
+            f"RESET_LOSSY_RATE must be a float, got {raw!r}"
+        ) from exc
+    if not (0.0 <= value < 1.0):
+        raise ValueError(
+            f"RESET_LOSSY_RATE must be in [0.0, 1.0), got {value!r}"
+        )
+    return value
 
 
 def _empty_state() -> dict[str, Any]:

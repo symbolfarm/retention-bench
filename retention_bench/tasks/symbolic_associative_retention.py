@@ -45,7 +45,14 @@ class CurriculumInstance:
 class SymbolicAssociativeRetentionTask(ContinualLearningTask):
     """Teach nonce object attributes and attribute-to-bin rules, then probe both."""
 
-    # Default: 8 object facts + 2 rules + 16 probes. Only probes can score 1.0.
+    # Class-attribute default: 8 object facts + 2 rules + 16 probes, one exposure.
+    # This is the value for the *default* constructor schedule only — it is
+    # stale for any other `num_concepts`/`num_exposures` (e.g. `num_exposures=2`
+    # doubles the train instances to 20, giving 16/36, not 16/26). Downstream
+    # CL-Bench-side tooling that reads the class attribute directly (before an
+    # instance exists) still needs a positive default, so it stays here;
+    # `build_canonical_run_state` below shadows it with the true per-schedule
+    # value as an instance attribute once the concrete schedule is known.
     r_max = 16 / 26
 
     _OBJECT_NAMES = (
@@ -110,6 +117,14 @@ class SymbolicAssociativeRetentionTask(ContinualLearningTask):
         self.num_instances = len(instances)
         self._pos = 0
         self._instance_outcomes = []
+        # Per-instance mean maximum reward for *this* concrete schedule: only
+        # `scored` (recall/transfer probe) instances can ever score 1.0, and
+        # train/context instances always score 0.0. Computed here (not left as
+        # the class-attribute default) so `num_exposures`/`num_concepts`/
+        # `num_instances` overrides all get the right value instead of the
+        # stale 8-concept/1-exposure default.
+        num_scored = sum(1 for inst in instances if inst.scored)
+        self.r_max = num_scored / len(instances) if instances else 0.0
 
     def _build_instances(self) -> list[CurriculumInstance]:
         objects = self._OBJECT_NAMES[: self.num_concepts]

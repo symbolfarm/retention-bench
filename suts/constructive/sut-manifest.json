@@ -5,7 +5,6 @@
   "hardware_tier": "open",
   "strict_verbatim": true,
   "image": "retention-bench/sut-constructive:0.1",
-  "entrypoint": ["python", "-m", "constructive"],
   "clbench_entrypoint": ["python", "-m", "constructive.clbench_main"],
   "env": [
     "CONSTRUCTIVE_SEED",

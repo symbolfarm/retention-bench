@@ -8,7 +8,8 @@ bare host subprocess. The load-bearing C9 assertions:
 
   * ``SubprocessSystem`` launches the SUT in a container (``ContainerLaunch``)
     and the container speaks the C2 wire protocol (``constructive.clbench_main``,
-    **not** the book-track ``constructive`` entrypoint the manifest names);
+    the manifest's ``clbench_entrypoint`` — the only launch argv the live path
+    consumes);
   * the hard RESET tears the **container** down (``docker rm -f`` by name) and
     nothing is left running;
   * parametric state in the bind-mounted survive-dir (``/dir``) *survives the
@@ -45,7 +46,7 @@ from src.tasks.blind_spectrum_monitoring.task import (  # noqa: E402
 )
 
 IMAGE = "retention-bench/sut-constructive:0.1"
-# The CL-Bench wire entrypoint — NOT the manifest's book-track `entrypoint`.
+# The CL-Bench wire entrypoint, matching the manifest's `clbench_entrypoint`.
 CLBENCH_CMD = ["python", "-m", "constructive.clbench_main"]
 VARIANT = "five_ch_wide"  # 13 latent channels; no on-disk corpus needed.
 BASE_LAYERS = 1

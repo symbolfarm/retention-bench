@@ -46,6 +46,23 @@ def _drive(task: SymbolicAssociativeRetentionTask, answer_for):
         q = step.next_query
 
 
+def test_r_max_is_computed_per_instance_schedule_not_stale_class_default():
+    """The class attribute (16/26) is only correct for the default 8-concept,
+    1-exposure schedule. `num_exposures=2` doubles the train instances to 20
+    (16/36), so `r_max` must be recomputed per schedule on the instance, not
+    left at the stale class-attribute value (RB-13, review finding 6)."""
+    default_task = SymbolicAssociativeRetentionTask()
+    default_task.reset()
+    assert default_task.r_max == pytest.approx(16 / 26)
+    assert default_task.r_max == pytest.approx(SymbolicAssociativeRetentionTask.r_max)
+
+    two_exposure_task = SymbolicAssociativeRetentionTask(num_exposures=2)
+    two_exposure_task.reset()
+    assert two_exposure_task.r_max == pytest.approx(16 / 36)
+    # The stale class attribute must be untouched by the instance override.
+    assert SymbolicAssociativeRetentionTask.r_max == pytest.approx(16 / 26)
+
+
 def test_local_task_registry_resolves_symbolic_associative_retention():
     assert "symbolic_associative_retention" in list_tasks()
     assert get_task_class("symbolic_associative_retention") is SymbolicAssociativeRetentionTask

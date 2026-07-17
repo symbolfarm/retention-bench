@@ -6,9 +6,11 @@ evicted and fail recall/transfer, so retention is *partial*: the gain curve sits
 between the no-state floor and a full retainer.
 
 The cap defaults to ``DEFAULT_CAP`` entries and is overridable via the
-``BOUNDED_MEMORY_CAP`` environment variable. The FIFO is global across both fact
-kinds (object->attribute facts and attribute->bin rules): every stored fact
-counts against the same window, ordered by insertion / most-recent overwrite.
+``BOUNDED_MEMORY_CAP`` environment variable (a positive int; invalid or
+out-of-range values raise ``ValueError`` rather than silently falling back).
+The FIFO is global across both fact kinds (object->attribute facts and
+attribute->bin rules): every stored fact counts against the same window,
+ordered by insertion / most-recent overwrite.
 """
 
 from __future__ import annotations
@@ -38,9 +40,13 @@ def _cap() -> int:
         return DEFAULT_CAP
     try:
         value = int(raw)
-    except ValueError:
-        return DEFAULT_CAP
-    return value if value >= 1 else DEFAULT_CAP
+    except ValueError as exc:
+        raise ValueError(
+            f"BOUNDED_MEMORY_CAP must be an int, got {raw!r}"
+        ) from exc
+    if value < 1:
+        raise ValueError(f"BOUNDED_MEMORY_CAP must be >= 1, got {value!r}")
+    return value
 
 
 # State is an ordered list of fact entries, oldest first. Each entry is a dict:

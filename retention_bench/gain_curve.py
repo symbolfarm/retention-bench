@@ -173,13 +173,17 @@ def run_reset_sweep(
     root = Path(state_root) if state_root is not None else Path(tempfile.mkdtemp(prefix="gain-curve-"))
     root.mkdir(parents=True, exist_ok=True)
 
-    def _run(label: str, schedule: ResetSchedule, wipe: bool) -> tuple[SubprocessSystem, float, list[dict[str, Any]]]:
+    def _run(label: str, schedule: ResetSchedule, wipe: bool) -> tuple[int, float, list[dict[str, Any]]]:
         state_dir = root / label
         state_dir.mkdir(parents=True, exist_ok=True)
-        system = make_system(state_dir, schedule, wipe)
-        result = run_task(make_task(), system, show_progress=False, reset_between_instances=False)
+        # Context manager so the final spawned process/container of each arm
+        # is always reaped, not left to CPython refcounting + the weakref
+        # finalizer (which can be delayed by GC or skipped under exceptions).
+        with make_system(state_dir, schedule, wipe) as system:
+            result = run_task(make_task(), system, show_progress=False, reset_between_instances=False)
+            scheduled_resets = system.scheduled_resets
         outcomes = [serialize_instance_outcome(o) for o in result.instance_outcomes]
-        return system, result.score, outcomes
+        return scheduled_resets, result.score, outcomes
 
     _, ceiling, ceiling_outcomes = _run("ceiling", NoReset(), False)
     _, prior, prior_outcomes = _run("prior", EveryNInstances(1), True)
@@ -187,11 +191,11 @@ def run_reset_sweep(
 
     points: list[GainCurvePoint] = []
     for i, schedule in enumerate(reset_schedules):
-        system, mean_reward, outcomes = _run(f"arm_{i}_{schedule.label}", schedule, False)
+        k, mean_reward, outcomes = _run(f"arm_{i}_{schedule.label}", schedule, False)
         norm = normalised_retention(mean_reward, prior, ceiling, epsilon) if band >= epsilon else None
         points.append(
             GainCurvePoint(
-                k=system.scheduled_resets,
+                k=k,
                 schedule_label=schedule.label,
                 mean_reward=mean_reward,
                 n_instances=len(outcomes),
@@ -324,6 +328,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="Dir prepended to the SUT's PYTHONPATH (repeatable), e.g. suts/constructive.",
     )
     parser.add_argument("--name", default=None, help="System label for the curve (default: task name).")
+    parser.add_argument(
+        "--stderr-log",
+        default="sut-stderr.log",
+        metavar="FILENAME",
+        help="Filename (relative to each arm's per-arm state dir) that captures the SUT's "
+        "stderr, so a crashing SUT's diagnostics survive instead of being DEVNULL'd. On by "
+        "default; pass an empty string to disable and let stderr fall through to DEVNULL.",
+    )
     parser.add_argument("--timeout", type=float, default=300.0, help="Per-response timeout (s).")
     parser.add_argument("--epsilon", type=float, default=EPSILON, help="Band-exclusion threshold.")
     parser.add_argument("--list-tasks", action="store_true", help="List available task names and exit.")
@@ -368,6 +380,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             name=name,
             timeout_s=args.timeout,
             extra_pythonpath=extra_pythonpath or None,
+            stderr_log=(state_dir / args.stderr_log) if args.stderr_log else None,
         )
 
     def make_task() -> ContinualLearningTask:

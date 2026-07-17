@@ -5,7 +5,6 @@
   "hardware_tier": "open",
   "strict_verbatim": true,
   "image": null,
-  "entrypoint": null,
   "clbench_entrypoint": ["python", "-m", "associative_memory.clbench_main"],
   "env": [],
   "resource_appendix": {

@@ -82,8 +82,8 @@ in the bind-mounted `/dir` and survives RESET. **Build-verified under task C9**
 
 To run this SUT *in its container* through CL-Bench's runner, hand
 `SubprocessSystem` a `ContainerLaunch` — note the in-container command is the
-**CL-Bench** entrypoint (`constructive.clbench_main`), not the manifest's
-book-track `entrypoint`:
+**CL-Bench** entrypoint (`constructive.clbench_main`), not the standalone
+book-track entrypoint (`python -m constructive`, see below):
 
 ```python
 from retention_bench import SubprocessSystem, ContainerLaunch, EveryNInstances

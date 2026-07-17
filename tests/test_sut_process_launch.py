@@ -1,10 +1,11 @@
 """Subprocess-mode launch normalisation.
 
-In subprocess mode the manifest `entrypoint`'s `python`/`python3` token names the
-*container* interpreter; on the host the harness must launch under its own
-interpreter (`sys.executable`) so the SUT (a) finds an interpreter that exists
-and (b) runs under the same venv/deps as the harness. Non-python entrypoints are
-left untouched. Container mode is covered by test_docker_launch.
+In subprocess mode a `command`'s `python`/`python3` token names the *container*
+interpreter (the same argv works for container mode, where it resolves inside
+the image); on the host the harness must launch under its own interpreter
+(`sys.executable`) so the SUT (a) finds an interpreter that exists and (b) runs
+under the same venv/deps as the harness. Non-python commands are left
+untouched. Container mode is covered by test_docker_launch.
 """
 
 from __future__ import annotations

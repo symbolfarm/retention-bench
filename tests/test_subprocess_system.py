@@ -276,3 +276,59 @@ def test_shutdown_is_idempotent_without_a_live_handle(tmp_path):
     system.shutdown()
     system.shutdown()
     assert system._handle is None
+
+
+# --------------------------------------------------------------------------- #
+# RB-13: `.harness/` dir-creation parity + `_split_reply`/`respond()` error
+# taxonomy at the SUT-reply contract boundary.
+# --------------------------------------------------------------------------- #
+from harness import dir_lifecycle, sut_process  # noqa: E402
+from retention_bench.system import _split_reply  # noqa: E402
+
+
+def test_init_reserves_harness_dir_like_dir_lifecycle(tmp_path):
+    """SubprocessSystem.__init__ must reserve `.harness/` the same way
+    `dir_lifecycle.create_dir` does, so the two dir-creation paths don't drift
+    on what's excluded from `account_dir`/`snapshot_dir`."""
+    state_dir = tmp_path / "d"
+    SubprocessSystem(COUNTER_CMD, state_dir)
+    assert (state_dir / dir_lifecycle.HARNESS_RESERVED_PREFIX).is_dir()
+
+
+@pytest.mark.parametrize("bad_resource", [0, "", False])
+def test_split_reply_rejects_falsy_non_dict_resource(bad_resource):
+    """`reply.get("resource") or {}` used to silently coerce a *present* falsy
+    non-dict resource (0, "", False) into {} before the isinstance check ever
+    saw it. It must now raise SUTError instead of masking the malformed reply."""
+    with pytest.raises(sut_process.SUTError, match="resource"):
+        _split_reply({"action": {"answer": "x"}, "resource": bad_resource})
+
+
+def test_split_reply_treats_null_resource_as_absent():
+    """An explicit `resource: null` is "none reported", same as omitting the
+    key — distinct from a present-but-wrong-typed falsy value above."""
+    action, resource = _split_reply({"action": {"answer": "x"}, "resource": None})
+    assert action == {"answer": "x"}
+    assert resource == {}
+
+
+def test_split_reply_rejects_non_dict_action():
+    with pytest.raises(sut_process.SUTError, match="action"):
+        _split_reply({"action": "not-a-dict"})
+
+
+def test_respond_wraps_schema_violation_as_suterror(tmp_path, monkeypatch):
+    """A reply whose fields don't conform to the query's response_schema must
+    surface as SUTError, not a raw pydantic ValidationError, so the error
+    taxonomy is consistent at the contract boundary."""
+    system = SubprocessSystem(COUNTER_CMD, tmp_path / "d")
+    system._handle = object()  # skip spawn(); _exchange is faked below
+    monkeypatch.setattr(system, "_exchange", lambda request: {"count": "not-an-int"})
+    query = Query(
+        prompt="p",
+        response_schema=CounterResponse,
+        instance_id="x",
+        instance_index=0,
+    )
+    with pytest.raises(sut_process.SUTError, match="response_schema"):
+        system.respond(query)
