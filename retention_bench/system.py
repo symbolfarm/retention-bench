@@ -226,6 +226,19 @@ class SubprocessSystem(ContinualLearningSystem):
         if self._wipe_on_reset:
             self._wipe_survive_dir()
 
+    def _kill_current_handle(self) -> None:
+        """Error/timeout teardown: SIGKILL the live SUT's process group and drop
+        the handle so the next respond() respawns cleanly.
+
+        Unlike :meth:`_hard_bounce` this is *not* a scheduled reset — it touches
+        neither the reset counters nor the survive-dir wipe, and unlike
+        :meth:`shutdown` it leaves the finalizer attached (the system may still
+        be used or torn down normally afterwards)."""
+        if self._handle is not None:
+            sut_process.kill_sut(self._handle)
+            self._handle = None
+            self._live_handle["handle"] = None
+
     def shutdown(self) -> None:
         """Reap the live SUT at end of run — kill the process and ``docker rm
         -f`` the container (via :func:`harness.sut_process.kill_sut`).
@@ -351,12 +364,18 @@ class SubprocessSystem(ContinualLearningSystem):
         assert proc.stdout is not None
         reply_line = sut_process._readline_with_timeout(proc.stdout, self._timeout_s)
         if reply_line is None:
+            # A wedged SUT must not linger until shutdown()/GC (docs/sut-interface
+            # timeout contract). SIGKILL its whole process group now, then raise.
+            self._kill_current_handle()
             raise sut_process.SUTTimeout(
                 f"SUT did not respond to instance {request.get('instance_id')} "
                 f"within {self._timeout_s:.0f}s"
             )
         if not reply_line:
             rc = proc.poll()
+            # Mid-run crash: reap the group too — a crashed parent can leave
+            # children behind. Then surface a clear error and abort the run.
+            self._kill_current_handle()
             raise sut_process.SUTError(
                 f"SUT closed stdout before replying to instance "
                 f"{request.get('instance_id')} (exit={rc})"

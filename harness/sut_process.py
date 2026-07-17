@@ -12,7 +12,11 @@ I/O channel is stdin/stdout with JSON Lines framing, per docs/sut-interface.md:
 The SUT's working directory is DIR. The SUT may read/write freely there;
 the harness reserves the `.harness/` prefix for itself.
 
-RESET = SIGKILL + wait; the SUT is not given a chance to flush.
+RESET = SIGKILL + wait; the SUT is not given a chance to flush. The SUT is
+launched in its own session/process group (``start_new_session=True``) and the
+kill signals the whole **group** (``killpg``), so children the SUT spawned die
+with it — nothing survives a RESET except the on-disk survive-dir. (Container
+mode enforces the same whole-tree semantics independently via ``docker rm -f``.)
 Per-event timeout default 300s (5 min); see docs/task-definition-schema.md.
 """
 
@@ -25,6 +29,8 @@ import shlex
 import signal
 import subprocess
 import sys
+import time
+import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -173,6 +179,7 @@ def spawn_sut(
             env=os.environ.copy(),
             text=True,
             bufsize=1,
+            start_new_session=True,  # own process group; killpg on RESET
         )
         pid_str = f"sut-{invocation_index + 1:02d}"
         return SUTHandle(
@@ -215,6 +222,9 @@ def spawn_sut(
         env=env,
         text=True,
         bufsize=1,  # line-buffered
+        # Own session/process group so a RESET's killpg takes the SUT's whole
+        # child tree with it (agent-scaffold SUTs spawn helpers); pgid == pid.
+        start_new_session=True,
     )
     pid_str = f"sut-{invocation_index + 1:02d}"
     return SUTHandle(process=proc, process_id=pid_str, invocation_index=invocation_index)
@@ -277,17 +287,74 @@ def send_event(
     return parsed
 
 
+# Per-stream leftover bytes carried across _readline_with_timeout calls. Keyed
+# weakly by the stream object, so it clears itself when a killed SUT's stdout is
+# collected and a respawn gets a fresh (empty) buffer.
+_line_buffers: "weakref.WeakKeyDictionary[Any, bytearray]" = weakref.WeakKeyDictionary()
+
+
 def _readline_with_timeout(stream, timeout_s: float) -> Optional[str]:
-    """Read a single line from `stream` with a wall-clock timeout.
+    """Read a single newline-terminated line from `stream` within a wall-clock
+    timeout, driving the raw fd directly with an explicit byte buffer.
 
     Returns the line (including trailing newline), '' on EOF, or None on timeout.
-    Uses select() on the underlying fd; works on POSIX. Windows is out of scope.
+    POSIX only; Windows is out of scope.
+
+    Why not ``select()`` + buffered ``readline()``: that combination has two
+    failure modes on misbehaving SUTs — (a) a reply dribbled out in chunks with
+    no trailing newline blocks in ``readline()`` *past* the timeout, and (b) two
+    lines emitted at once get pulled into Python's TextIO buffer together, so the
+    next ``select()`` spuriously times out with a complete reply already buffered.
+    Reading the fd ourselves and keeping the surplus in ``_line_buffers`` fixes
+    both: partial writes time out cleanly (bytes stay buffered for a later call),
+    and a buffered second line is returned without re-selecting. We only
+    ``os.read`` after ``select`` reports readable, so the read never blocks.
     """
+    buf = _line_buffers.get(stream)
+    if buf is None:
+        buf = bytearray()
+        _line_buffers[stream] = buf
+
+    # A complete line may already be buffered from a previous read.
+    nl = buf.find(b"\n")
+    if nl != -1:
+        return _pop_line(buf, nl)
+
     fd = stream.fileno()
-    ready, _, _ = select.select([fd], [], [], timeout_s)
-    if not ready:
-        return None
-    return stream.readline()
+    deadline = time.monotonic() + timeout_s
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        ready, _, _ = select.select([fd], [], [], remaining)
+        if not ready:
+            return None
+        try:
+            chunk = os.read(fd, 65536)
+        except (BlockingIOError, InterruptedError):
+            continue
+        except OSError:
+            chunk = b""
+        if not chunk:  # EOF
+            if buf:
+                # Unterminated remainder at EOF — surface it as the final line so
+                # a SUT that forgot the trailing newline still gets parsed.
+                data = bytes(buf)
+                buf.clear()
+                return data.decode("utf-8", errors="replace")
+            return ""
+        buf.extend(chunk)
+        nl = buf.find(b"\n")
+        if nl != -1:
+            return _pop_line(buf, nl)
+
+
+def _pop_line(buf: bytearray, nl: int) -> str:
+    """Pop bytes through the newline at index `nl` (inclusive) off `buf`,
+    mutating it in place so the surplus persists for the next call."""
+    line = bytes(buf[: nl + 1])
+    del buf[: nl + 1]
+    return line.decode("utf-8", errors="replace")
 
 
 def _force_remove_container(handle: SUTHandle) -> None:
@@ -310,12 +377,34 @@ def _force_remove_container(handle: SUTHandle) -> None:
         pass
 
 
-def kill_sut(handle: SUTHandle, timeout_s: float = 2.0) -> tuple[str, Optional[int]]:
-    """Kill the SUT process. Returns (signal_name, exit_code).
+def _killpg(proc: subprocess.Popen) -> None:
+    """SIGKILL the process's entire group, falling back to the direct child.
 
-    Per the brief: `RESET` is SIGKILL + wait, not graceful shutdown. For a
-    containerised SUT we also `docker rm -f` the container by name, since
-    killing the `docker run` client alone may leave the container running.
+    The SUT is spawned with ``start_new_session=True``, so it leads its own
+    process group whose id equals its pid; signalling that group takes any
+    children (agent-scaffold helpers, socket servers) with it. If the group is
+    already gone, or setsid somehow didn't take, fall back to the direct pid so
+    we never accidentally signal the harness's own group.
+    """
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        try:
+            proc.send_signal(signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def kill_sut(handle: SUTHandle, timeout_s: float = 2.0) -> tuple[str, Optional[int]]:
+    """Kill the SUT process *group*. Returns (signal_name, exit_code).
+
+    Per the brief: `RESET` is SIGKILL + wait, not graceful shutdown. Because the
+    SUT leads its own process group (`start_new_session=True` at spawn), we
+    `killpg` so any children it spawned die with it — otherwise a surviving
+    helper (e.g. a socket server the respawned SUT reconnects to) could carry
+    in-memory state across the discontinuity. For a containerised SUT we also
+    `docker rm -f` the container by name, since killing the `docker run` client
+    alone may leave the container running.
     """
     proc = handle.process
     # Close stdin first so a well-behaved SUT could exit on EOF; we don't wait.
@@ -327,10 +416,7 @@ def kill_sut(handle: SUTHandle, timeout_s: float = 2.0) -> tuple[str, Optional[i
 
     sig_name = "SIGKILL"
     if proc.poll() is None:
-        try:
-            proc.send_signal(signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        _killpg(proc)
     try:
         exit_code = proc.wait(timeout=timeout_s)
     except subprocess.TimeoutExpired:

@@ -104,7 +104,7 @@ spawn → [query → reply]* → (EOF on stdin → exit) | (SIGKILL on RESET)
 1. **Spawn.** Harness launches the SUT process in the survive-dir. The SUT performs any one-time init (load a model handle, read survive-dir contents left by a previous session).
 2. **Query loop.** Harness writes one query line to stdin; SUT writes one reply line to stdout. Strict one-in-one-out within a session.
 3. **End of session.** Two terminations are possible:
-   - **`RESET`.** Between CL-Bench instances, when the system-side reset schedule fires, the harness sends `SIGKILL` to the SUT process (no graceful shutdown), then re-spawns a fresh SUT pointed at the same survive-dir. The SUT therefore MUST NOT rely on a clean-shutdown hook for persistence — anything that must survive a `RESET` has to already be on disk before the reply that preceded the `RESET` was written.
+   - **`RESET`.** Between CL-Bench instances, when the system-side reset schedule fires, the harness sends `SIGKILL` to the SUT's **process group** (no graceful shutdown), then re-spawns a fresh SUT pointed at the same survive-dir. In subprocess mode the SUT is launched in its own session (`start_new_session=True`), so the kill signals the whole group and any children the SUT spawned die with it — the discontinuity is mechanical, not trust-based. The SUT therefore MUST NOT rely on a clean-shutdown hook for persistence — anything that must survive a `RESET` has to already be on disk before the reply that preceded the `RESET` was written.
    - **End-of-run.** The harness closes the SUT's stdin; the SUT MUST detect EOF and exit cleanly (exit code `0`). Because CL-Bench's runner never bounces the *last* SUT, end-of-run reaping is driven by `SubprocessSystem.shutdown()` / context-manager exit.
 
 `RESET` is invisible inside the SUT process: each session only ever sees its own queries. A fresh session can read the survive-dir to discover what its predecessor left behind (or, if it's a no-state SUT, ignore the survive-dir entirely). The stateless-baseline arm of a gain-curve sweep additionally **wipes** the survive-dir on each reset (`wipe_on_reset=True`) — see [`metrics.md`](metrics.md).
@@ -123,7 +123,7 @@ The survive-dir is the per-run persistent directory and the SUT's working direct
 
 - Write outside the survive-dir (no `/tmp`, no `$HOME`, no absolute paths). Treat it as a contract today; the harness may sandbox it in future.
 - Touch anything under the `.harness/` prefix inside the survive-dir — reserved for harness-side bookkeeping.
-- Spawn unkillable child processes. Children MUST exit (or be killable by `SIGKILL` to the parent's process group) within the harness's grace period on `RESET` and end-of-run.
+- Spawn unkillable child processes. On `RESET` and end-of-run the harness `SIGKILL`s the SUT's entire process group, so ordinary children die with the parent; this is enforced (subprocess mode: `start_new_session` + `killpg`; container mode: `docker rm -f` tears down the whole container). A SUT MUST NOT detach a child into a *new* session/process group or a daemon that outlives the group kill (e.g. a `setsid` helper, or a server registered with the host init) — such a survivor could carry in-memory state across the discontinuity and is a benchmark-integrity violation.
 - Assume the survive-dir is empty on subsequent sessions — it carries whatever previous session(s) left.
 
 **Flush-before-reply.** Because `RESET` is a SIGKILL with no warning, any state the SUT wants to retain must be on disk *before* the reply that precedes the reset. The reference SUTs flush their state file (atomically — write-temp-then-`os.replace`) before writing each reply line.
@@ -144,7 +144,7 @@ The survive-dir is the per-run persistent directory and the SUT's working direct
 2. Emit unsolicited stdout lines (anything not a reply to a pending query). Diagnostics belong on stderr.
 3. Pretty-print JSON replies (would break line framing).
 4. Write outside the survive-dir or under its `.harness/` prefix.
-5. Block indefinitely. The harness applies a **per-response timeout (default: 300 seconds = 5 minutes)**, set via `SubprocessSystem(timeout_s=…)` / `gain_curve --timeout`. On timeout the harness SIGKILLs the SUT process and raises `SUTTimeout`.
+5. Block indefinitely. The harness applies a **per-response timeout (default: 300 seconds = 5 minutes)**, set via `SubprocessSystem(timeout_s=…)` / `gain_curve --timeout`. On timeout the harness `SIGKILL`s the SUT's process group (the same whole-tree kill a `RESET` uses — no wedged survivor is left to linger until end-of-run) and raises `SUTTimeout`; a mid-run crash (the SUT closing stdout before replying) is likewise reaped and surfaced as an `SUTError`.
 
 ## `sut-manifest.json`
 
