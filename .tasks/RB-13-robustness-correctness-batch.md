@@ -5,7 +5,8 @@
 **Depends-on (external):** none
 **Touches:** `retention_bench/gain_curve.py` (`run_reset_sweep`, CLI), `harness/sut_process.py`
 (`spawn_sut` stderr), the reference SUTs' env-var parsing, `retention_bench/system.py`
-(`_split_reply`, `SubprocessSystem.__init__`), `retention_bench/tasks/symbolic_associative_retention.py`
+(`_split_reply`, `SubprocessSystem.__init__`), `retention_bench/tasks/symbolic_associative_retention.py`,
+`suts/*/sut-manifest.json`, `tests/test_docker_launch.py`
 
 ## Context
 
@@ -38,6 +39,14 @@ SUT diagnostics, or silently run the wrong experiment.
       CL-Bench-side aggregates only (retention-bench measures `C`), but fix it at the source.
 - [ ] **`.harness/` dir-creation parity:** `SubprocessSystem.__init__` creates the reserved
       dir that `dir_lifecycle.create_dir` does (the two paths have drifted).
+- [ ] **Book-track dead code** (review architecture gripe 1 — added 2026-07-17; code removal,
+      so it lives here rather than in RB-14's doc-only sweep): remove the dead `send_event`
+      (`harness/sut_process.py:223`) — not trivially deletable, `tests/test_docker_launch.py:159`
+      still calls it, so either rewrite that test against the live `_exchange` path or demote
+      `send_event` to a test helper — and drop the legacy `entrypoint` field from the
+      `suts/*/sut-manifest.json` files + its handling in `spawn_sut` (the live path uses the
+      system `command`; `retention_bench/system.py:85–89` documents that `entrypoint` names the
+      retired book-track module).
 
 ## Decisions already made
 
