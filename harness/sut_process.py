@@ -415,8 +415,11 @@ def kill_sut(handle: SUTHandle, timeout_s: float = 2.0) -> tuple[str, Optional[i
         pass
 
     sig_name = "SIGKILL"
-    if proc.poll() is None:
-        _killpg(proc)
+    # Signal the group unconditionally, not only while the leader is alive: a
+    # crashed leader (mid-run crash path) may have exited leaving children
+    # behind, and the pgid stays valid as long as any member survives. _killpg
+    # degrades to a no-op if the whole group is already gone.
+    _killpg(proc)
     try:
         exit_code = proc.wait(timeout=timeout_s)
     except subprocess.TimeoutExpired:

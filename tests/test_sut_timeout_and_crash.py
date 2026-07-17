@@ -56,9 +56,22 @@ sys.stdout.flush()
 time.sleep(300)
 """
 
-# A SUT that reads one line then exits non-zero without replying (mid-run crash).
+# A SUT that spawns a long-lived child, reads one line, then exits non-zero
+# without replying (mid-run crash). The dead leader must not exempt the group:
+# kill_sut signals the pgid even when the leader has already exited, so the
+# child can't carry in-memory state past the crash.
 _CRASH_SUT = r"""
-import sys
+import json, subprocess, sys
+from pathlib import Path
+
+# DEVNULL matters: a child that inherits the SUT's stdout pipe keeps the write
+# end open past the leader's death, so the harness sees a timeout, not EOF.
+child = subprocess.Popen(
+    [sys.executable, "-c", "import time; time.sleep(300)"],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+)
+Path("pids.json").write_text(json.dumps({"child": child.pid}))
 line = sys.stdin.readline()
 sys.exit(3)
 """
@@ -112,5 +125,13 @@ def test_exchange_surfaces_mid_run_crash(tmp_path):
             system.respond(_query())
         assert "closed stdout" in str(exc.value)
         assert system._handle is None
+
+        # The leader crashed on its own, but its child must still be reaped —
+        # kill_sut group-kills unconditionally, not only while the leader lives.
+        pids = json.loads((system._state_dir / "pids.json").read_text())
+        deadline = time.monotonic() + 3.0
+        while _proc_alive(pids["child"]) and time.monotonic() < deadline:
+            time.sleep(0.02)
+        assert not _proc_alive(pids["child"]), "child survived the crash reap"
     finally:
         system.shutdown()
