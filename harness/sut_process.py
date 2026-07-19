@@ -16,7 +16,7 @@ launched in its own session/process group (``start_new_session=True``) and the
 kill signals the whole **group** (``killpg``), so children the SUT spawned die
 with it — nothing survives a RESET except the on-disk survive-dir. (Container
 mode enforces the same whole-tree semantics independently via ``docker rm -f``.)
-Per-event timeout default 300s (5 min); see docs/task-definition-schema.md.
+Per-event timeout default 300s (5 min).
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ class ContainerSpec:
     by name (`-e NAME`), so values pass through from the harness environment
     to the container without ever being logged. `shim_host_path`, when set,
     bind-mounts the fake-openai test shim read-only and puts it on
-    PYTHONPATH (the option-B test path; see B4a brief)."""
+    PYTHONPATH (the offline test path — no real API traffic)."""
     image: str
     container_name: str
     dir_host_path: str

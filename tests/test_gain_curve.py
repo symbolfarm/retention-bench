@@ -1,11 +1,11 @@
-"""C4: the reset-axis gain curve + reconciliation with CL-Bench's gain.
+"""The reset-axis gain curve + reconciliation with CL-Bench's gain.
 
 Drives the deterministic counter SUT (``tests/clbench_assets/counter_sut.py``,
-reused from C2) through :func:`retention_bench.run_reset_sweep`. The counter is a
+reused from test_subprocess_system) through :func:`retention_bench.run_reset_sweep`. The counter is a
 *perfect-retention* SUT — it re-reads its count from the survive-dir on every
 request, so a hard reset that keeps the survive-dir is transparent. That makes
 the curve deterministic and the reconciliation exact, unlike the constructive
-SUT whose rewards are gibberish-noise (see ``.tasks/debriefs/C3.md``).
+SUT whose rewards are gibberish-noise by design.
 
 The load-bearing assertion is the reconciliation: every point's
 ``clbench_mean_gain`` (computed by CL-Bench's own ``build_benchmark_aggregate``
@@ -35,7 +35,7 @@ from retention_bench import (  # noqa: E402
 from retention_bench.gain_curve import render_curve  # noqa: E402
 from retention_bench.scoring import EPSILON  # noqa: E402
 
-# Reuse the C2 counter task + SUT command rather than redefine them.
+# Reuse the counter task + SUT command from test_subprocess_system.
 from tests.test_subprocess_system import COUNTER_CMD, CounterRetentionTask  # noqa: E402
 
 
@@ -113,7 +113,7 @@ def test_excluded_band_yields_none_normalised_gain():
 
 
 def test_explicit_boundaries_arm_measures_placed_resets():
-    """C10: an ExplicitBoundaries arm — the tool for placing resets on vs off a
+    """An ExplicitBoundaries arm — the tool for placing resets on vs off a
     drift boundary — fires only at the listed ordinals, so measured k equals the
     count of listed ordinals that fall within the run. Boundaries past the run
     length are harmless (never fire)."""
@@ -136,10 +136,10 @@ def test_explicit_boundaries_placement_changes_measured_k():
 
 
 # --------------------------------------------------------------------------- #
-# RB-12: reset ordinals, post-reset window W(m), bootstrap CIs, relative ε.
+# Reset ordinals, post-reset window W(m), bootstrap CIs, relative ε.
 # The counter's perfect retention makes every expectation exact.
 # --------------------------------------------------------------------------- #
-def test_rb12_reset_ordinals_and_post_reset_window():
+def test_reset_ordinals_and_post_reset_window():
     """every_2 over 5 instances resets after ordinals 2 and 4. With m=3 the
     windows are ordinals {3,4} (truncated at the next reset) and {5} (truncated
     at run end). The counter retains perfectly, so W = 1.0; the prior answers
@@ -156,7 +156,7 @@ def test_rb12_reset_ordinals_and_post_reset_window():
     assert curve.window_m == 3
 
 
-def test_rb12_no_reset_arm_has_no_window():
+def test_no_reset_arm_has_no_window():
     curve = _sweep([NoReset()], num_instances=4)
     (p,) = curve.points
     assert p.reset_ordinals == []
@@ -165,7 +165,7 @@ def test_rb12_no_reset_arm_has_no_window():
     assert p.post_reset_norm_gain is None
 
 
-def test_rb12_default_epsilon_scales_with_task_r_max():
+def test_default_epsilon_scales_with_task_r_max():
     """No explicit epsilon → ε = EPSILON × the task's r_max (1.0 for the
     counter, so the historical absolute 0.05 is unchanged for full-range
     tasks)."""
@@ -182,7 +182,7 @@ def test_rb12_default_epsilon_scales_with_task_r_max():
     assert curve.epsilon == pytest.approx(EPSILON)
 
 
-def test_rb12_bootstrap_cis_on_the_deterministic_counter():
+def test_bootstrap_cis_on_the_deterministic_counter():
     """Point/ceiling rewards are all 1.0, so their CIs collapse to a point.
     norm_gain's CI is also exactly [1, 1]: with R* = C* = 1 every resampled
     prior gives (1 − P*)/max(1 − P*, ε) = 1. The prior arm is mixed
@@ -197,7 +197,7 @@ def test_rb12_bootstrap_cis_on_the_deterministic_counter():
     assert lo < hi
 
 
-def test_rb12_n_boot_zero_disables_cis():
+def test_n_boot_zero_disables_cis():
     curve = _sweep([EveryNInstances(2)], num_instances=5, n_boot=0)
     (p,) = curve.points
     assert p.reward_ci is None
@@ -206,7 +206,7 @@ def test_rb12_n_boot_zero_disables_cis():
     assert curve.ceiling_ci is None
 
 
-def test_rb12_render_includes_window_and_ci_columns():
+def test_render_includes_window_and_ci_columns():
     curve = _sweep([EveryNInstances(2)], num_instances=5)
     text = render_curve(curve)
     assert "W(3)" in text

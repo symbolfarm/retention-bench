@@ -1,4 +1,4 @@
-"""C11: the in-context (self-authored notes) validation SUT on the CL-Bench path.
+"""The in-context (self-authored notes) validation SUT on the CL-Bench path.
 
 Three layers, fastest first:
   * pure unit — the structured-output parsing + minimal-valid fallback that
@@ -11,7 +11,7 @@ Three layers, fastest first:
     key, no network), proving the wire contract holds end-to-end.
 
 Quality (does the curve actually lift above the prior?) is NOT asserted here —
-that needs a live model and an API key; see the C11 debrief for the live run.
+that needs a live model and an API key; a live-model run was verified separately.
 """
 from __future__ import annotations
 

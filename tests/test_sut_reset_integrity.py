@@ -1,4 +1,4 @@
-"""RB-10: the hard-RESET kill and line protocol are mechanical, not trust-based.
+"""The hard-RESET kill and line protocol are mechanical, not trust-based.
 
 These exercise ``harness.sut_process`` directly (no cl-benchmark needed):
 

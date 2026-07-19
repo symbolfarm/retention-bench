@@ -2,6 +2,14 @@
 
 The headline output of a retention-bench evaluation is a **reset-axis retention curve**: normalised retention as a function of `k`, the number of hard `RESET`s the run executed. Each point applies a measured prior–ceiling band normalisation to the whole-run reward on a Continual Learning Bench task. This is the axis CL-Bench cannot express — its `mean_gain` is a single number at one implicit reset density. Resource metrics are reported alongside, not collapsed into the headline.
 
+> **Status tags.** Metrics in this document are marked **[implemented]**
+> (computed and rendered by the shipped code) or **[specified]** (defined here
+> as part of the metric design, but not yet computed — nothing tagged
+> [specified] appears in any current output). The curve itself, `W(m)`/`W_norm`,
+> the bootstrap CIs, the `P`/`C` baselines, and the CL-Bench reconciliation are
+> all [implemented]; the summary statistics and most resource *aggregations*
+> are [specified] (their raw events are recorded).
+
 ## The reset-axis gain curve (the pivot's net-new axis)
 
 `retention_bench.gain_curve.run_reset_sweep` runs three kinds of arm on one
@@ -13,6 +21,13 @@ CL-Bench task + system, each from a *fresh* survive-dir:
   process. This is CL-Bench's stateless baseline in our hard-reset vocabulary.
 - **points `R(k)`** — one stateful (non-wiping) arm per requested schedule; `k`
   is the *measured* `system.scheduled_resets`, not the nominal density.
+
+The hard `RESET` is enforced, not requested: in subprocess mode the SUT is
+launched in its own session/process group and the kill signals the whole group
+(`SIGKILL` via `killpg`, also fired on a response timeout), so child processes
+die with it; in container mode the same whole-tree semantics are enforced
+independently by `docker rm -f`. Nothing survives a `RESET` except the on-disk
+survive-dir.
 
 > The uniform sweep above measures **graceful degradation** across repeated
 > erasure. A different question — *did capability migrate into the durable
@@ -41,7 +56,7 @@ normalised value. (On the constructive SUT, whose output is gibberish by
 construction, the band is ~0 and the curve *correctly* excludes — the honest
 negative result, visible on the axis rather than asserted in prose.)
 
-**`ε` is relative to the task's achievable range** (RB-12): the absolute
+**`ε` is relative to the task's achievable range**: the absolute
 threshold is `ε = 0.05 × r_max`, where `r_max` is CL-Bench's per-task maximum
 run-mean reward (`scoring.band_epsilon`). A schedule that leaves some instances
 structurally unscored compresses every run-mean by exactly `r_max` — on
@@ -207,10 +222,10 @@ make the SUT legible:
 
 A curve is the primary artifact. Summary statistics are secondary and useful for ranking.
 
-- **AURC (Area Under Retention Curve):** integral of `norm_gain(k)` over `k ∈ [1, k_max]`. Higher is better. Easy to compare across SUTs for a fixed task.
-- **Half-retention `k`:** the smallest `k` at which `norm_gain(k)` drops below 0.5 — "how many resets before this system falls apart." Lower is worse.
-- **Mean `C − P`:** the learnable gap, as above. If small, the curve is reporting on a narrow band and should not be over-interpreted.
-- **Degradation shape classifier (optional):** categorise the curve as linear, stepped, cliff, or flat. Useful for qualitative comparison but not a scalar.
+- **AURC (Area Under Retention Curve)** [specified]: integral of `norm_gain(k)` over `k ∈ [1, k_max]`. Higher is better. Easy to compare across SUTs for a fixed task.
+- **Half-retention `k`** [specified]: the smallest `k` at which `norm_gain(k)` drops below 0.5 — "how many resets before this system falls apart." Lower is worse.
+- **Mean `C − P`** [implemented]: the learnable gap, as above (the curve header's `band`). If small, the curve is reporting on a narrow band and should not be over-interpreted.
+- **Degradation shape classifier (optional)** [specified]: categorise the curve as linear, stepped, cliff, or flat. Useful for qualitative comparison but not a scalar.
 
 Summary statistics should always be reported with the curve, not instead of it.
 
@@ -220,7 +235,7 @@ The band normalisation above is inherited from the original **per-question**
 `P`/`C`/`R(k)` probe formulation, which the retired book-track harness produced.
 It is kept here as the *definition* of the band metric the reset-axis curve
 reuses; it is **not** a live pipeline (the per-question scorer, its
-`question_type` aggregation, and the `python -m scorer` CLI were retired by C20 —
+`question_type` aggregation, and the `python -m scorer` CLI were retired with the book track —
 only `scorer.aggregate.normalised_retention` and `EPSILON` survive). For a single
 scored question `q` about reading material `m`:
 
@@ -269,7 +284,8 @@ definition.
 The book-track `Scorer` seam (exact-match / LLM-as-judge dispatch by
 `question_type`, the `judge_resource_appendix`, the `python -m scorer` CLI) was
 retired with the per-question harness. It is preserved only in
-`docs/archive/` for "why" archaeology.
+`docs/archive/` on the `dev` branch for "why" archaeology (not part of the
+public snapshot).
 
 ## Resource metrics
 
@@ -277,10 +293,10 @@ Resource metrics are reported per run and as aggregates across the run. They are
 
 ### Token / compute usage
 
-- **Tokens (and FLOPs) per response (in/out).** From the SUT's reply `resource` self-report. Reveals how much each query costs.
-- **Cumulative tokens / FLOPs across the run.** Total cost of completing the run.
-- **Cold-start cost:** compute spent in the first responses of each post-reset session. A proxy for how much effort the SUT spends reconstructing working state from the survive-dir. A high cold-start cost is a legitimate architectural signal. (The *reward*-side analogue is the post-reset-window reward `W(m)` above.)
-- **Cost per unit score:** cumulative tokens (or FLOPs) / task reward. A rough efficiency proxy.
+- **Tokens (and FLOPs) per response (in/out)** [implemented: recorded as per-response `UsageEvent`s]. From the SUT's reply `resource` self-report. Reveals how much each query costs.
+- **Cumulative tokens / FLOPs across the run** [specified: the per-response events are recorded; no shipped aggregation]. Total cost of completing the run.
+- **Cold-start cost** [specified: derivable from the recorded per-response events plus each arm's `reset_ordinals`; no shipped aggregation]: compute spent in the first responses of each post-reset session. A proxy for how much effort the SUT spends reconstructing working state from the survive-dir. A high cold-start cost is a legitimate architectural signal. (The *reward*-side analogue is the post-reset-window reward `W(m)` above, which **is** implemented.)
+- **Cost per unit score** [specified]: cumulative tokens (or FLOPs) / task reward. A rough efficiency proxy.
 
 ### Survive-dir (filesystem) usage
 
@@ -288,20 +304,22 @@ The per-instance storage `UsageEvent` records `survive_dir_bytes`,
 `survive_dir_delta_bytes`, and `survive_dir_file_count` (measured before any
 bounce — the kill cannot change on-disk state).
 
-- **Footprint at end of each instance.** Absolute measure of accumulated state — the bytes that must survive a hard reset.
-- **Delta per instance:** bytes added/modified/removed. Reveals information rate and whether the system prunes.
-- **Growth trajectory across the run:** does the survive-dir grow linearly with instances, sublinearly (compression), or is it bounded? A constructive SUT's footprint steps up on a growth event.
-- **Storage efficiency:** task reward / survive-dir size. Loosely, "useful state per byte." Imperfect but informative.
+- **Footprint at end of each instance** [implemented: recorded per instance]. Absolute measure of accumulated state — the bytes that must survive a hard reset.
+- **Delta per instance** [implemented: recorded per instance]: bytes added/modified/removed. Reveals information rate and whether the system prunes.
+- **Growth trajectory across the run** [specified: derivable from the recorded per-instance events; no shipped rendering]: does the survive-dir grow linearly with instances, sublinearly (compression), or is it bounded? A constructive SUT's footprint steps up on a growth event.
+- **Storage efficiency** [specified]: task reward / survive-dir size. Loosely, "useful state per byte." Imperfect but informative.
 
 Note: raw size is not the whole story. A 10 GB vector store with excellent retrieval may outperform a 10 MB markdown file with poor retrieval. Report all storage metrics and let the reader compare systems on their own efficiency frontier.
 
 ### Wall-clock time
 
-- Per session and cumulative. Realism check: a system that scores well but takes 100x longer is not necessarily practical.
+- Per session and cumulative [specified: not currently recorded]. Realism check: a system that scores well but takes 100x longer is not necessarily practical.
 
 ## Reporting format
 
-A retention-bench result for one SUT on one task should include:
+A retention-bench result for one SUT on one task should include (items built
+from [specified] metrics — the summary statistics and resource *curves* —
+apply once those are implemented; see the status tags above):
 
 1. **The reset-axis retention curve** (`norm_gain(k)` vs `k`), with the per-point bootstrap CIs as error bars (§Uncertainty).
 2. **The three arms** (mean `P`, mean `C`, mean `C − P`, each with its CI), the effective `ε` and task `r_max`, and the band-exclusion status.

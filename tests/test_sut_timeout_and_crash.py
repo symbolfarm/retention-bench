@@ -1,4 +1,4 @@
-"""RB-10: SubprocessSystem._exchange kills on timeout and surfaces crashes.
+"""SubprocessSystem._exchange kills on timeout and surfaces crashes.
 
 Finding 2 of the 2026-07-07 review: the docs say a timeout SIGKILLs the SUT, but
 ``_exchange`` only raised — the wedged process lived until shutdown()/GC. These

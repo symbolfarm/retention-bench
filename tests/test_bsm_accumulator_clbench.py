@@ -1,4 +1,4 @@
-"""C19: drive the keyless accumulator SUT through CL-Bench's runner.
+"""Drive the keyless accumulator SUT through CL-Bench's runner.
 
 This is the SUT that backs the offline smoke (`./run.sh smoke`). Unlike the other
 reference SUTs it needs **no API key and no torch** — it parses transmitter peaks

@@ -1,7 +1,7 @@
 # constructive (train-and-grow) reference SUT image.
 #
 # Extends the CPU-only torch base (NOT the slim API base — torch is heavy and
-# only this SUT needs it; decided 2026-05-30, task B4b). Build the torch base
+# only this SUT needs it; decided 2026-05-30). Build the torch base
 # first, then this image from the SUT directory:
 #
 #   docker build -f suts/sut-torch-cpu-base.Dockerfile \

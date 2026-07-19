@@ -1,16 +1,15 @@
 """Single chokepoint for importing Continual Learning Bench (CL-Bench).
 
 CL-Bench's distribution is published under the import path ``src`` (its
-``pyproject`` literally packages a top-level ``src`` package — a packaging
-smell flagged in the C0 spike and the C2 brief). Importing ``from src.*``
-throughout ``retention_bench`` would be fragile: any local ``src/`` directory
-on ``sys.path`` shadows it, and the intent (this is *the benchmark*, not "some
-src dir") is opaque at every call site.
+``pyproject`` literally packages a top-level ``src`` package). Importing
+``from src.*`` throughout ``retention_bench`` would be fragile: any local
+``src/`` directory on ``sys.path`` shadows it, and the intent (this is *the
+benchmark*, not "some src dir") is opaque at every call site.
 
 So every CL-Bench symbol ``retention_bench`` needs is re-exported here, once.
 The rest of the package imports from ``retention_bench._clbench`` and never
 touches ``src.*`` directly. If/when CL-Bench renames its distribution (a
-candidate C7 upstream PR), this is the only file that changes.
+candidate upstream contribution), this is the only file that changes.
 """
 
 from __future__ import annotations
@@ -49,11 +48,14 @@ try:
 except ModuleNotFoundError as exc:  # pragma: no cover - exercised via env, not unit
     raise ModuleNotFoundError(
         "retention_bench requires Continual Learning Bench (the 'cl-benchmark' "
-        "distribution, import path 'src'). It is a Python>=3.13 dependency and is "
-        "not installed in this interpreter. Install it (pinned) with:\n"
-        "    pip install -e '.[/* see pyproject: cl-benchmark @ git+... */]'\n"
-        "or run against the 3.13 venv that already has it, e.g.\n"
-        "    PYTHONPATH=/workspace /home/agent/src/cl-bench/.venv/bin/python ..."
+        "distribution, import path 'src'; Python >= 3.13). Install the pinned "
+        "commit from this repo's pyproject.toml *editable* so its task data "
+        "files (templates/variants/schedules) are present on disk — a plain "
+        "wheel install silently drops them:\n"
+        "    pip install -e 'git+https://github.com/pgasawa/"
+        "continual-learning-bench.git@<pinned-sha>#egg=cl-benchmark'\n"
+        "(see the cl-benchmark pin in pyproject.toml for the exact SHA), or "
+        "run under an interpreter/venv that already has it."
     ) from exc
 
 
@@ -85,7 +87,7 @@ def load_task_spec(spec: str) -> type[ContinualLearningTask]:
     ``TARGET`` is either a dotted module path (``my_pkg.tasks``) importable by
     this (harness) interpreter, or a path to a ``.py`` file (``/abs/task.py`` or
     ``./rel/task.py``). This lets a SUT repo ship its own task without editing
-    retention-bench (BYO-task) — see RB-8.
+    retention-bench.
 
     The task is imported and run **in the harness process**, not the SUT
     subprocess, so the file must be importable here: keep it dependency-light

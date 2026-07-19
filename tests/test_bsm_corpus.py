@@ -1,4 +1,4 @@
-"""C10: the BSM ``mixed_grid_lifecycle`` frozen corpus is reproducible.
+"""The BSM ``mixed_grid_lifecycle`` frozen corpus is reproducible.
 
 The ``default`` three-stage schedule requires this corpus on disk (CL-Bench
 raises ``FileNotFoundError`` otherwise). It ships git-tracked inside the

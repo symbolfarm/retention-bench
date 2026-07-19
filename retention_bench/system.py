@@ -1,6 +1,6 @@
 """Production ``SubprocessSystem``: a process-contract SUT as a CL-Bench system.
 
-This is the C2 adapter the C0 spike prototyped. It wraps an arbitrary subprocess
+The core adapter of the extension. It wraps an arbitrary subprocess
 SUT (spawn/kill reused verbatim from ``harness.sut_process``) as a CL-Bench
 ``ContinualLearningSystem``, and adds the two things CL-Bench has no native way
 to express:
@@ -76,7 +76,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 @dataclass(frozen=True)
 class ContainerLaunch:
     """Opt-in: launch the SUT inside a docker container instead of as a bare
-    host subprocess (reuses the B4a engine in :mod:`harness.sut_process`).
+    host subprocess (reuses the docker-run engine in :mod:`harness.sut_process`).
 
     The SUT package must be installed in ``image`` — ``extra_pythonpath`` does
     not apply in container mode, and the survive-dir is bind-mounted at
@@ -171,12 +171,12 @@ class SubprocessSystem(ContinualLearningSystem):
         self._live_handle: dict[str, Optional[sut_process.SUTHandle]] = {"handle": None}
         self._finalizer = weakref.finalize(self, _reap_handle, self._live_handle)
 
-        # Observability counters (asserted by tests; surfaced for C4 reporting).
+        # Observability counters (asserted by tests; surfaced for sweep reporting).
         self.spawns = 0
         self.kills = 0
         self.scheduled_resets = 0
         # 1-based ordinals of the completed instances after which a scheduled
-        # reset fired — the positions the post-reset-window metric (RB-12)
+        # reset fired — the positions the post-reset-window metric
         # anchors on. len(reset_ordinals) == scheduled_resets.
         self.reset_ordinals: list[int] = []
 
@@ -415,7 +415,7 @@ class SubprocessSystem(ContinualLearningSystem):
 
         For a no-state or counter SUT ``resource`` is empty and this still
         records a zero-cost compute marker, keeping one compute event per
-        response regardless of SUT class. A constructive SUT (C3) populates
+        response regardless of SUT class. A constructive SUT populates
         ``flops``/``param_count``/etc. and they flow straight through.
         """
         tokens_in = _opt_int(resource.get("tokens_in"))

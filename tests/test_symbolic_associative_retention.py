@@ -50,7 +50,7 @@ def test_r_max_is_computed_per_instance_schedule_not_stale_class_default():
     """The class attribute (16/26) is only correct for the default 8-concept,
     1-exposure schedule. `num_exposures=2` doubles the train instances to 20
     (16/36), so `r_max` must be recomputed per schedule on the instance, not
-    left at the stale class-attribute value (RB-13, review finding 6)."""
+    left at the stale class-attribute value (2026-07 review finding)."""
     default_task = SymbolicAssociativeRetentionTask()
     default_task.reset()
     assert default_task.r_max == pytest.approx(16 / 26)

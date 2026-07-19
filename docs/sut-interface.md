@@ -204,7 +204,7 @@ A weights-mutating, train-and-grow SUT is a first-class system here: it speaks t
 
 ## Reference implementations
 
-Three reference SUTs ship (the book-track `no_state` and `naive_rag` SUTs were dropped by C20: the gain-curve's prior arm `P` supplies the stateless floor intrinsically, and CL-Bench ships stateless / Mem0 baselines).
+Three reference SUTs ship (the pre-pivot book-track `no_state` and `naive_rag` SUTs were dropped: the gain-curve's prior arm `P` supplies the stateless floor intrinsically, and CL-Bench ships stateless / Mem0 baselines).
 
 - **`suts/bsm_accumulator/`** — keyless, stdlib-only accumulator. Drives `blind_spectrum_monitoring` with **no API key and no model weights**: it unions every peak it has seen into a survive-dir JSON (flushed atomically before each reply) and reports the accumulated set each scan. Backs the canonical offline `./run.sh smoke`; the cleanest illustration of the hard-reset thesis (state survives the kill via the survive-dir).
 - **`suts/notes_llm/`** — cumulative-notes SUT. Per query it makes one LLM call to revise `DIR/notes.md` from the new observation, then a second call to emit a `response_schema`-conforming report from the notes alone; the notes are the retained artifact and survive `RESET`. Calls an OpenAI-compatible API (via the `openai` SDK pointed at `RETENTION_BENCH_BASE_URL`).

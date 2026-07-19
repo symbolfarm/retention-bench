@@ -1,13 +1,13 @@
-"""C9: drive the *containerised* constructive SUT through CL-Bench's runner.
+"""Drive the *containerised* constructive SUT through CL-Bench's runner.
 
 The container analogue of ``test_constructive_clbench.py``. Same headline claim
 — a constructive system run as a Continual Learning Bench system under a hard
 reset — but the SUT runs inside its docker image
-(``retention-bench/sut-constructive:0.1``) launched via the B4a engine, not as a
-bare host subprocess. The load-bearing C9 assertions:
+(``retention-bench/sut-constructive:0.1``) launched via the docker-run engine, not as a
+bare host subprocess. The load-bearing assertions:
 
   * ``SubprocessSystem`` launches the SUT in a container (``ContainerLaunch``)
-    and the container speaks the C2 wire protocol (``constructive.clbench_main``,
+    and the container speaks the SubprocessSystem wire protocol (``constructive.clbench_main``,
     the manifest's ``clbench_entrypoint`` — the only launch argv the live path
     consumes);
   * the hard RESET tears the **container** down (``docker rm -f`` by name) and

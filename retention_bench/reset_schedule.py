@@ -3,7 +3,7 @@
 CL-Bench's runner exposes a single boolean, ``reset_between_instances`` — it
 either resets the system after *every* completed instance (k=1 reset density)
 or never. A retention *curve* over reset density ``k`` needs per-boundary
-control. The C0 spike established that we own this **system-side**: run the
+control. The adapter design owns this **system-side**: run the
 runner with ``reset_between_instances=False`` and let the system decide, from
 inside ``observe()``, whether to bounce after each completed instance.
 
@@ -15,9 +15,9 @@ Boundaries are keyed by the **1-based count of completed instances in the run**
 (not by ``Query.instance_index``). That ordinal is always dense and monotonic,
 whereas ``instance_index`` is a canonical id that a shuffled/subset run may
 deliver out of order — keying density off it would make "reset every 3rd
-instance" mean different things across runs. C4 places resets on/off concept-
-drift boundaries; since drift is injected at fixed run positions, the run
-ordinal is the right axis for that too.
+instance" mean different things across runs. The drift experiments place
+resets on/off concept-drift boundaries; since drift is injected at fixed run
+positions, the run ordinal is the right axis for that too.
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ class EveryNInstances:
 class ExplicitBoundaries:
     """Bounce after exactly the listed (1-based) completed-instance ordinals.
 
-    Lets C4 place resets deliberately — e.g. on or just off a concept-drift
+    Lets an experiment place resets deliberately — e.g. on or just off a concept-drift
     boundary — to expose the non-monotonic retention story (a reset that lands
     on drift can *help* by clearing stale belief). Ordinals outside the run
     length are harmless: they simply never fire.

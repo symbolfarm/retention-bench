@@ -1,6 +1,6 @@
 # Separate CPU-only torch base for the constructive (train-and-grow) SUT.
 #
-# Deliberately NOT folded into sut-python-base (decided 2026-05-30, task B4b):
+# Deliberately NOT folded into sut-python-base (decided 2026-05-30):
 # torch is ~1GB and only the constructive SUT needs it, so keeping it in its
 # own base leaves the API trio's shared base slim.
 #

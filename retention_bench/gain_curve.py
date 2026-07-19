@@ -1,7 +1,7 @@
 """Reset-axis reporting: retention/gain as a function of hard-reset count ``k``.
 
-This is the net-new measurement axis the pivot promised (see
-``docs/clbench-pivot-plan.md``). CL-Bench reports a single ``mean_gain``
+This is the net-new measurement axis retention-bench contributes on top of
+CL-Bench. CL-Bench reports a single ``mean_gain``
 (stateful reward minus a stateless baseline) at one implicit reset density; it
 has no ``k``-axis. We add one: run the same system at a *sweep* of hard-reset
 densities and plot how retention holds up as resets accumulate.
@@ -24,15 +24,13 @@ Normalised retention at each point is
 
     norm_gain(k) = (R(k) − P) / max(C − P, ε)
 
-— exactly :func:`retention_bench.scoring.normalised_retention`, the same band
-normalisation the book-track scorer used before RB-11 folded it into this
-package. We reuse it verbatim rather than defining a competing formula. By
+— exactly :func:`retention_bench.scoring.normalised_retention`; every consumer
+normalises against that one definition rather than a competing formula. By
 default ``ε`` scales with the task's ``r_max``
 (:func:`retention_bench.scoring.band_epsilon`), and each point carries a
 percentile-bootstrap CI plus a post-reset-window reward ``W(m)`` (the first
 ``m`` instances after each reset) that separates *retained* from *relearned
-fast* — whole-run ``R(k)`` cannot tell those apart (RB-12; see
-``docs/metrics.md``).
+fast* — whole-run ``R(k)`` cannot tell those apart (see ``docs/metrics.md``).
 
 ### Reconciliation with CL-Bench
 
@@ -246,7 +244,7 @@ def run_reset_sweep(
             reset_ordinals = list(system.reset_ordinals)
         outcomes = [serialize_instance_outcome(o) for o in result.instance_outcomes]
         # Read r_max *after* the run: tasks may shadow the class default with a
-        # schedule-specific value in build_canonical_run_state (RB-13). A
+        # schedule-specific value in build_canonical_run_state. A
         # bring-your-own --task-spec class without r_max falls back to 1.0
         # (i.e. an absolute ε).
         r_max = float(getattr(task, "r_max", 1.0))

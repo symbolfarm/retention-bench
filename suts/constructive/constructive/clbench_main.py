@@ -13,7 +13,7 @@ event contract. Continual Learning Bench, driven through
                   "model_id": str, ...}}
 
 This module bridges the constructive SUT onto that contract while keeping
-``SubprocessSystem`` generic (the C3 design call). It reuses ``model``/``train``/
+``SubprocessSystem`` generic (a deliberate design call). It reuses ``model``/``train``/
 ``checkpoint``/``grow`` verbatim:
 
   * each query → a bounded gradient step on the *prompt* bytes (the "learning"
@@ -27,8 +27,8 @@ This module bridges the constructive SUT onto that contract while keeping
     runner's ``response_schema(**fields)`` never raises, model-derived so the
     output genuinely reflects the constructed weights.
 
-**Output quality is an explicit NON-GOAL** (see the package docstring and the
-C3 brief). This SUT exists to prove the plumbing — that a weights-mutating,
+**Output quality is an explicit NON-GOAL** (see the package docstring).
+This SUT exists to prove the plumbing — that a weights-mutating,
 capacity-growing system can run as a CL-Bench system, persist through a hard
 reset, and be accounted for in the compute channel. The real constructive
 transformer is developed elsewhere; reward-gain on the task is expected to be
@@ -49,7 +49,7 @@ from .model import ModelConfig, grow, text_to_ids
 
 # Growth policy. Grow once when this (1-based) instance completes, mirroring the
 # book-track SUT's GROW_AFTER_READ_INDEX. An optional cadence (grow every N
-# instances) and a layer cap keep richer C4 schedules a config change, not a
+# instances) and a layer cap keep richer growth schedules a config change, not a
 # code change.
 GROW_AFTER_INSTANCE = 1
 

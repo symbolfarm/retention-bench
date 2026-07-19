@@ -1,4 +1,4 @@
-"""RB-4: drive the no-state (ephemeral) floor SUT through gain_curve.
+"""Drive the no-state (ephemeral) floor SUT through gain_curve.
 
 Mirrors ``test_associative_memory_clbench.py`` but asserts the *opposite* of the
 retainer: the no-state SUT learns within an episode (``C > P``) yet collapses to

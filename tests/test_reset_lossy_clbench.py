@@ -1,4 +1,4 @@
-"""RB-7: drive the reset-lossy reference SUT through gain_curve.
+"""Drive the reset-lossy reference SUT through gain_curve.
 
 Asserts the graded, *decaying* retention curve the rung exists to populate:
 ``0 < normalised_retention < 1`` at every reset arm, and more resets -> fewer

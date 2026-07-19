@@ -1,9 +1,8 @@
 """DIR lifecycle: create, snapshot, account, cleanup.
 
-Per decision #8C, snapshots report both uncompressed bytes + file count and
-tar.gz size. The harness reserves the `.harness/` prefix inside DIR for its
-own bookkeeping (currently nothing used, but excluded from accounting per
-docs/trace-schema.md).
+Snapshots report both uncompressed bytes + file count and tar.gz size. The
+harness reserves the `.harness/` prefix inside DIR for its own bookkeeping
+(currently nothing used, but always excluded from storage accounting).
 """
 
 from __future__ import annotations

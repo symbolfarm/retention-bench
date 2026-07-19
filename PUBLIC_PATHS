@@ -36,3 +36,4 @@ NOTICE
 
 # --- excludes: dev-only sub-paths under included dirs ---
 !docs/archive/         # superseded standalone-era specs, retained on dev only (C16)
+!docs/reviews/         # internal review artifacts; dense with private-queue task IDs (RB-14)

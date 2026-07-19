@@ -1,8 +1,8 @@
-"""Notes-LLM SUT — Continual Learning Bench entrypoint (C11).
+"""Notes-LLM SUT — Continual Learning Bench entrypoint.
 
 The book-track entrypoint (``notes_llm.__main__``) speaks the READ/QUIZ event
 contract. This one speaks the **Continual Learning Bench** wire contract driven
-by ``retention_bench.SubprocessSystem`` (C2):
+by ``retention_bench.SubprocessSystem``:
 
     request : {"prompt": str, "instance_id": str|null, "instance_index": int|null,
                "response_schema": {<JSON Schema>}, "feedback": str|null}
@@ -10,7 +10,7 @@ by ``retention_bench.SubprocessSystem`` (C2):
                "resource": {"tokens_in": int, "tokens_out": int, "model_id": str,
                             "api_call_count": int}}
 
-This is the **in-context validation SUT** (C11): the first retention-bench SUT
+This is the **in-context validation SUT**: the first retention-bench SUT
 meant to *lift the curve above the stateless prior*, proving the gain-vs-`k`
 machinery measures a real curve. It is sourced from a capable API model — it is
 NOT the constructive research model (that lives in its own project; see

@@ -10,7 +10,7 @@
 #
 # Do NOT add torch / sentence-transformers here — the constructive SUT
 # (and any heavy embedder backend) gets its own base so this one stays
-# slim (decided 2026-05-30, task B4b).
+# slim (decided 2026-05-30).
 
 # Pinned digest-free but version-pinned base; python:3.11-slim is the
 # decided base image for the API trio.
@@ -26,7 +26,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # The one shared runtime dependency for the API SUTs. Pinned to match the
 # floor declared across the SUT pyproject.toml files (openai>=1.40.0). The
-# SUTs call an OpenAI-compatible endpoint (OpenRouter by default) — see B9.
+# SUTs call an OpenAI-compatible endpoint (OpenRouter by default).
 # Installed here so the three child images share this layer.
 RUN pip install "openai>=1.40.0"
 

@@ -1,6 +1,6 @@
 # constructive (train-and-grow) reference SUT
 
-A worked example of the **train-and/or-grow integration seam** (task B13), the
+A worked example of the **train-and/or-grow integration seam**, the
 one continual-learning path none of the other reference SUTs touch: this SUT
 learns by **mutating its own weights** as it reads. Conforms to
 `docs/sut-interface.md`.
@@ -77,7 +77,7 @@ docker build -t retention-bench/sut-constructive:0.1 suts/constructive/
 ```
 
 The model is from-scratch and offline (no HF downloads); the checkpoint lands
-in the bind-mounted `/dir` and survives RESET. **Build-verified under task C9**
+in the bind-mounted `/dir` and survives RESET. **Build-verified**
 (Docker 29.x via the Sysbox nested daemon).
 
 To run this SUT *in its container* through CL-Bench's runner, hand
@@ -139,7 +139,7 @@ This SUT speaks **two** one-line-JSON contracts from the *same* model code
   book-track harness.
 - **`python -m constructive.clbench_main`** — the **Continual Learning Bench**
   contract (`{prompt, response_schema, feedback}` → `{action, resource}`), driven
-  through `retention_bench.SubprocessSystem` (task **C3**). There is no separate
+  through `retention_bench.SubprocessSystem`. There is no separate
   `READ` stage in CL-Bench's single-shot tasks, so each *query* is the learning
   signal: a bounded gradient step is taken on the prompt bytes, capacity grows on
   schedule, and the checkpoint is flushed *before* the reply (surviving the hard
@@ -157,8 +157,8 @@ This SUT speaks **two** one-line-JSON contracts from the *same* model code
 ### Sweeping the reset axis (gain-vs-`k`)
 
 `retention_bench.gain_curve` drives this entrypoint over a sweep of hard-reset
-densities and renders the retention/gain curve (the pivot's net-new axis,
-task **C4**), reconciled against CL-Bench's own `mean_gain`:
+densities and renders the retention/gain curve (the reset-axis sweep),
+reconciled against CL-Bench's own `mean_gain`:
 
 ```bash
 python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
@@ -172,7 +172,7 @@ and the curve correctly reports `EXCLUDED` — the honest negative result, now o
 the axis. See `docs/metrics.md` (*Reset-axis curve*) for the formula and the
 reconciliation.
 
-To place resets **on vs off a concept-drift boundary** (task **C10**) use the
+To place resets **on vs off a concept-drift boundary** use the
 `default` 3-stage schedule and `--reset-at` instead of `--reset-every` (drifts at
 ordinals 30 and 60):
 

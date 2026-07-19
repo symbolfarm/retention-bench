@@ -1,8 +1,8 @@
-"""C3: drive the constructive (train-and-grow) SUT through CL-Bench's runner.
+"""Drive the constructive (train-and-grow) SUT through CL-Bench's runner.
 
 This is the headline-contribution path: a *constructive* system (weights mutate,
 capacity grows) run as a Continual Learning Bench system via
-``retention_bench.SubprocessSystem``, on the C1 target task
+``retention_bench.SubprocessSystem``, on the chosen target task
 (``blind_spectrum_monitoring``), under a hard-reset schedule.
 
 Requires both the ``cl-benchmark`` distribution (import ``src``, Python >=3.13)
@@ -97,7 +97,7 @@ def _load_meta(state_dir: Path) -> dict:
 # --------------------------------------------------------------------------- #
 def test_constructive_runs_as_clbench_system():
     """Criterion 1: the constructive SUT runs through SubprocessSystem on the
-    C1 target task and returns a TaskResult; the SIGKILLs actually happen."""
+    target task and returns a TaskResult; the SIGKILLs actually happen."""
     system, result, _ = _run(EveryNInstances(2), num_instances=6)
     assert isinstance(result, TaskResult)
     assert 0.0 <= result.score <= 1.0  # a real score; value is gibberish-driven

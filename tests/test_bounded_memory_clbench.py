@@ -1,4 +1,4 @@
-"""RB-5: drive the bounded-memory reference SUT through gain_curve + assert eviction.
+"""Drive the bounded-memory reference SUT through gain_curve + assert eviction.
 
 bounded_memory is the partial-retention rung: it persists a capped FIFO window of
 the most recent facts. Its retention band sits strictly between the no_state floor

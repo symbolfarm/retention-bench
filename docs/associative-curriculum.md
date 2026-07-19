@@ -41,7 +41,7 @@ Implement a single-shot `ContinualLearningTask`.
 - One instance produces one `Query`.
 - One SUT reply produces one `InstanceOutcome`.
 - No intra-instance feedback loop is required.
-- No C8 multi-step adapter work is in scope.
+- No multi-step (agentic turn-taking) adapter work is in scope.
 
 The response schema should stay minimal:
 
@@ -86,12 +86,12 @@ Every instance outcome must include these metadata fields:
 | `exposure_index` | Zero-based training exposure count for this concept |
 | `probe_after_exposures` | Number of exposures before this probe |
 
-RB-2 defaults to one-shot mode:
+The initial curriculum defaults to one-shot mode:
 
 - `exposure_index = 0` on the first train exposure.
 - `probe_after_exposures = 1` on recall and transfer probes.
 
-The metadata is still required now so RB-3 can add repeated exposure schedules
+The metadata is still required now so a later repeated-exposure extension can add schedules
 without changing the task data model.
 
 ## Scoring
@@ -151,7 +151,7 @@ Constructor knobs should include:
 - `probe_after_exposures: int = 1`
 
 RB-2b may accept the repeated-exposure knobs while only testing the default
-one-shot behavior. RB-3 owns non-default repeated-exposure metrics.
+one-shot behavior. Non-default repeated-exposure metrics belong to that later extension.
 
 ## Reference SUT
 
@@ -206,10 +206,10 @@ learning:
 - probe after a configured exposure count;
 - report memorization and transfer by exposure count.
 
-RB-3 owns that extension. A later true RL task can add reward/correction
+The repeated-exposure extension owns that. A later true RL task can add reward/correction
 feedback and retry loops if the repeated-exposure curve is useful.
 
-## Out Of Scope For RB-2
+## Out Of Scope For The Initial Curriculum
 
 - Natural-language corpora or generated stories.
 - Fuzzy scoring or LLM-as-judge scoring.

@@ -1,7 +1,7 @@
 """Retention-curve band normalisation + uncertainty primitives.
 
 The single shared home for the ``(R − P) / max(C − P, ε)`` band formula, its
-exclusion threshold ``ε``, and (since RB-12) the metric machinery that makes a
+exclusion threshold ``ε``, and the metric machinery that makes a
 curve point trustworthy: percentile-bootstrap confidence intervals over the
 per-instance outcomes, and the post-reset-window selection that separates
 "retained" from "relearned fast". :mod:`retention_bench.gain_curve` imports
@@ -21,8 +21,8 @@ Follows ``docs/metrics.md``:
   for excluding it (``gain_curve`` reports ``None`` for such points).
 
 History: this module used to live at ``scorer/aggregate.py``, home to the
-book-track per-question scorer (retired by C20). Only the band math survived
-that cutover; RB-11 folded it into the ``retention_bench`` package proper so
+pre-pivot book-track per-question scorer. Only the band math survived that
+retirement; it was folded into the ``retention_bench`` package proper so
 the ``retention-bench`` console script resolves under a non-editable install
 (``scorer`` was never a packaged distribution). ``scorer.aggregate`` now
 re-exports from here as a thin backward-compatible shim.
@@ -59,7 +59,7 @@ def normalised_retention(
 
 
 # --------------------------------------------------------------------------- #
-# Post-reset windows (RB-12).
+# Post-reset windows.
 #
 # Whole-run R(k) averages the reset's damage against every instance the reset
 # could not have affected, so a SUT that *relearns quickly* after a reset is
@@ -100,7 +100,7 @@ def mean_at(rewards: Sequence[float], indices: Sequence[int]) -> Optional[float]
 
 
 # --------------------------------------------------------------------------- #
-# Percentile bootstrap (RB-12).
+# Percentile bootstrap.
 #
 # Every arm is a single run of ~26–90 binary-reward instances, so a point's
 # reward resolution is comparable to the band threshold itself; the CI makes

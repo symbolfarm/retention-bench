@@ -2,7 +2,7 @@
 
 The book-track per-question aggregation (``aggregate_records`` /
 ``aggregate_curve`` / ``aggregate_curve_by_type`` and the ``QuestionAggregate``
-rollup) was retired with the book-track scorer (C20). Only the band math
+rollup) was retired with the book-track scorer. Only the band math
 survives, because it is all the CL-Bench-native ``gain_curve`` path needs;
 ``test_gain_curve`` exercises it in the reset-axis context.
 """

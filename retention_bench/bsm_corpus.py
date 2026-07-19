@@ -1,7 +1,7 @@
 """Reproducible (re)generation of the BSM ``mixed_grid_lifecycle`` frozen corpus.
 
 The ``default`` three-stage ``blind_spectrum_monitoring`` schedule — the one the
-concept-drift-on-reset-boundary story needs (C10) — declares
+concept-drift-on-reset-boundary experiments need — declares
 ``corpus_id: mixed_grid_lifecycle`` on every stage. CL-Bench refuses to fall
 back to seed-driven scans when a schedule names a corpus: constructing the task
 raises ``FileNotFoundError`` unless the frozen corpus is on disk
@@ -40,10 +40,10 @@ the source of truth for *reproducing*.
     # force-overwrite even when present:
     python -m retention_bench.bsm_corpus --force
 
-Run with the 3.13 venv that has cl-benchmark, e.g.::
+Run with an interpreter that has cl-benchmark installed (Python >= 3.13),
+e.g.::
 
-    PYTHONPATH=/workspace /home/agent/src/cl-bench/.venv/bin/python \
-        -m retention_bench.bsm_corpus --verify
+    python -m retention_bench.bsm_corpus --verify
 """
 
 from __future__ import annotations

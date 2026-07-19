@@ -1,4 +1,4 @@
-"""RB-13: reference-SUT env-var knobs must fail loud, not silently fall back.
+"""Reference-SUT env-var knobs must fail loud, not silently fall back.
 
 `RESET_LOSSY_RATE` and `BOUNDED_MEMORY_CAP` used to catch invalid values (bad
 literal or out-of-range) and quietly return the default — for a *benchmark*,

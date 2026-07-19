@@ -31,7 +31,7 @@ codebase:
   contract (above).
 - **`python -m notes_llm.clbench_main`** — the **Continual Learning Bench**
   contract (`{prompt, response_schema, feedback}` → `{action, resource}`), driven
-  through `retention_bench.SubprocessSystem`. This is the **C11 in-context
+  through `retention_bench.SubprocessSystem`. This is the **in-context
   validation SUT**: the first retention-bench SUT meant to *lift the curve above
   the stateless prior* and show the gain-vs-`k` machinery measures a real curve.
   It is sourced from a capable API model — **not** the constructive research model
@@ -92,7 +92,7 @@ docker build -t retention-bench/sut-notes-llm:0.1 suts/notes_llm/
 
 The harness launches a SUT in its image when the manifest declares an `image`
 field; that wiring (plus the bare-host / dev-container smoke tests) lands in
-task **B4c**. See `docs/sut-interface.md` → "Launch modes".
+a planned smoke-verification pass. See `docs/sut-interface.md` → "Launch modes".
 
 ## Configuration
 

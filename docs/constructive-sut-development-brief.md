@@ -9,7 +9,7 @@
 > **suggestions** — adopt, adapt, or argue with them.
 >
 > **Status:** drafted 2026-06-08 against retention-bench at commit `5f0b376`
-> (post-C9). The integration seam is stable; the development guidance is a
+> container-launch support landed. The integration seam is stable; the development guidance is a
 > starting position, not a settled design.
 
 ---
@@ -29,7 +29,7 @@ Keeping the model in its own repo is deliberate:
   harder to keep stable. The numbers should not churn every time you tweak an
   optimizer.
 - **The seam is built for it.** Retention Bench already drives SUTs as
-  **external processes** (and, as of C9, external **containers**) over a simple
+  **external processes** (or external **containers**) over a simple
   JSON protocol. A model in another repo, shipped as a container image that
   speaks the protocol, plugs in with zero benchmark changes.
 - **Iteration independence.** You want a tight train→eval→tweak loop; the
@@ -144,11 +144,11 @@ For the public-credibility goal, a reviewer must be able to reproduce a curve:
 
 CL-Bench tasks come in two shapes:
 
-- **Single-shot** (e.g. `blind_spectrum_monitoring`, the C1 target): one
+- **Single-shot** (e.g. `blind_spectrum_monitoring`, the current target): one
   `respond()` per instance → terminal outcome. **Start here.**
 - **Multi-step / agentic** (poker, SQL, etc.): the runner calls `respond()`
   repeatedly *within one instance*, feeding the prior step's observation back via
-  `feedback`, until done. Supporting these needs the C8 turn-taking adapter and a
+  `feedback`, until done. Supporting these needs a turn-taking adapter (deferred) and a
   real design decision for a constructive model: **do you take a weight update on
   every intra-instance observation, or only at the instance boundary?** Decide and
   document; the answer changes what "retention" even means for your model.
@@ -169,7 +169,7 @@ Requirements:
 - Env is forwarded **by name only** — declare every var you need in the manifest's
   `env` array; undeclared vars are invisible inside the container.
 - **Run as a non-root user**, and **write only to `/dir`.** (Retention Bench's own
-  images are moving to non-root in task C12; bind-mounted files written as root
+  images are planned to move to non-root; bind-mounted files written as root
   are a cleanup/permissions hazard on the host. Match that.)
 - Keep it **CPU-runnable** for cheap iteration; a GPU path can be additive later.
 
@@ -208,7 +208,7 @@ function-preserving and measure the forgetting cost of each growth event.
   capacity signals say the current size is saturated. More principled, more moving
   parts.
 - **Drift-triggered** — grow at concept-drift boundaries. Retention Bench can place
-  resets *on vs off* drift boundaries (C10, `blind_spectrum_monitoring` drifts at
+  resets *on vs off* drift boundaries (`blind_spectrum_monitoring` drifts at
   instance 30/60/90); aligning growth with drift is a natural experiment — does
   adding capacity *at* a drift boundary preserve the old regime better than
   overwriting?
@@ -247,7 +247,7 @@ To make the distinction legible:
 
 - Aim for a model that improves on **held-out / novel** instances drawn from the
   same latent structure, not just on repeats.
-- Retention Bench can break the curve down by question type and (via the C6 task,
+- Retention Bench can break the curve down by question type and (via later curriculum work,
   if built) decompose reward into a shallow-recall vs. deep-adaptation component.
   Design so those two components **diverge** for your model — that divergence is
   the episodic→understanding-transfer signal, the headline result.
@@ -284,7 +284,7 @@ order:
    helps the task. (Today every SUT reports `EXCLUDED`; clearing this is the gap.)
 3. **A shaped retention curve.** `R(k)` degrades gracefully as reset density `k`
    rises, and ideally shows structure around drift boundaries (on-vs-off-drift
-   reset placement, C10). A monotone-ish decline with a knee is the artifact.
+   reset placement). A monotone-ish decline with a knee is the artifact.
 4. **Understanding > stenography.** The deep-adaptation reward component (or
    held-out/novel-instance performance) separates from the shallow-recall
    component — the model generalizes retained experience, not just caches it.
@@ -318,7 +318,5 @@ These are yours to make; flag them back when you've chosen:
 | The SUT-as-CL-Bench-system adapter | `retention_bench/system.py` (`SubprocessSystem`) |
 | Reset schedules / `k`-axis | `retention_bench/reset_schedule.py` |
 | Gain-vs-`k` curve + metric definitions | `retention_bench/gain_curve.py`; `docs/metrics.md` |
-| Task triage (why blind_spectrum first; agentic deferral) | `docs/clbench-task-triage.md` |
-| Pivot rationale (reset + constructive contribution) | `docs/clbench-pivot-plan.md` |
-| Multi-step adapter requirements (for agentic tasks) | `.tasks/` C8 brief / debrief |
+| Design history (pivot rationale; task triage) | `docs/archive/` on the `dev` branch (not part of the public snapshot) |
 | Upstream benchmark | Continual Learning Bench (Asawa et al.), Apache-2.0 |

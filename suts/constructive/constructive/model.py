@@ -2,7 +2,7 @@
 
 Deliberately minimal: a stack of pre-norm transformer blocks over a 256-symbol
 byte vocabulary (plus one BOS symbol = id 256). The point is the *integration
-seam*, not model quality — see the B13 brief. Everything here is CPU-only,
+seam*, not model quality. Everything here is CPU-only,
 offline, and deterministic given a fixed seed.
 
 The architecture is described entirely by a `ModelConfig` dataclass that is

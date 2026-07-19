@@ -38,7 +38,15 @@ Requires **Python 3.13+** (the `cl-benchmark` dependency sets this floor).
 # 1. Install (editable):
 pip install -e .
 
-# 2. Run the canonical end-to-end smoke test (offline, no API key):
+# 2. Reinstall the cl-benchmark pin *editable*. This step matters: installed
+#    as a wheel (which step 1 does for dependencies), cl-benchmark's packaging
+#    silently drops the task data files (templates/variants/schedules) its
+#    tasks load at runtime, and every task construction fails. The editable
+#    install keeps the full source tree on disk. Keep the SHA in sync with
+#    the pin in pyproject.toml.
+pip install -e "git+https://github.com/pgasawa/continual-learning-bench.git@9cc63c0f429048b843e8d43ac4f2b0ea4df13724#egg=cl-benchmark"
+
+# 3. Run the canonical end-to-end smoke test (offline, no API key):
 ./run.sh smoke
 ```
 

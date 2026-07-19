@@ -1,4 +1,4 @@
-"""B4a: SUT docker-run launch path (the ``harness.sut_process`` container primitives).
+"""SUT docker-run launch path (the ``harness.sut_process`` container primitives).
 
 Two layers:
   - Pure-function tests for `build_docker_argv` + `host_path_for_mount`. These
@@ -10,7 +10,7 @@ Two layers:
     guard for the launch/RESET lifecycle on the docker path.
 
 (The book-track ``event_loop._make_container_spec`` manifest-wiring tests were
-retired with the book-track harness by C20; the argv/teardown primitives they
+retired with the book-track harness; the argv/teardown primitives they
 exercised live in ``sut_process`` and are covered above.)
 """
 
@@ -49,7 +49,7 @@ def _send_event(
     """Test-only helper: speak the retired book-track READ/QUIZ framing.
 
     Demoted from ``harness.sut_process.send_event`` (removed as dead code on
-    the live path — RB-13/2026-07-07 review "Book-track residue" — the live
+    the live path (2026-07 review, "book-track residue") — the live
     ``SubprocessSystem`` speaks its own per-instance JSON contract, see
     ``retention_bench.system._exchange``). Kept here only so the docker
     round-trip test below can still drive the inline echo SUT, which speaks
@@ -172,7 +172,7 @@ _DOCKER_OK = shutil.which("docker") is not None and (
 
 # A self-contained echo SUT as an inline script: implements the minimal
 # READ/QUIZ wire contract so we can validate the launch + RESET lifecycle on
-# the docker path without depending on B4b's images.
+# the docker path without depending on the prebuilt SUT images.
 _ECHO_SUT = (
     "import sys, json\n"
     "for line in sys.stdin:\n"

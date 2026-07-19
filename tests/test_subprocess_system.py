@@ -1,4 +1,4 @@
-"""C2: drive the production SubprocessSystem through CL-Bench's real runner.
+"""Drive the production SubprocessSystem through CL-Bench's real runner.
 
 These tests require the ``cl-benchmark`` distribution (import path ``src``,
 Python >=3.13). On an interpreter without it (e.g. the legacy 3.12 venv) the
@@ -205,7 +205,7 @@ def test_observe_emits_storage_event_and_tracks_delta():
 
 
 # --------------------------------------------------------------------------- #
-# C9: container-launch wiring. Daemon-free — these exercise ContainerSpec
+# Container-launch wiring. Daemon-free — these exercise ContainerSpec
 # construction and the subprocess-default invariant, not a real `docker run`
 # (that lives in tests/test_constructive_container_clbench.py, docker-gated).
 # --------------------------------------------------------------------------- #
@@ -279,7 +279,7 @@ def test_shutdown_is_idempotent_without_a_live_handle(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# RB-13: `.harness/` dir-creation parity + `_split_reply`/`respond()` error
+# `.harness/` dir-creation parity + `_split_reply`/`respond()` error
 # taxonomy at the SUT-reply contract boundary.
 # --------------------------------------------------------------------------- #
 from harness import dir_lifecycle, sut_process  # noqa: E402

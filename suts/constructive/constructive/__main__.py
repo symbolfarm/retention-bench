@@ -13,7 +13,7 @@ Cold vs. resume: on spawn the SUT checks DIR for a checkpoint. Present → resum
 (rebuild grown shape from saved config, load weights). Absent → cold init.
 
 Self-reports param_count / train_steps / train_flops / growth_count via the
-free-form `notes` response field (no harness change — see B13 decisions).
+free-form `notes` response field (no harness change needed).
 """
 
 from __future__ import annotations

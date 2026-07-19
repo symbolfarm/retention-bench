@@ -1,4 +1,4 @@
-"""RB-12 scoring primitives: relative ε, post-reset windows, bootstrap CIs.
+"""Scoring primitives: relative ε, post-reset windows, bootstrap CIs.
 
 Pure-function tests over :mod:`retention_bench.scoring` — no harness, no
 cl-benchmark, no subprocesses. The integration path (the same primitives wired

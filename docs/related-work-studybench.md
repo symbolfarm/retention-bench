@@ -68,7 +68,7 @@ The two benchmarks measure orthogonal axes of the *same* surface — performance
 a function of **(study / state survived)** × **(inference compute spent)**:
 
 - **StudyBench fixes studying, sweeps inference compute** → expertise (WAUC).
-- **Retention Bench fixes inference, sweeps hard resets `k`** (and, via RB-3,
+- **Retention Bench fixes inference, sweeps hard resets `k`** (and, via the planned repeated-exposure variant,
   training-exposure count) → retention / sample-efficiency curves.
 
 Neither measures the other's axis, so they compose rather than compete. Two
@@ -118,10 +118,10 @@ The pivot to tiny models and a synthetic memorization/transfer curriculum:
   understanding axis. StudyBench argues this distinction at frontier scale; we
   can exhibit it deterministically and cheaply.
 - **Reframes "studying intelligence" as sample efficiency.** StudyBench plots
-  expertise vs *study compute*. RB-3's repeated-exposure variant plots
+  expertise vs *study compute*. The planned repeated-exposure variant plots
   recall/transfer vs *number of training exposures* — the same "efficiency of
   acquiring expertise" idea, measured in exposures rather than tokens. Worth
-  stating this correspondence explicitly when RB-3 lands.
+  stating this correspondence explicitly when that variant lands.
 - **Weakens the "borrow their corpora" option.** DSPy/OpenClaw/Literature are
   large and presuppose a competent base model (their studier, Qwen3.5-9B, "writes
   good PyTorch"). They are not runnable substrates for a TinyStories-scale model.
@@ -174,4 +174,4 @@ StudyBench uses DSPy as a corpus. Two implications:
   CL-Bench's `mean_gain` is the template; an "expertise (WAUC)" column does the
   same for StudyBench.
 - **The constructive-growth cell being the gap in their taxonomy** is a natural
-  collaboration / outreach hook (see `.tasks/C5-author-outreach.md`).
+  collaboration / outreach hook (planned author outreach).
