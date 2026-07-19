@@ -23,15 +23,29 @@ jobs:
       - name: Install (non-editable)
         run: pip install .
 
+      # `.[dev]` rather than bare pytest: the notes-SUT tests and the
+      # fake-OpenAI shim need PyYAML, which is only an accident of the
+      # transitive dep tree (via huggingface-hub) unless declared.
       - name: Install test dependencies
-        run: pip install pytest
+        run: pip install ".[dev]"
 
-      # We deliberately do NOT install `cl-benchmark` here: it's a heavy,
-      # non-PyPI, Python->=3.13-only dependency, and the suite is written to
-      # skip cleanly without it (see tests/test_gain_curve.py and friends,
-      # which `pytest.importorskip("src.interface", ...)`). This job only
-      # needs to prove the package installs and the dep-free tests pass;
-      # a deps-installed job exercising the full cl-benchmark path can be
-      # added later (out of scope for RB-11).
+      # `pip install .` above already pulled `cl-benchmark` (it's a hard
+      # dependency), but as a *wheel*, and cl-benchmark's packaging ships only
+      # .py files — the templates/, variants/, and schedules/ data its tasks
+      # load via `Path(__file__).parent` are silently dropped, so every
+      # task-constructing test fails ("Unknown variant ..."). Reinstalling the
+      # same pin *editable* keeps the full source tree on disk. This is an
+      # upstream packaging gap (no package-data config in their pyproject);
+      # until it's fixed there, editable is the only install shape that works.
+      # MUST be the last pip step: any later `pip install` that re-resolves
+      # the pyproject pin clobbers the editable back to a data-less wheel.
+      # Keep the SHA in lockstep with the pin in pyproject.toml.
+      - name: Reinstall cl-benchmark editable (its wheel drops package data)
+        run: pip install -e "git+https://github.com/pgasawa/continual-learning-bench.git@9cc63c0f429048b843e8d43ac4f2b0ea4df13724#egg=cl-benchmark"
+
+      # torch is deliberately absent, so the constructive-SUT tests skip;
+      # docker-gated tests skip likewise. Everything else runs for real —
+      # cl-benchmark is installed (hard dep), so the
+      # `importorskip("src.interface")` guards do NOT fire here.
       - name: Run test suite
         run: pytest
