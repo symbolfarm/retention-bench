@@ -38,22 +38,21 @@ hard-reset retention band.
   **Land RB-14 (doc pass) first** so the first public snapshot is already clean.
 
 **From the 2026-07-07 v0.1 review** (`docs/reviews/2026-07-07-v0.1-review.md`).
-RB-10 (RESET process-group integrity), RB-11 (scorer packaging + CI), and RB-13
-(robustness batch, incl. the book-track dead-code sweep) landed 2026-07-17 —
-see their debriefs. Still open:
+RB-10 (RESET process-group integrity), RB-11 (scorer packaging + CI), RB-13
+(robustness batch, incl. the book-track dead-code sweep) landed 2026-07-17, and
+RB-12 (bootstrap CIs + post-reset-window `W(m)`/`W_norm` + ε relative to
+`r_max`) landed 2026-07-19 — see their debriefs. Still open:
 
-- **RB-12** *(med-high)* — variance story (bootstrap CIs over per-instance outcomes) +
-  post-reset-window reward beside whole-run `R(k)` (which dilutes the reset signal /
-  can't tell "retained" from "relearned fast"); scale ε with `r_max`.
 - **RB-14** *(medium)* — public-facing doc pass: strip pivot codenames, fix dangling refs,
   kill the dev-container path in `_clbench.py`'s error, mark metrics specified/implemented.
-  Prereq for C17.
+  Prereq for C17. Also document that cl-benchmark must be installed *editable* (its wheel
+  drops package data — see CI fix `77ec477` + the C7 PR-3 candidate).
 
 **Cross-repo keystone:**
 
 - **RB-15** *(high, BLOCKED on constructive-retention CR-22)* — claim **Milestone 2**: wire
-  the constructed-hop-2 SUT into a `--mode` and take the gain-vs-`k` curve (with RB-12's
-  bootstrap CIs). The constructive SUT currently renders `EXCLUDED`; a real additive-by-
+  the constructed-hop-2 SUT into a `--mode` and take the gain-vs-`k` curve (RB-12's
+  bootstrap CIs + `W_norm` are now available for it). The constructive SUT currently renders `EXCLUDED`; a real additive-by-
   construction increment should give the first non-degenerate band (retention flat in `k`).
   **Do not start until CR-22 lands.**
 
