@@ -35,15 +35,89 @@ gap `C − P`) survived `k` hard resets.
 - Values near 0 — the SUT scored no better than its stateless prior after `k` resets.
 - Negative values — post-reset performance below prior (the SUT got confused by its own surviving state).
 
-The `ε` floor (default `ε = 0.05` of the score range; binary rewards live in
-`{0, 1}`) excludes the curve when the band collapses (`C ≈ P`): there is no
+The `ε` floor excludes the curve when the band collapses (`C ≈ P`): there is no
 learnable signal to retain. Such runs are reported `EXCLUDED` and points show no
 normalised value. (On the constructive SUT, whose output is gibberish by
 construction, the band is ~0 and the curve *correctly* excludes — the honest
 negative result, visible on the axis rather than asserted in prose.)
 
+**`ε` is relative to the task's achievable range** (RB-12): the absolute
+threshold is `ε = 0.05 × r_max`, where `r_max` is CL-Bench's per-task maximum
+run-mean reward (`scoring.band_epsilon`). A schedule that leaves some instances
+structurally unscored compresses every run-mean by exactly `r_max` — on
+`symbolic_associative_retention`'s default schedule (`r_max = 16/26 ≈ 0.615`) an
+absolute 0.05 would silently demand ~8% of the *achievable* range while asking
+5% of a fully-scored task. For binary rewards on a fully-scored schedule
+(`r_max = 1`) this reduces to the historical "0.05 of the score range". The
+`--epsilon` CLI flag remains an *absolute* override.
+
 `k_max` is bounded by the run: a sweep that places `S` hard resets admits
 `k ∈ {1, …, S}`.
+
+> **`k` indexes reset *count*, not placement.** Two arms with equal measured `k`
+> but different reset placement (`--reset-every 3` vs `--reset-at "10"`) are
+> *different experiments* — the same `k` can wipe state mid-learning or after a
+> train/probe boundary, with very different retention consequences. Compare
+> points across systems only at matching schedules, and report the schedule
+> alongside `k` (the curve carries each arm's `schedule_label` and measured
+> `reset_ordinals` for exactly this reason).
+
+### Post-reset-window reward `W(m)` — retained vs. relearned
+
+Whole-run `R(k)` dilutes the signal it exists to measure: a run with one reset
+at instance 30 of 90 scores 30 pre-reset instances identically to the ceiling
+arm, so the reset's damage is averaged against instances it could not have
+affected — curve sensitivity ends up depending on run length and reset
+placement. Worse, a SUT that *relearns quickly* after a reset is
+indistinguishable in `R(k)` from one that *retained*; separating those is
+arguably the benchmark's actual question.
+
+`W(m)` is the reward-side analogue of the cold-start *compute* metric below:
+the mean per-instance reward over the first `m` instances after each hard
+reset, pooled across the run's resets. Each window is truncated at the run end
+and at the next reset (an instance completed at the next reset's ordinal is
+still pre-that-reset, so it belongs to the current window; windows never
+overlap). At `--reset-every 1` density every post-reset window truncates to a
+single instance. Default `m = 3` (`--window-m`).
+
+Alongside the raw `W(m)`, the curve reports the prior and ceiling arms' means
+over the *same run ordinals* (valid because all three arms play the identical
+instance sequence — the same precondition the CL-Bench reconciliation relies
+on) and the window-band normalisation
+
+```
+W_norm = (W − P_w) / max(C_w − P_w, ε)
+```
+
+Matching ordinals cancels any structurally unscored instances that land inside
+the window, so `W_norm` is directly comparable to `norm_gain(k)`.
+Interpretation: **high `norm_gain` + high `W_norm` — retained. High `norm_gain`
++ low `W_norm` — relearned fast** (the state didn't survive; the SUT is
+sample-efficient, which is interesting but is not retention). `W_norm` is
+`None` for a no-reset arm and when the window band `C_w − P_w` is itself below
+`ε`.
+
+### Uncertainty: bootstrap CIs
+
+Every arm is a single run of ~26–90 binary-reward instances, so a point's
+reward resolution (`1/n ≈ 0.011–0.038`) is comparable to `ε` itself — a one-run
+point on a narrow band can be noise. Each curve point therefore carries
+**percentile-bootstrap confidence intervals** over the per-instance `outcomes`
+(retained on every point for exactly this post-hoc use):
+
+- `R(k)` CI: resample the point arm's per-instance rewards with replacement,
+  recompute the mean; percentile interval over `B` replicates.
+- `norm_gain` CI: resample **all three arms independently** per replicate and
+  recompute `(R* − P*) / max(C* − P*, ε)` — prior/ceiling uncertainty
+  propagates, so a band sitting near `ε` yields an honestly wide interval
+  rather than a false-precise point. `P` and `C` also carry their own mean CIs.
+
+Defaults: `B = 1000` (`--n-boot`; `0` disables), two-sided 95% (`--ci-level`),
+deterministic under a fixed seed. Implementation:
+`scoring.bootstrap_mean_ci` / `scoring.bootstrap_norm_gain_ci`. The bootstrap
+resamples instances within one run — it quantifies within-run sampling noise,
+not run-to-run variance; multiple seeds/runs per arm remain the gold standard
+(see Reporting).
 
 ### Reconciliation with CL-Bench's gain
 
@@ -205,7 +279,7 @@ Resource metrics are reported per run and as aggregates across the run. They are
 
 - **Tokens (and FLOPs) per response (in/out).** From the SUT's reply `resource` self-report. Reveals how much each query costs.
 - **Cumulative tokens / FLOPs across the run.** Total cost of completing the run.
-- **Cold-start cost:** compute spent in the first responses of each post-reset session. A proxy for how much effort the SUT spends reconstructing working state from the survive-dir. A high cold-start cost is a legitimate architectural signal.
+- **Cold-start cost:** compute spent in the first responses of each post-reset session. A proxy for how much effort the SUT spends reconstructing working state from the survive-dir. A high cold-start cost is a legitimate architectural signal. (The *reward*-side analogue is the post-reset-window reward `W(m)` above.)
 - **Cost per unit score:** cumulative tokens (or FLOPs) / task reward. A rough efficiency proxy.
 
 ### Survive-dir (filesystem) usage
@@ -229,14 +303,15 @@ Note: raw size is not the whole story. A 10 GB vector store with excellent retri
 
 A retention-bench result for one SUT on one task should include:
 
-1. **The reset-axis retention curve** (`norm_gain(k)` vs `k`), with error bars.
-2. **The three arms** (mean `P`, mean `C`, mean `C − P`) and the band-exclusion status.
-3. **Summary statistics** (AURC, half-retention `k`).
-4. **Resource curves** (tokens/FLOPs vs `k`, survive-dir size vs instance index, cold-start cost vs `k`).
-5. **System-class declaration** (the manifest `mode` + hardware tier + relevant configuration).
-6. **Reset schedule** (`--reset-every` / `--reset-at`, and the *measured* `k` per arm).
-7. **Seed count** and variance notes.
-8. **CL-Bench reconciliation** (`clbench_mean_gain` per point) — required for replicability and cross-checking against CL-Bench's own gain.
+1. **The reset-axis retention curve** (`norm_gain(k)` vs `k`), with the per-point bootstrap CIs as error bars (§Uncertainty).
+2. **The three arms** (mean `P`, mean `C`, mean `C − P`, each with its CI), the effective `ε` and task `r_max`, and the band-exclusion status.
+3. **The post-reset-window reward** (`W(m)` and `W_norm` per point, with `m`) — the retained-vs-relearned discriminator.
+4. **Summary statistics** (AURC, half-retention `k`).
+5. **Resource curves** (tokens/FLOPs vs `k`, survive-dir size vs instance index, cold-start cost vs `k`).
+6. **System-class declaration** (the manifest `mode` + hardware tier + relevant configuration).
+7. **Reset schedule** (`--reset-every` / `--reset-at`, the *measured* `k` per arm, and the measured `reset_ordinals` — equal `k` at different placement is a different experiment).
+8. **Seed count** and variance notes (the bootstrap covers within-run noise only; run-to-run variance needs repeated runs).
+9. **CL-Bench reconciliation** (`clbench_mean_gain` per point) — required for replicability and cross-checking against CL-Bench's own gain.
 
 Leaderboards, if they exist, should publish all of the above, not just a single score.
 

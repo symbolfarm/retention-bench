@@ -175,6 +175,10 @@ class SubprocessSystem(ContinualLearningSystem):
         self.spawns = 0
         self.kills = 0
         self.scheduled_resets = 0
+        # 1-based ordinals of the completed instances after which a scheduled
+        # reset fired — the positions the post-reset-window metric (RB-12)
+        # anchors on. len(reset_ordinals) == scheduled_resets.
+        self.reset_ordinals: list[int] = []
 
     # -- lifecycle ---------------------------------------------------------- #
 
@@ -329,6 +333,7 @@ class SubprocessSystem(ContinualLearningSystem):
         if will_reset:
             self._hard_bounce()
             self.scheduled_resets += 1
+            self.reset_ordinals.append(self._completed_instances)
 
         self.record_usage_event(
             UsageEvent(

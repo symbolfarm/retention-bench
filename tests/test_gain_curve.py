@@ -33,6 +33,7 @@ from retention_bench import (  # noqa: E402
     run_reset_sweep,
 )
 from retention_bench.gain_curve import render_curve  # noqa: E402
+from retention_bench.scoring import EPSILON  # noqa: E402
 
 # Reuse the C2 counter task + SUT command rather than redefine them.
 from tests.test_subprocess_system import COUNTER_CMD, CounterRetentionTask  # noqa: E402
@@ -47,7 +48,7 @@ def _make_system_factory():
     return make_system
 
 
-def _sweep(schedules, *, num_instances=5, epsilon=0.05):
+def _sweep(schedules, *, num_instances=5, epsilon=0.05, **kwargs):
     make_task = lambda: CounterRetentionTask(num_instances=num_instances)  # noqa: E731
     return run_reset_sweep(
         _make_system_factory(),
@@ -56,6 +57,7 @@ def _sweep(schedules, *, num_instances=5, epsilon=0.05):
         system_name="counter",
         state_root=Path(tempfile.mkdtemp(prefix="c4-")),
         epsilon=epsilon,
+        **kwargs,
     )
 
 
@@ -131,6 +133,87 @@ def test_explicit_boundaries_placement_changes_measured_k():
     )
     ks = sorted(p.k for p in curve.points)
     assert ks == [1, 2]
+
+
+# --------------------------------------------------------------------------- #
+# RB-12: reset ordinals, post-reset window W(m), bootstrap CIs, relative ε.
+# The counter's perfect retention makes every expectation exact.
+# --------------------------------------------------------------------------- #
+def test_rb12_reset_ordinals_and_post_reset_window():
+    """every_2 over 5 instances resets after ordinals 2 and 4. With m=3 the
+    windows are ordinals {3,4} (truncated at the next reset) and {5} (truncated
+    at run end). The counter retains perfectly, so W = 1.0; the prior answers
+    none of those ordinals stateless, so the matched-ordinal window band is the
+    full [0, 1] and W_norm = 1.0."""
+    curve = _sweep([EveryNInstances(2)], num_instances=5)
+    (p,) = curve.points
+    assert p.reset_ordinals == [2, 4]
+    assert p.post_reset_n == 3
+    assert p.post_reset_mean == pytest.approx(1.0)
+    assert p.post_reset_prior_mean == pytest.approx(0.0)
+    assert p.post_reset_ceiling_mean == pytest.approx(1.0)
+    assert p.post_reset_norm_gain == pytest.approx(1.0)
+    assert curve.window_m == 3
+
+
+def test_rb12_no_reset_arm_has_no_window():
+    curve = _sweep([NoReset()], num_instances=4)
+    (p,) = curve.points
+    assert p.reset_ordinals == []
+    assert p.post_reset_mean is None
+    assert p.post_reset_n == 0
+    assert p.post_reset_norm_gain is None
+
+
+def test_rb12_default_epsilon_scales_with_task_r_max():
+    """No explicit epsilon → ε = EPSILON × the task's r_max (1.0 for the
+    counter, so the historical absolute 0.05 is unchanged for full-range
+    tasks)."""
+    make_task = lambda: CounterRetentionTask(num_instances=3)  # noqa: E731
+    curve = run_reset_sweep(
+        _make_system_factory(),
+        make_task,
+        [EveryNInstances(1)],
+        system_name="counter",
+        state_root=Path(tempfile.mkdtemp(prefix="c4-")),
+        n_boot=0,
+    )
+    assert curve.r_max == pytest.approx(1.0)
+    assert curve.epsilon == pytest.approx(EPSILON)
+
+
+def test_rb12_bootstrap_cis_on_the_deterministic_counter():
+    """Point/ceiling rewards are all 1.0, so their CIs collapse to a point.
+    norm_gain's CI is also exactly [1, 1]: with R* = C* = 1 every resampled
+    prior gives (1 − P*)/max(1 − P*, ε) = 1. The prior arm is mixed
+    ([1,0,0,0,0]), so its CI has genuine width and brackets P."""
+    curve = _sweep([EveryNInstances(2)], num_instances=5)
+    (p,) = curve.points
+    assert p.reward_ci == (pytest.approx(1.0), pytest.approx(1.0))
+    assert p.norm_gain_ci == (pytest.approx(1.0), pytest.approx(1.0))
+    assert curve.ceiling_ci == (pytest.approx(1.0), pytest.approx(1.0))
+    lo, hi = curve.prior_ci
+    assert lo <= curve.prior <= hi
+    assert lo < hi
+
+
+def test_rb12_n_boot_zero_disables_cis():
+    curve = _sweep([EveryNInstances(2)], num_instances=5, n_boot=0)
+    (p,) = curve.points
+    assert p.reward_ci is None
+    assert p.norm_gain_ci is None
+    assert curve.prior_ci is None
+    assert curve.ceiling_ci is None
+
+
+def test_rb12_render_includes_window_and_ci_columns():
+    curve = _sweep([EveryNInstances(2)], num_instances=5)
+    text = render_curve(curve)
+    assert "W(3)" in text
+    assert "W_norm" in text
+    assert "epsilon" in text
+    assert "[1.000,1.000]" in text  # the degenerate point CI
+    assert "r_max" in text
 
 
 def test_cli_reset_at_builds_explicit_boundary_arms():
