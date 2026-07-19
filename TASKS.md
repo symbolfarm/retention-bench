@@ -41,12 +41,11 @@ hard-reset retention band.
 RB-10 (RESET process-group integrity), RB-11 (scorer packaging + CI), RB-13
 (robustness batch, incl. the book-track dead-code sweep) landed 2026-07-17, and
 RB-12 (bootstrap CIs + post-reset-window `W(m)`/`W_norm` + ε relative to
-`r_max`) landed 2026-07-19 — see their debriefs. Still open:
-
-- **RB-14** *(medium)* — public-facing doc pass: strip pivot codenames, fix dangling refs,
-  kill the dev-container path in `_clbench.py`'s error, mark metrics specified/implemented.
-  Prereq for C17. Also document that cl-benchmark must be installed *editable* (its wheel
-  drops package data — see CI fix `77ec477` + the C7 PR-3 candidate).
+`r_max`) and RB-14 (public doc pass: codename sweep, dangling refs, metric
+status tags, editable-install documentation, `!docs/reviews/` exclude, repo
+tour in `docs/README.md`) landed 2026-07-19 — see their debriefs. **The
+2026-07-07 review queue is now clear; C17 (public `main` cutover) is
+unblocked and awaits Toby's go.**
 
 **Cross-repo keystone:**
 
