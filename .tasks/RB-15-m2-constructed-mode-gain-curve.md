@@ -1,7 +1,12 @@
 # RB-15 Claim Milestone 2: wire the constructed SUT into a `--mode` + take the gain-vs-`k` curve
 
 **Priority:** high
-**Blocked by:** nothing (same-repo); **BLOCKED externally — do not start until CR-22 lands**
+**Blocked by:** nothing (same-repo); ~~BLOCKED externally — do not start until CR-22 lands~~
+**UNBLOCKED 2026-07-20: CR-22 landed** (constructive-retention `b969398` + debrief
+`CR-22-two-stage-chaining.md`): constructed hop-2 at ceiling, n=10 seeds — held-out
+composed 1.000±0.000, Δret 0.000±0.000, `Δbase=0`, 0 grad steps, RESET-survived. The
+SUT to measure exists (`AttrKeyedAssocWrite` + `tests/experiment_constructed_hop2.py`);
+the CR-side `--mode` companion is still to be filed when this task starts.
 **Depends-on (external):** constructive-retention **CR-22** (constructed hop-2 — the first SUT
 increment that is additive *by construction* rather than by SGD replay)
 **Touches:** `constructive_retention/` (a `--mode` exposing the constructed-hop-2 model as an

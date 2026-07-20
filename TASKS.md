@@ -49,11 +49,13 @@ unblocked and awaits Toby's go.**
 
 **Cross-repo keystone:**
 
-- **RB-15** *(high, BLOCKED on constructive-retention CR-22)* — claim **Milestone 2**: wire
-  the constructed-hop-2 SUT into a `--mode` and take the gain-vs-`k` curve (RB-12's
-  bootstrap CIs + `W_norm` are now available for it). The constructive SUT currently renders `EXCLUDED`; a real additive-by-
-  construction increment should give the first non-degenerate band (retention flat in `k`).
-  **Do not start until CR-22 lands.**
+- **RB-15** *(high, **UNBLOCKED 2026-07-20** — constructive-retention CR-22 landed)* — claim
+  **Milestone 2**: wire the constructed-hop-2 SUT into a `--mode` and take the gain-vs-`k`
+  curve (RB-12's bootstrap CIs + `W_norm` are now available for it). CR-22's constructed
+  hop-2 runs at ceiling (held-out composed 1.000±0.000, additive + online, RESET-survived,
+  n=10 — see CR debrief `CR-22-two-stage-chaining.md`), so a real additive-by-construction
+  increment now exists; it should give the first non-degenerate band (retention flat in
+  `k`). Will spawn a small CR-side `--mode` companion task when picked up.
 
 The repo-local dev loop uses `.venv/bin/python` (Python 3.13). CL-Bench is
 installed into that venv from the pinned dependency, with the editable source
