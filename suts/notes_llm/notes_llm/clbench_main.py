@@ -110,6 +110,17 @@ def _report_user_prompt(notes: str, response_schema: dict[str, Any]) -> str:
 # --------------------------------------------------------------------------- #
 # Structured-output parsing + a minimal-valid fallback (so the runner — which
 # does response_schema(**action) — never crashes on a malformed reply).
+#
+# Deliberate design decision (2026-07-23): a malformed/missing-key reply is
+# coerced to a minimal-valid object and scored at the floor rather than raising
+# SUTError. This tolerates the transient malformed JSON real LLM endpoints
+# occasionally emit, at the cost of NOT distinguishing a legitimate low score
+# from a systematically broken run (e.g. a misconfigured endpoint erroring on
+# every query yields a silent floor score, not an abort). Accepted for now:
+# notes_llm is off the canonical keyless `./run.sh smoke` path and requires an
+# API key, so it cannot skew the headline result. If this matters later, the
+# principled fix is a coercion-rate guard that fails loud only on *systematic*
+# (not transient) coercion. See docs/sut-interface.md (notes_llm bullet).
 # --------------------------------------------------------------------------- #
 def _extract_json(text: str) -> Optional[dict[str, Any]]:
     stripped = _FENCE_RE.sub("", text).strip()
