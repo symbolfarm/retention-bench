@@ -37,15 +37,20 @@ loss.
 
 ## The loss rate
 
-- **Default rate: 0.05** (per-reset loss fraction — "loses ~5% of recalled facts
-  per reset"). It is deliberately *small*: this task drives 12–25 hard resets
+- **Default rate: 0.01** (per-reset loss fraction — "loses 1% of recalled facts
+  per reset"). It is deliberately *small*: this task drives 55–111 hard resets
   before its probes, so a large per-reset rate compounds to a total wipe-out
-  (e.g. `0.7 ** 12 ≈ 0.014`) and collapses the rung onto the floor. A small rate
+  (e.g. `0.7 ** 55 ≈ 3e-9`) and collapses the rung onto the floor. A small rate
   keeps the curve in the graded band (`0 < norm < 1`) with an honest
-  interpretation. (Note: the right default is task-dependent — it is tuned to this
-  task's reset count, not a universal constant.)
+  interpretation.
+- **The rate is tuned to this task's reset count, not a universal constant.** It
+  was 0.05 against the pre-RB-16 26-instance schedule (12–25 resets); RB-16
+  widened the task to 112 instances, and `0.95 ** 111 ≈ 0.003` would have
+  collapsed the rung onto the floor. At 0.01 the survivor fraction is
+  `0.99 ** 55 ≈ 0.57` / `0.99 ** 111 ≈ 0.33`. Re-check it if the task's default
+  schedule length changes again.
 - Override with the `RESET_LOSSY_RATE` environment variable (a float in
-  `[0, 1)`; out-of-range or non-numeric values fall back to the default).
+  `[0, 1)`; out-of-range or non-numeric values raise rather than falling back).
 
 ## Run
 
@@ -57,7 +62,8 @@ python -m retention_bench.gain_curve \
   --reset-every 1 --reset-every 2 --name reset-lossy-graded
 ```
 
-Expected shape (default rate 0.05): the no-reset ceiling holds the full band
-(`C = 16/26 ≈ 0.615`, `k = 0`), and the hard-reset arms decay — `R(every_2)`
-(k=12) `= 8/26 ≈ 0.308` (norm 0.500) sits above `R(every_1)` (k=25)
-`= 6/26 ≈ 0.231` (norm 0.375). Both land strictly inside `0 < norm < 1`.
+Expected shape (default rate 0.01): the no-reset ceiling holds the full band
+(`C = 64/112 ≈ 0.571`, `k = 0`), and the hard-reset arms decay — `R(every_2)`
+(k=55) `= 35/112 ≈ 0.313` (norm 0.547) sits above `R(every_1)` (k=111)
+`= 22/112 ≈ 0.196` (norm 0.344). Both land strictly inside `0 < norm < 1`, and
+both sit well above the measured chance line (`suts/random_guess`, 0.027).

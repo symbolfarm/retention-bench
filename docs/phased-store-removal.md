@@ -60,9 +60,18 @@ and the protocol degenerates to the store-present condition.
 
 ## Worked example — `symbolic_associative_retention`
 
-The schedule is 10 train instances (8 object→attribute facts + 2 attribute→bin
-rules), then 8 recall probes (1-hop) and 8 transfer probes (2-hop) — 26 total. The
-train/probe boundary is ordinal 10, so the phased run is `--reset-at "10"`.
+The current default schedule is 48 train instances (32 object→attribute facts +
+16 attribute→bin rules), then 32 recall probes (1-hop) and 32 transfer probes
+(2-hop) — 112 total. The train/probe boundary is ordinal 48, so the phased run is
+`--reset-at "48"`.
+
+> **The run recorded below predates RB-16** and was measured on the older
+> 26-instance schedule (10 train instances, boundary at ordinal 10,
+> `C = 16/26`). It is kept as-is because it is a *dated measurement*, not a
+> spec; the protocol it illustrates is unchanged. Regenerate it with
+> `--reset-at "48"` when the constructive SUT is next measured. That schedule is
+> also still reachable directly, as
+> `--task-kwarg num_attributes=2 --task-kwarg objects_per_attribute=4`.
 
 The learned associative SUT (`constructive-retention --mode associative-learned`)
 buffers episodes in memory and checkpoints only weights, satisfying the contract.

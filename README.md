@@ -18,7 +18,8 @@ explicitly lacks:
 - **A constructive / parametric system class** — a train-and-grow reference
   learner that grows capacity across reads, with compute accounting, alongside
   the agent-memory reference SUTs. The keyless reference set spans a retention
-  *ladder* — `no_state` (in-RAM only; the floor), `reset_lossy` (geometric
+  *ladder* — `random_guess` (the measured chance line), `no_state` (in-RAM only;
+  the floor), `reset_lossy` (geometric
   forgetting; the graded `0 < norm < 1` rung), `bounded_memory`
   (FIFO-capped survive-dir), and `associative_memory` / `bsm_accumulator` (full
   persistence) — plus the `notes_llm` cumulative-notes LLM and the `constructive`
@@ -64,7 +65,8 @@ retention holds as `k` hard resets accumulate. See
 [`suts/bsm_accumulator/README.md`](suts/bsm_accumulator/README.md).
 
 To see what the metric discriminates, run the keyless **reference ladder** — the
-floor / capacity-limited / full-retention SUTs on one task, offline:
+chance / floor / graded / capacity-limited / full-retention SUTs on one task,
+offline:
 
 ```bash
 ./run.sh ladder
@@ -73,7 +75,7 @@ floor / capacity-limited / full-retention SUTs on one task, offline:
 The committed numbers and interpretation are in
 [`docs/reference-ladder.md`](docs/reference-ladder.md): normalised retention
 cleanly separates a non-retainer (floor) from retainers, while raw score adds the
-capacity tier.
+capacity tier and places both against a measured chance line.
 
 For an arbitrary CL-Bench task / SUT, the gain-curve driver is SUT-agnostic:
 

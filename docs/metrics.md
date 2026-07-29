@@ -60,8 +60,8 @@ negative result, visible on the axis rather than asserted in prose.)
 threshold is `ε = 0.05 × r_max`, where `r_max` is CL-Bench's per-task maximum
 run-mean reward (`scoring.band_epsilon`). A schedule that leaves some instances
 structurally unscored compresses every run-mean by exactly `r_max` — on
-`symbolic_associative_retention`'s default schedule (`r_max = 16/26 ≈ 0.615`) an
-absolute 0.05 would silently demand ~8% of the *achievable* range while asking
+`symbolic_associative_retention`'s default schedule (`r_max = 64/112 ≈ 0.571`) an
+absolute 0.05 would silently demand ~9% of the *achievable* range while asking
 5% of a fully-scored task. For binary rewards on a fully-scored schedule
 (`r_max = 1`) this reduces to the historical "0.05 of the score range". The
 `--epsilon` CLI flag remains an *absolute* override.
@@ -217,6 +217,33 @@ make the SUT legible:
 - **Mean `P`** — how much the SUT scores cold (stateless, wiped every instance). A high `P` indicates contamination or general-knowledge inflation.
 - **Mean `C`** — the SUT's capability ceiling on this task with state accumulating unbroken. A low `C` indicates the SUT can't do the task even with full retained state.
 - **Mean `C − P`** — the learnable gap. If small, the task isn't measuring retention at this SUT, and the curve sits in a tiny band that must not be over-interpreted (and is `EXCLUDED` when `< ε`).
+
+### Chance level (RB-16)
+
+`P` is the *stateless prior of this SUT*, not the chance level of the task. The
+two come apart whenever a SUT declines to answer: `no_state` floors at `P = 0`
+because it replies `unknown`, but a system that guesses scores at chance, and
+every LLM guesses. A task whose chance level sits inside the retention band is
+therefore mis-measuring by construction.
+
+This bit for real. Until RB-16, `symbolic_associative_retention` had two
+attributes and two bins at every schedule size, so chance was 0.5 per probe —
+≈0.308 as a run-mean, which was *exactly* `reset_lossy`'s published `R(k=12)`.
+The rung documented as partial retention was indistinguishable from a coin flip.
+
+Two consequences for how we report:
+
+1. **State the analytic chance level** alongside `P` and `C` for any task with a
+   closed answer vocabulary. For `symbolic_associative_retention` it is
+   `1/num_attributes` per probe (`0.0625` at the default width), or
+   `chance x r_max = 0.0357` as a run-mean; the task emits it as
+   `chance_level` in `TaskResult.metrics`.
+2. **Measure it too.** `suts/random_guess` is a reference rung that answers
+   uniformly at random from the task vocabulary, so the chance line appears on
+   the same axis as everything else. Its band is `EXCLUDED` by construction
+   (`P == C == R(k)` — a guesser has nothing to retain), which is the correct
+   reading: its job is to place the *raw* `R(k)` line, not to have a normalised
+   one.
 
 ## Summary statistics
 

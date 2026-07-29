@@ -11,10 +11,10 @@ and interpreting its results; the project overview and quickstart are in the
 |---|---|
 | [`sut-interface.md`](sut-interface.md) | The system-under-test process contract — the `SubprocessSystem` one-line-JSON query/reply per CL-Bench instance, the survive-dir / hard-`RESET` mechanics, resource self-report, and launch (subprocess / container). Start here if you're building a SUT. |
 | [`metrics.md`](metrics.md) | The retention metric — the reset-axis gain curve `norm_gain(k) = (R − P) / max(C − P, ε)`, the `C ≈ P` exclusion rule, and reconciliation with CL-Bench's gain. |
-| [`associative-curriculum.md`](associative-curriculum.md) | Implementation spec for the first small constructive-retention curriculum task: deterministic symbolic associations, exact scoring, memorization-vs-transfer probes, and the repeated-exposure extension path. |
+| [`associative-curriculum.md`](associative-curriculum.md) | Implementation spec for the first small constructive-retention curriculum task: deterministic symbolic associations, exact scoring, memorization-vs-transfer probes, the probe-space width / chance level, the never-bridged held-out composition split, and the repeated-exposure extension path. |
 | [`related-work-studybench.md`](related-work-studybench.md) | How Retention Bench relates to StudyBench / "Machine Studying" (Li, Battle & Khattab, 2026): the shared understanding-vs-memorization thesis, the orthogonal reset-axis vs inference-compute-axis measurement, paradigm/SUT mapping, and leverage opportunities. |
 | [`constructive-sut-development-brief.md`](constructive-sut-development-brief.md) | Development guidance for constructive (train-and-grow) SUTs: what the harness guarantees, what a constructive system must own, and the curve shapes to aim for. |
-| [`reference-ladder.md`](reference-ladder.md) | The reference-SUT ladder: the rungs from stateless floor to full retainer, and what each rung's curve should look like. |
+| [`reference-ladder.md`](reference-ladder.md) | The reference-SUT ladder: the rungs from measured chance line through stateless floor to full retainer, what each rung's curve should look like, and the two rungs whose knobs are calibrated to the task schedule. |
 | [`phased-store-removal.md`](phased-store-removal.md) | The phased store-removal protocol: a single reset placed at the train/probe boundary to measure what migrated into durable state, vs the uniform-reset sweep. |
 
 ## Repo tour (suggested reading order)

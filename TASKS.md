@@ -38,11 +38,12 @@ difference visible. Filed as RB-16/17/18/19 below.
 
 **Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
-- **RB-16** *(high)* — widen the attribute/bin sets, add a `random_guess` chance rung,
-  re-measure the ladder. **Correctness bug:** both probe families are two-way choices
-  regardless of `num_concepts`, so a constant guesser scores ≈0.308 run-mean — colliding
-  exactly with `reset_lossy`'s published `R(k=12)`. Blocks every number in the pre-release.
-- **RB-17** *(high, blocked by RB-16)* — README reframed as research instrument.
+- ~~**RB-16**~~ — **done 2026-07-29.** Widened the attribute/bin sets to 16 (chance
+  0.5 → 0.0625), added a never-bridged held-out composition split mirroring
+  constructive-retention, added the `random_guess` chance rung, and re-measured the
+  ladder at the new 112-instance default. Two reference SUTs were retuned to the new
+  schedule (`bounded_memory` cap 8→40, `reset_lossy` rate 0.05→0.01). See the debrief.
+- **RB-17** *(high, unblocked)* — README reframed as research instrument.
 - ~~**RB-18**~~ — superseded 2026-07-29: not task-sized, written directly as
   [`docs/ROADMAP.md`](docs/ROADMAP.md). Functions as **pre-registration** — the probe design
   and thesis are on record before constructive-retention is measured through the instrument.

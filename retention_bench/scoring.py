@@ -14,8 +14,8 @@ Follows ``docs/metrics.md``:
 - ``ε`` is *relative to the task's achievable range*: the absolute exclusion
   threshold is ``EPSILON × r_max`` (see :func:`band_epsilon`). A run-mean on a
   task whose schedule leaves some instances structurally unscored (e.g.
-  ``r_max = 16/26``) is compressed by exactly ``r_max``, so an absolute 0.05
-  would silently demand ~8% of the *achievable* range there while asking 5%
+  ``r_max = 64/112``) is compressed by exactly ``r_max``, so an absolute 0.05
+  would silently demand ~9% of the *achievable* range there while asking 5%
   elsewhere.
 - A band where ``C − P < ε`` has no learnable signal; the caller is responsible
   for excluding it (``gain_curve`` reports ``None`` for such points).
