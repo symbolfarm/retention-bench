@@ -43,9 +43,9 @@ difference visible. Filed as RB-16/17/18/19 below.
   regardless of `num_concepts`, so a constant guesser scores ≈0.308 run-mean — colliding
   exactly with `reset_lossy`'s published `R(k=12)`. Blocks every number in the pre-release.
 - **RB-17** *(high, blocked by RB-16)* — README reframed as research instrument.
-- **RB-18** *(high)* — `docs/ROADMAP.md` as a dated research agenda. Functions as
-  **pre-registration**: publishing the probe design before CR is measured through the
-  instrument defuses the co-design hazard. Questions, not conclusions; confidence tiers.
+- ~~**RB-18**~~ — superseded 2026-07-29: not task-sized, written directly as
+  [`docs/ROADMAP.md`](docs/ROADMAP.md). Functions as **pre-registration** — the probe design
+  and thesis are on record before constructive-retention is measured through the instrument.
 - **RB-19** *(high, blocked by RB-16)* — first real LLM measurement, agentic
   (iterative-retrieval) SUT. The instrument has never measured an LLM; the headline claim is
   currently unfalsified in either direction.
