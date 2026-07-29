@@ -188,6 +188,7 @@ published results on it.
 ## Status
 
 As of this document, the instrument has measured five keyless synthetic reference systems —
-four retention mechanisms plus a chance line — and **no language model**. The central claim is
+four retention mechanisms plus a chance line — and one constructive (weights-mutating) system
+through a real process-kill reset. It has measured **no language model**. The central claim is
 therefore unfalsified in either direction. Coherence is not evidence, and the first real
 measurement is the immediate next step.

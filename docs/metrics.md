@@ -52,7 +52,7 @@ gap `C − P`) survived `k` hard resets.
 
 The `ε` floor excludes the curve when the band collapses (`C ≈ P`): there is no
 learnable signal to retain. Such runs are reported `EXCLUDED` and points show no
-normalised value. (On the constructive SUT, whose output is gibberish by
+normalised value. (On a SUT whose output is unrelated to the task, e.g. gibberish by
 construction, the band is ~0 and the curve *correctly* excludes — the honest
 negative result, visible on the axis rather than asserted in prose.)
 
@@ -157,8 +157,8 @@ Run it against any SUT speaking the `SubprocessSystem` contract (see
 ```bash
 python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
   --task-kwarg variant=five_ch_wide --task-kwarg num_instances=6 \
-  --sut "python -m constructive.clbench_main" \
-  --extra-pythonpath suts/constructive --reset-every 1 --reset-every 2
+  --sut "python -m bsm_accumulator.clbench_main" \
+  --extra-pythonpath suts/bsm_accumulator --reset-every 1 --reset-every 2
 ```
 
 ### Placing resets on a concept-drift boundary (the non-monotonic story)
@@ -174,9 +174,9 @@ that is `ExplicitBoundaries`, exposed on the CLI as `--reset-at`:
 # On-drift {30,60} vs just-after {35,65}, k matched at 2 resets each.
 python -m retention_bench.gain_curve --task blind_spectrum_monitoring \
   --task-kwarg schedule=default --task-kwarg probe_mode=true \
-  --sut "python -m constructive.clbench_main" \
-  --extra-pythonpath suts/constructive \
-  --reset-at "30,60" --reset-at "35,65" --name constructive-drift
+  --sut "python -m bsm_accumulator.clbench_main" \
+  --extra-pythonpath suts/bsm_accumulator \
+  --reset-at "30,60" --reset-at "35,65" --name bsm-drift
 ```
 
 The `default` three-stage schedule (`Wideband → +Narrowband → Full grid`) is a
@@ -202,12 +202,12 @@ python -m retention_bench.bsm_corpus --verify   # regenerate in a temp dir, comp
 python -m retention_bench.bsm_corpus            # (re)write into the cl-bench data dir if missing
 ```
 
-> **Note on what's observable today.** With the current constructive SUT (output
-> is gibberish by construction — out of scope to fix) the reward band collapses
-> (`C ≈ P`), so the drift sweep renders `EXCLUDED` and every placement reports no
-> normalised value. The corpus + `--reset-at` machinery is in place; the
-> non-monotonic *shape* needs a retaining-but-imperfect SUT plugged into the same
-> command.
+> **Note on what's observable today.** The corpus and the `--reset-at` machinery
+> are in place, but no shipped SUT yet produces the non-monotonic *shape* on this
+> task: `bsm_accumulator` retains everything it stores, so a reset placed on a
+> drift boundary cannot help it. Demonstrating the shape needs a
+> retaining-but-imperfect SUT on BSM — the analogue of `reset_lossy`, which
+> exists only for `symbolic_associative_retention`.
 
 ## Baselines reported alongside the curve
 

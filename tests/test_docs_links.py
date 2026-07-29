@@ -56,10 +56,47 @@ def _is_relative(target: str) -> bool:
     return True
 
 
+def _tracked_paths() -> set[str]:
+    out = subprocess.run(
+        ["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True, check=True
+    ).stdout.split()
+    tracked = set(out)
+    # A link may point at a *directory*; register every ancestor of every tracked
+    # file so directory targets resolve.
+    for f in out:
+        parts = f.split("/")
+        for i in range(1, len(parts)):
+            tracked.add("/".join(parts[:i]))
+    return tracked
+
+
+TRACKED = _tracked_paths()
+
+
 def _resolve(md_file: Path, target: str) -> Path:
     # Strip any fragment/anchor and surrounding whitespace; keep the path part.
     path_part = target.split("#", 1)[0].strip()
     return (md_file.parent / path_part).resolve()
+
+
+def _target_is_real(md_file: Path, target: str) -> bool:
+    """Exists on disk *and* is tracked by git.
+
+    The tracked check is not redundant. Deleting a package with `git rm -r` leaves
+    the directory behind if it still holds untracked files (`__pycache__` is the
+    usual culprit), so a plain `.exists()` reports a link to a retired directory as
+    healthy — which is exactly how the `suts/constructive/` retirement first slipped
+    past this test. Untracked leftovers do not ship, so a link to one is dangling
+    from every reader's point of view.
+    """
+    resolved = _resolve(md_file, target)
+    if not resolved.exists():
+        return False
+    try:
+        rel = resolved.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return True  # outside the repo (e.g. a sibling checkout) — not ours to police
+    return rel in TRACKED
 
 
 @pytest.mark.parametrize(
@@ -73,7 +110,7 @@ def test_relative_links_resolve(md_file: Path) -> None:
         path_part = target.split("#", 1)[0].strip()
         if not path_part:  # pure anchor, e.g. [x](#section)
             continue
-        if not _resolve(md_file, target).exists():
+        if not _target_is_real(md_file, target):
             broken.append(target)
 
     assert not broken, (
@@ -115,7 +152,7 @@ def test_orientation_docs_backticked_paths_resolve(rel: str) -> None:
             continue
         # Resolve repo-relative first (how orientation docs cite paths), then
         # relative to the citing file.
-        if (REPO_ROOT / target).exists() or (md_file.parent / target).exists():
+        if target in TRACKED or (md_file.parent / target).resolve().exists():
             continue
         broken.append(target)
 

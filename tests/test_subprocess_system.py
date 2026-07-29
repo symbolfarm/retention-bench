@@ -207,7 +207,7 @@ def test_observe_emits_storage_event_and_tracks_delta():
 # --------------------------------------------------------------------------- #
 # Container-launch wiring. Daemon-free — these exercise ContainerSpec
 # construction and the subprocess-default invariant, not a real `docker run`
-# (that lives in tests/test_constructive_container_clbench.py, docker-gated).
+# (that lives in tests/test_docker_launch.py, docker-gated).
 # --------------------------------------------------------------------------- #
 from harness.sut_process import DIR_CONTAINER_PATH, build_docker_argv  # noqa: E402
 
@@ -225,7 +225,7 @@ def test_container_spec_built_from_launch(monkeypatch, tmp_path):
     monkeypatch.delenv("HOST_WORKSPACE", raising=False)
     monkeypatch.delenv("RETENTION_BENCH_SHIM_DIR", raising=False)
     system = SubprocessSystem(
-        ["python", "-m", "constructive.clbench_main"],
+        ["python", "-m", "example_sut.clbench_main"],
         tmp_path / "d",
         container=ContainerLaunch(image="img:0.1", env_names=["CONSTRUCTIVE_SEED"]),
     )
@@ -241,7 +241,7 @@ def test_container_spec_built_from_launch(monkeypatch, tmp_path):
     # The system's command is appended verbatim as the in-container entrypoint —
     # the CL-Bench wire entrypoint, and DIR is bind-mounted at the fixed path.
     argv = build_docker_argv(spec, system._command)
-    assert argv[-3:] == ["python", "-m", "constructive.clbench_main"]
+    assert argv[-3:] == ["python", "-m", "example_sut.clbench_main"]
     assert f"{spec.dir_host_path}:{DIR_CONTAINER_PATH}" in argv
 
 

@@ -418,7 +418,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     parser.add_argument(
         "--sut",
-        help='SUT launch command, e.g. "python -m constructive.clbench_main".',
+        help='SUT launch command, e.g. "python -m associative_memory.clbench_main".',
     )
     parser.add_argument(
         "--reset-every",
@@ -454,7 +454,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         action="append",
         default=[],
         metavar="DIR",
-        help="Dir prepended to the SUT's PYTHONPATH (repeatable), e.g. suts/constructive.",
+        help="Dir prepended to the SUT's PYTHONPATH (repeatable), e.g. suts/associative_memory.",
     )
     parser.add_argument("--name", default=None, help="System label for the curve (default: task name).")
     parser.add_argument(

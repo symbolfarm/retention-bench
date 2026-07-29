@@ -141,7 +141,8 @@ exact-match/judge/curve/CLI — only `EPSILON` + `normalised_retention` survive 
 runs the keyless `bsm_accumulator` SUT through `retention_bench.gain_curve` on
 CL-Bench's `blind_spectrum_monitoring`, offline and keyless. What the pivot
 **reused** stays: `harness/sut_process.py`, `harness/dir_lifecycle.py`,
-`scorer.aggregate`'s band primitives, and `suts/constructive/`. The book-track
+`scorer.aggregate`'s band primitives, and `suts/constructive/` (the last of which was
+itself retired 2026-07-29, superseded by the out-of-tree constructive-retention SUT). The book-track
 input/output schema docs were re-archived to `docs/archive/` (dev-only).
 
 The MVP build order (M1–M7) and backlog (B1–B16) below are kept for "why"

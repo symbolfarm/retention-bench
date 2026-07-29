@@ -49,7 +49,7 @@ gain-vs-`k` curve is how we put a number on it.
 
 To be a valid retention-bench SUT, the model is wrapped in a thin adapter process
 that speaks the wire protocol below. The reference implementation is
-[`suts/constructive/`](../suts/constructive/) — a tiny from-scratch byte-level
+The reference constructive SUT is **out of tree** (see below) — a from-scratch byte-level
 transformer that grows one block and trains a few steps per instance. It emits
 **gibberish on purpose** (it is an integration example, not a quality baseline);
 your job is to keep the contract and make the *content* good.
@@ -313,7 +313,7 @@ These are yours to make; flag them back when you've chosen:
 
 | What | Where (in retention-bench) |
 |---|---|
-| Reference constructive SUT (worked example) | `suts/constructive/` (+ its `README.md`) |
+| Reference constructive SUT (worked example) | out of tree: `constructive-retention`, `python -m constructive_retention --mode constructed-hop2` |
 | Wire protocol & launch modes | `docs/sut-interface.md`; `retention_bench/system.py` docstring |
 | The SUT-as-CL-Bench-system adapter | `retention_bench/system.py` (`SubprocessSystem`) |
 | Reset schedules / `k`-axis | `retention_bench/reset_schedule.py` |

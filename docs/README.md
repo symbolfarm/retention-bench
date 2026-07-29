@@ -43,8 +43,9 @@ contract:
 6. [`../retention_bench/_clbench.py`](../retention_bench/_clbench.py) — the single
    import chokepoint onto CL-Bench.
 7. One reference SUT: [`../suts/associative_memory/`](../suts/associative_memory/)
-   is the cleanest (keyless JSON state, exact-scored); then
-   [`../suts/constructive/`](../suts/constructive/) for the train-and-grow seam.
+   is the cleanest (keyless JSON state, exact-scored). For a weights-mutating,
+   capacity-growing system see the out-of-tree constructive SUT described in
+   [`constructive-sut-development-brief.md`](constructive-sut-development-brief.md).
 8. [`../retention_bench/tasks/symbolic_associative_retention.py`](../retention_bench/tasks/symbolic_associative_retention.py)
    — the first Retention-Bench-native task.
 

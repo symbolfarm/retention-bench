@@ -87,7 +87,7 @@ class ContainerLaunch:
         image: docker image tag to run. The image's ``python`` runs the
             system's ``command`` as the in-container entrypoint, so ``command``
             must name an entrypoint the *image* provides (e.g. for the
-            constructive SUT, ``["python", "-m", "constructive.clbench_main"]``
+            associative SUT, ``["python", "-m", "associative_memory.clbench_main"]``
             — the CL-Bench wire entrypoint recorded as ``clbench_entrypoint``
             in the SUT's ``sut-manifest.json``).
         env_names: harness-environment variable *names* forwarded into the
