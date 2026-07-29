@@ -61,6 +61,6 @@
 {"id":"RB-14","status":"completed","priority":"medium","blocked_by":[],"task_file":"RB-14-public-doc-pass.md","commit":"86e8d44","created_at":"2026-07-08T00:00:00Z","completed_at":"2026-07-19T14:05:00Z"}
 {"id":"RB-15","status":"pending","priority":"high","blocked_by":[],"task_file":"RB-15-m2-constructed-mode-gain-curve.md","commit":null,"created_at":"2026-07-08T00:00:00Z","completed_at":null}
 {"id":"RB-16","status":"completed","priority":"high","blocked_by":[],"task_file":"RB-16-widen-probe-space-and-chance-rung.md","commit":"ca81d54","created_at":"2026-07-29T02:51:10Z","completed_at":"2026-07-29T04:10:39Z"}
-{"id":"RB-17","status":"pending","priority":"high","blocked_by":["RB-16"],"task_file":"RB-17-readme-reframe-research-instrument.md","commit":null,"created_at":"2026-07-29T02:51:10Z","completed_at":null}
+{"id":"RB-17","status":"in_progress","priority":"high","blocked_by":["RB-16"],"task_file":"RB-17-readme-reframe-research-instrument.md","commit":null,"created_at":"2026-07-29T02:51:10Z","completed_at":null}
 {"id":"RB-18","status":"superseded","priority":"high","blocked_by":[],"task_file":"RB-18-roadmap-research-agenda.md","commit":null,"created_at":"2026-07-29T02:51:10Z","completed_at":"2026-07-29T03:20:00Z","note":"downgraded to chore; delivered directly as docs/ROADMAP.md"}
 {"id":"RB-19","status":"pending","priority":"high","blocked_by":["RB-16"],"task_file":"RB-19-first-agentic-llm-measurement.md","commit":null,"created_at":"2026-07-29T02:51:10Z","completed_at":null}
