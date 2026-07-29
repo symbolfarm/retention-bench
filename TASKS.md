@@ -25,8 +25,30 @@ a deterministic, exact-scored Retention Bench task with a keyless JSON-state
 reference SUT (`suts/associative_memory`) that demonstrates a non-excluded
 hard-reset retention band.
 
+**REFRAME (2026-07-29): research instrument, not a benchmark.** Pre-release discussion
+re-confirmed the June pivot's intent, which had been quietly drifting: retention-bench is
+the *instrument* a research programme uses and shares publicly, not a standalone benchmark
+seeking submissions. One owned task, co-designed with constructive-retention, no external
+users, unsettled cost metric — that is an instrument, and it is the correct stage. Adoption
+follows an interesting result, not benchmark infrastructure. The name stays (`bench` reads
+as *workbench*); the docs must say so. Thesis: **storage is not memory** — in-context
+learning and retrieval produce *access* without *integration*. RESET's justification:
+it **converts a one-time cost into a recurring one**, which is what makes the scaling
+difference visible. Filed as RB-16/17/18/19 below.
+
 **Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
+- **RB-16** *(high)* — widen the attribute/bin sets, add a `random_guess` chance rung,
+  re-measure the ladder. **Correctness bug:** both probe families are two-way choices
+  regardless of `num_concepts`, so a constant guesser scores ≈0.308 run-mean — colliding
+  exactly with `reset_lossy`'s published `R(k=12)`. Blocks every number in the pre-release.
+- **RB-17** *(high, blocked by RB-16)* — README reframed as research instrument.
+- **RB-18** *(high)* — `docs/ROADMAP.md` as a dated research agenda. Functions as
+  **pre-registration**: publishing the probe design before CR is measured through the
+  instrument defuses the co-design hazard. Questions, not conclusions; confidence tiers.
+- **RB-19** *(high, blocked by RB-16)* — first real LLM measurement, agentic
+  (iterative-retrieval) SUT. The instrument has never measured an LLM; the headline claim is
+  currently unfalsified in either direction.
 - **RB-3** — paused repeated-exposure curriculum variant for sample-efficiency /
   RL-adjacent exploration; resume after constructive-retention SUTs have advanced
   enough to make exposure-count curves informative.
@@ -44,8 +66,13 @@ RB-12 (bootstrap CIs + post-reset-window `W(m)`/`W_norm` + ε relative to
 `r_max`) and RB-14 (public doc pass: codename sweep, dangling refs, metric
 status tags, editable-install documentation, `!docs/reviews/` exclude, repo
 tour in `docs/README.md`) landed 2026-07-19 — see their debriefs. **The
-2026-07-07 review queue is now clear; C17 (public `main` cutover) is
-unblocked and awaits Toby's go.**
+2026-07-07 review queue is now clear.**
+
+**C17 (public `main` cutover) is staged but NOT pushed.** The local `main` orphan snapshot
+is from 2026-06-24 and is now ~78 files / +4.6k lines behind `dev` on public paths (RB-12,
+RB-13, RB-14 and the new tests are all missing from it). **Do not push that commit.** The
+sequence is: land RB-16→RB-19 → `scripts/promote.sh release` for a fresh snapshot → then
+Toby pushes host-side (SSH is host-only in the dev container) and flips visibility.
 
 **Cross-repo keystone:**
 
