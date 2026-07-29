@@ -1,83 +1,73 @@
 ---
-title: AGENTS.md — orientation for fresh agents resuming retention-bench
-project: retention-bench (continual-learning-eval)
-last_updated: 2026-05-20
-tags: [orientation, handover]
+title: AGENTS.md — orientation for fresh agents working on retention-bench
+project: retention-bench
+tags: [orientation, conventions]
 ---
 
 # AGENTS.md
 
-Orientation for a fresh agent (Claude or otherwise) picking this project up. Read this first.
+Orientation for an agent picking this project up.
+
+**This file holds only things that do not change when the code changes.** Project status, the
+current queue, the doc index, and research direction all live elsewhere and are maintained
+there — see "Where to look". Do not restate them here: doing so is how this file went two
+pivots stale, describing a book-track benchmark that had been deleted and a read order of
+thirteen archived or non-existent documents.
 
 ## What this repo is
 
-**retention-bench** (working name; aka CL-N, continual-learning-eval): a research project designing a benchmark that measures how gracefully an LLM-agent system's task performance degrades across discontinuities that erase working state. Headline artifact is a *retention curve* over `k` resets, normalised by per-question prior/ceiling probes.
+**retention-bench** is a research *instrument* — a workbench, not a benchmark. It extends
+[Continual Learning Bench](https://arxiv.org/abs/2606.05661) (Asawa et al., Apache-2.0) with
+two things CL-Bench lacks: a **hard RESET** (a process-kill discontinuity where only an on-disk
+survive-dir persists) and a **constructive/parametric system class**.
 
-Own GitHub repo: `symbolfarm/retention-bench` (split from `knowledge-graph-spec` on 2026-05-17, commit `0a43451`). Not under `meta-research/projects/`.
+There is no leaderboard and no submission process. The claim under test is that *storage is not
+memory*: in-context learning and retrieval produce access without integration.
 
-## Status
+## Where to look
 
-**Phase: scoping, late-stage.** Joint-scoping mode (pilot #2 of the design-dialogue pattern). Through Turn 6 of the design-dialogue. Eval philosophy is locked (cross-reset purity + three-probe baselines `P`/`C`/`R(k)` + normalised retention `(R−P)/(C−P)`). The agnostic five-thing interface has survived a book-track pressure-test.
+| For | Read |
+|---|---|
+| Current status, focus, open queue | `TASKS.md`, then `.tasks/LOG.jsonl` |
+| Repo tour — what every directory and doc is | `docs/README.md` |
+| Research direction, probe ladder, open questions | `docs/ROADMAP.md` |
+| Public framing and the measured reference ladder | `README.md`, `docs/reference-ladder.md` |
+| Metric definitions | `docs/metrics.md` |
+| How to publish | `RELEASING.md`, `PUBLIC_PATHS` |
 
-**Cleared for MVP implementation (2026-05-20).** All 16 active decisions in `docs/decisions-checklist.md` resolved; #17 (train/no-train lane) deferred. Task queue lives in `TASKS.md` + `.tasks/` under the `task-cycle` skill.
+## Conventions
 
-## Communication norms — read before responding
+**Branches.** `dev` is the working branch — everything lands here, including every edit to
+public files. `main` is an **orphan** public snapshot with no shared history, produced only by
+`scripts/promote.sh`. **Never hand-edit `main`**; the next snapshot would overwrite it. See
+`RELEASING.md`.
 
-Joint-scoping / echo-back mode. **Do not start implementing on first contact.** Default action when picking up the project is to read, echo back understanding, and surface trade-offs.
+**What is public.** `PUBLIC_PATHS` is the single source of truth for what reaches `main`.
+Anything unlisted is dev-only — `.tasks/`, `TASKS.md`, this file, `feedback/`, `history/`,
+`scratch/`, `scripts/`, `docs/archive/`, `docs/reviews/`.
 
-- `feedback/joint-design-dialogue-pattern.md`
-- `feedback/echo-back-communication-norms.md`
-- Auto-memory: `feedback_joint_scoping_norms.md` (should auto-load)
+**Tasks.** Use the `task-cycle` skill. A brief is a *handoff artifact*: write one when work is
+going to a subagent or a future session, or when it is gated on review. Work you do yourself in
+one sitting is a `chore:` or `docs:` commit, with a short "Decisions" paragraph in the message
+body if you made a judgment call worth recording.
 
-## Repo layout (post 2026-05-20 housekeeping)
+**One task, one repo.** `constructive-retention` is a sibling repo (checked out beside this one),
+not co-edited from here. It is the constructive SUT this instrument exists to measure, and it
+speaks the process-level contract in `docs/sut-interface.md`. Work needed there is a separate
+task filed there (prefix `CR-`) that lands first; record the dependency with a
+`Depends-on (external):` line.
 
-```
-root/      README.md, AGENTS.md, TASKS.md, .tasks/
-docs/      live specs + decisions (ongoing relevance)
-history/   superseded artifacts kept for audit (design-dialogue, handover)
-feedback/  joint-scoping mode docs
-```
+**Python.** The dev loop uses `.venv/bin/python` (3.13); `./run.sh` prefers it automatically.
+Override with `RETENTION_BENCH_PYTHON=/path/to/python`.
 
-## Read order
+**Commits.** Trailer: `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
 
-1. **This file.**
-2. `README.md` — project overview, eval philosophy, status.
-3. `TASKS.md` + `.tasks/LOG.jsonl` — current MVP task queue (task-cycle skill).
-4. `docs/decisions-checklist.md` — resolved design decisions; load-bearing for what we're building and why.
-5. `docs/tasks.md` — Track 1 (book-episodic) under the atomic-event model.
-6. `docs/metrics.md` — three-probe normalisation, retention curve, resource metrics.
-7. `docs/book-spec.md`, `docs/memory-targets-spec.md`, `docs/cohort-1-seeds.md` — the cohort-1 novella pipeline (specs ready, not yet dispatched).
-8. `docs/validity.md`, `docs/protocol.md`, `docs/interface.md` — reference material; `interface.md` is v0.1 and slated for rewrite to match the Turn 3 five-thing contract.
-9. `docs/open-questions.md`, `docs/extensions.md`, `docs/topology.md`, `docs/worked-example-book-track.md`, `docs/question-set-spec.md` — read on demand.
-10. `history/design-dialogue.md` — full scoping dialogue, all turns. Superseded by `docs/decisions-checklist.md`; consult only for "why" archaeology.
-11. `history/handover.md` — post-Turn-4 handover. Predates Turn 5/6; superseded by this file + the decisions checklist.
+## Doc hygiene
 
-## Architectural direction (confirmed 2026-05-17)
+`tests/test_docs_links.py` asserts that every relative link in the tracked markdown resolves. If
+you move or delete a doc, that test tells you what you broke — which is the entire reason it
+exists.
 
-- **Custom harness** for the protocol: `READ` / `QUIZ` / `RESET` event loop, process kill, `DIR` lifecycle, probe bookkeeping. No existing framework fits this.
-- **Existing scorer library** (DeepEval `GEval` / Inspect AI scorers / `lm-eval` metrics) for per-`QUIZ` scoring. Harness emits a standardised per-question records file; scoring is a pure function over it, library-swappable.
-
-## What is *not* yet decided
-
-All hard-blockers + soft-blockers resolved 2026-05-20. See `docs/decisions-checklist.md`. Outstanding spec follow-ups (now task-tracked, not decision-blocked):
-
-- `docs/metrics.md` needs the resolved `C` definition (text-in-context + accumulated `QUIZ` history) written in explicitly.
-- `docs/interface.md` v0.1 needs rewrite to match Turn 3 five-thing contract + the two-leaderboards (agentic / in-context with mock transcripts) resolution.
-- Reference SUT specs (no-state, notes-LLM, naive-RAG) not yet drafted.
-- Mock tool-call transcript authorship strategy for the in-context leaderboard (deferred from #7 resolution).
-
-## What *not* to do without asking
-
-- **Do not dispatch the cohort-1 novella briefs** to author models. The seeds are drafted (`docs/cohort-1-seeds.md`) but await Toby's sign-off on seed assignments and choice of question-author model.
-- **Do not treat the v0.1 doc set as stable spec.** It's Toby's own draft, actively renegotiable. `docs/interface.md` in particular is superseded by the Turn 3 agnostic five-thing contract and slated for rewrite.
-- **Do not delete `history/` files** without explicit user sign-off, even though they're tagged "superseded." They remain the audit trail for how the design got here.
-
-## Sibling-project context
-
-- **constructive-retention** (`symbolfarm/constructive-retention`, its own repo; checked out beside this one at `../constructive-retention` in the dev workspace) is the headline SUT this evaluator exists to measure. It is a *from-scratch tiny constructive transformer* that grows capacity and mutates weights across instances — see its `docs/brief.md` and auto-memory `project_constructive_transformers.md`. It is a **separate repo, not co-edited from here**: the harness is a pinned dependency for it; harness changes it needs are filed as tasks *here* (prefix `RB-`/`C`) and land first. The dev-loop drives it out-of-tree via `--extra-pythonpath ../constructive-retention` (see its `AGENTS.md` for the exact gain-curve command).
-- The cross-project framing (this eval as the *measurement* slot in a trigger-operator-measurement triple) lives in `symbolfarm/meta-research/projects/research-stack-synthesis.md`.
-
-## Session log (recent)
-
-- **2026-05-17.** Review pass by Claude over the v0.1 doc set after Turn 6. Outputs: `docs/decisions-checklist.md`, this file. Direction confirmed: custom harness + existing scorer library. `C` definition clarified by Toby (text-in-context + prior-`QUIZ`-history). No code yet.
-- **2026-05-20.** All open decisions resolved (#7 two-leaderboard, #9 tool-call counting, new #14/#15/#16 covering constructive-SUT weights, FLOPs reporting, and five hardware tiers). Repo reorganised into `docs/` + `history/`. `TASKS.md` + `task-cycle` skill adopted. Cleared for MVP harness implementation.
+Prefer facts that are **executable** (a test or a command fails when they drift) or **adjacent**
+(a module docstring, so a code change drags them into the same diff) over prose in a separate
+file. Prose in a separate file is what rots, and this file is the cautionary example.
