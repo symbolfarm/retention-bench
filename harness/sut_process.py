@@ -209,8 +209,16 @@ def spawn_sut(
     # installed (e.g. the active venv). Launch python-module SUTs under
     # sys.executable — the same choice the built-in stub launch makes
     # (harness/__main__.py). Non-python entrypoints are left untouched.
+    #
+    # Only a *bare* name is rewritten. An explicit path (`/x/.venv/bin/python`,
+    # `./venv/bin/python`) is a deliberate choice of interpreter — usually an
+    # out-of-tree SUT with its own dependencies — and must be honoured. This
+    # used to match on basename, which silently clobbered such paths and ran
+    # the SUT under the harness's venv; it appeared to work only when that venv
+    # happened to carry the SUT's deps, and it quietly broke the environment
+    # isolation the process-level contract promises (docs/sut-interface.md).
     launch = list(command)
-    if launch and os.path.basename(launch[0]) in ("python", "python3"):
+    if launch and launch[0] in ("python", "python3"):
         launch[0] = sys.executable
     proc = subprocess.Popen(
         launch,

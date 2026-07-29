@@ -46,3 +46,22 @@ def test_python3_entrypoint_launched_under_sys_executable(monkeypatch, tmp_path)
 def test_non_python_entrypoint_is_untouched(monkeypatch, tmp_path):
     argv = _spawn(monkeypatch, tmp_path, ["/opt/sut/bin/run", "--serve"])
     assert argv == ["/opt/sut/bin/run", "--serve"]
+
+
+def test_explicit_interpreter_path_is_honoured(monkeypatch, tmp_path):
+    """An explicit path is a deliberate interpreter choice — do not rewrite it.
+
+    Found while wiring constructive-retention's `--mode constructed-hop2` through the
+    harness (CR-29): the SUT declared `.../constructive-retention/.venv/bin/python`
+    and `ps` showed it running under retention-bench's venv instead. It only worked
+    because that venv happened to have torch+CUDA, and it defeats the environment
+    isolation the process-level SUT contract promises.
+    """
+    explicit = "/opt/other-project/.venv/bin/python"
+    argv = _spawn(monkeypatch, tmp_path, [explicit, "-m", "some_sut"])
+    assert argv == [explicit, "-m", "some_sut"]
+
+
+def test_relative_interpreter_path_is_honoured(monkeypatch, tmp_path):
+    argv = _spawn(monkeypatch, tmp_path, ["./.venv/bin/python3", "-m", "some_sut"])
+    assert argv == ["./.venv/bin/python3", "-m", "some_sut"]
