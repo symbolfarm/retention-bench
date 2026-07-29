@@ -27,11 +27,13 @@ RESET_LOSSY_PKG = REPO_ROOT / "suts" / "reset_lossy"
 RESET_LOSSY_CMD = ["python", "-m", "reset_lossy.clbench_main"]
 
 # Pinned rate. Geometric decay + the deterministic hash-gate make these exact.
-PINNED_RATE = "0.05"
-# every_2 -> k=12 resets at probe time: survivors give 4 recalls + 4 transfers = 8/26.
-EXPECTED_R_EVERY_2 = 8 / 26
-# every_1 -> k=25 resets at probe time: 3 recalls + 3 transfers = 6/26.
-EXPECTED_R_EVERY_1 = 6 / 26
+PINNED_RATE = "0.01"
+# every_2 -> k=55 resets at probe time; every_1 -> k=111. Survivor counts are
+# fixed by the hash-gate, so these are exact.
+EXPECTED_K_EVERY_2 = 55
+EXPECTED_K_EVERY_1 = 111
+EXPECTED_R_EVERY_2 = 35 / 112
+EXPECTED_R_EVERY_1 = 22 / 112
 
 
 @pytest.fixture(autouse=True)
@@ -77,7 +79,7 @@ def test_reset_lossy_ceiling_is_full_band():
     curve = _sweep()
     assert not curve.excluded
     assert curve.prior == pytest.approx(0.0)
-    assert curve.ceiling == pytest.approx(16 / 26)
+    assert curve.ceiling == pytest.approx(64 / 112)
 
 
 def test_reset_lossy_retention_is_graded():
@@ -91,10 +93,10 @@ def test_reset_lossy_retention_is_graded():
 
 
 def test_reset_lossy_decays_with_reset_count():
-    """More resets -> fewer facts recalled: every_1 (k=25) below every_2 (k=12)."""
+    """More resets -> fewer facts recalled: every_1 (k=111) below every_2 (k=55)."""
     curve = _sweep()
     by_k = {point.k: point for point in curve.points}
-    assert set(by_k) == {12, 25}
-    assert by_k[25].mean_reward < by_k[12].mean_reward
-    assert by_k[12].mean_reward == pytest.approx(EXPECTED_R_EVERY_2)
-    assert by_k[25].mean_reward == pytest.approx(EXPECTED_R_EVERY_1)
+    assert set(by_k) == {EXPECTED_K_EVERY_2, EXPECTED_K_EVERY_1}
+    assert by_k[EXPECTED_K_EVERY_1].mean_reward < by_k[EXPECTED_K_EVERY_2].mean_reward
+    assert by_k[EXPECTED_K_EVERY_2].mean_reward == pytest.approx(EXPECTED_R_EVERY_2)
+    assert by_k[EXPECTED_K_EVERY_1].mean_reward == pytest.approx(EXPECTED_R_EVERY_1)

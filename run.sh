@@ -47,15 +47,17 @@ fi
 
 if [[ "$cmd" == "ladder" ]]; then
   shift || true
-  # Reference ladder: the three KEYLESS reference SUTs on the same task
+  # Reference ladder: the KEYLESS reference SUTs on the same task
   # (symbolic_associative_retention), swept over the reset axis, so their
   # retention curves can be read on one figure (see docs/reference-ladder.md).
-  # Offline, no API key, no model weights. Order: floor -> graded -> retainers.
+  # Offline, no API key, no model weights. Order: chance -> floor -> graded -> retainers.
+  #   random_guess    stateless uniform guesser                  -> measured chance line (band EXCLUDED)
   #   no_state        ephemeral, never touches the survive-dir   -> retention floor
   #   reset_lossy     deterministic reset-coupled loss           -> graded retention (0<norm<1)
   #   bounded_memory  FIFO-capped survive-dir window             -> capacity-limited retainer
   #   associative_memory  full survive-dir persistence           -> full-retention ceiling
   for entry in \
+    "random-guess-chance:random_guess:suts/random_guess" \
     "no-state-floor:no_state:suts/no_state" \
     "reset-lossy-graded:reset_lossy:suts/reset_lossy" \
     "bounded-memory-partial:bounded_memory:suts/bounded_memory" \

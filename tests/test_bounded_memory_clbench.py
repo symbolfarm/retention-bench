@@ -2,7 +2,7 @@
 
 bounded_memory is the partial-retention rung: it persists a capped FIFO window of
 the most recent facts. Its retention band sits strictly between the no_state floor
-(R=0) and the full retainer associative_memory (R=16/26).
+(R=0) and the full retainer associative_memory (R=64/112).
 """
 
 from __future__ import annotations
@@ -27,10 +27,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 BOUNDED_MEMORY_PKG = REPO_ROOT / "suts" / "bounded_memory"
 BOUNDED_MEMORY_CMD = ["python", "-m", "bounded_memory.clbench_main"]
 
-# Default cap is 8; symbolic_associative_retention trains 10 facts, so the two
-# oldest object facts are evicted -> 12/26 of the probes survive.
-PARTIAL_CEILING = 12 / 26
-FULL_CEILING = 16 / 26
+# Default cap is 40; symbolic_associative_retention trains 48 facts (32 object
+# facts then 16 rules), so the 8 oldest object facts are evicted -> 48/112 of the
+# instances score (24 recalls + 24 transfers).
+PARTIAL_CEILING = 48 / 112
+FULL_CEILING = 64 / 112
 
 
 class _Answer(BaseModel):

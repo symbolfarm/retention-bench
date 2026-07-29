@@ -1,0 +1,15 @@
+{
+  "name": "random-guess",
+  "version": "0.1.0",
+  "mode": "notes",
+  "hardware_tier": "open",
+  "strict_verbatim": true,
+  "image": null,
+  "clbench_entrypoint": ["python", "-m", "random_guess.clbench_main"],
+  "env": ["RANDOM_GUESS_SEED", "RANDOM_GUESS_NUM_ATTRIBUTES"],
+  "resource_appendix": {
+    "kind": "local",
+    "model_id": "random-guess",
+    "gpu_model": null
+  }
+}

@@ -34,11 +34,19 @@ cleanly distinct from ``bounded_memory``'s capacity eviction. Because retention
 is a genuine exponential in ``k``, ``R(k)`` traces a real decay curve.
 
 ``rate`` is the per-reset loss fraction. The default is deliberately *small*
-(``DEFAULT_RATE``) because this task drives 12-25 hard resets before its probes
-run: a large per-reset rate compounds to a total wipe-out over that many resets
-(e.g. ``0.7 ** 12 ≈ 0.014``), collapsing the rung onto the floor. A small rate
-lands the curve in the graded band (``0 < norm < 1``) while keeping the
-interpretation honest — "loses a few percent of recallable facts per reset".
+(``DEFAULT_RATE``) because this task drives **55-111** hard resets before its
+probes run: a large per-reset rate compounds to a total wipe-out over that many
+resets (e.g. ``0.7 ** 55 ≈ 3e-9``), collapsing the rung onto the floor. A small
+rate lands the curve in the graded band (``0 < norm < 1``) while keeping the
+interpretation honest — "loses one percent of recallable facts per reset".
+
+**The rate is calibrated to the task's default schedule**, i.e. to its reset
+count, not just its width. It was 0.05 against the pre-RB-16 26-instance
+schedule (12-25 resets); RB-16 widened the task to 112 instances, which more than
+quadruples the reset count, and ``0.95 ** 111 ≈ 0.003`` would have collapsed this
+rung onto the floor. At 0.01 the survivor fraction is ``0.99 ** 55 ≈ 0.57`` and
+``0.99 ** 111 ≈ 0.33`` — the same graded shape the rung had before. Re-check it
+if the task's default schedule length changes again.
 
 Loss rate defaults to ``DEFAULT_RATE`` and is overridable via the
 ``RESET_LOSSY_RATE`` environment variable (a float in ``[0, 1)``; out-of-range
@@ -58,7 +66,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 STATE_FILENAME = "reset_lossy.json"
-DEFAULT_RATE = 0.05
+DEFAULT_RATE = 0.01
 
 _OBJECT_RE = re.compile(r"^object:\s*(?P<object>\S+)\s*$", re.MULTILINE)
 _ATTRIBUTE_RE = re.compile(r"^attribute:\s*(?P<attribute>\S+)\s*$", re.MULTILINE)

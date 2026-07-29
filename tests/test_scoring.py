@@ -26,9 +26,10 @@ from retention_bench.scoring import (
 
 def test_band_epsilon_scales_with_r_max() -> None:
     assert band_epsilon(1.0) == pytest.approx(EPSILON)
-    # The motivating case: 16 scored of 26 instances compresses the run-mean
-    # range to 16/26, and ε compresses with it.
-    assert band_epsilon(16 / 26) == pytest.approx(EPSILON * 16 / 26)
+    # The motivating case: 64 scored of 112 instances (the default
+    # symbolic_associative_retention schedule) compresses the run-mean range to
+    # 64/112, and ε compresses with it.
+    assert band_epsilon(64 / 112) == pytest.approx(EPSILON * 64 / 112)
 
 
 @pytest.mark.parametrize("bad", [0.0, -0.5])

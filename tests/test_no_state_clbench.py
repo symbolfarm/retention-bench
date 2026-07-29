@@ -56,7 +56,7 @@ def test_no_state_learns_within_episode():
     assert not curve.excluded
     # Same task as associative_memory, so the band is identical: C above the
     # wiped stateless prior.
-    assert curve.ceiling == pytest.approx(16 / 26)
+    assert curve.ceiling == pytest.approx(64 / 112)
     assert curve.prior == pytest.approx(0.0)
 
 

@@ -48,7 +48,7 @@ def test_associative_memory_shows_retention_band():
     curve = _sweep()
     assert curve.ceiling > curve.prior
     assert not curve.excluded
-    assert curve.ceiling == pytest.approx(16 / 26)
+    assert curve.ceiling == pytest.approx(64 / 112)
     assert curve.prior == pytest.approx(0.0)
 
 

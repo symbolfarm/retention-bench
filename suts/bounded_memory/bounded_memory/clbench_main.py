@@ -5,7 +5,13 @@ recently trained facts. Facts pushed out of the window by newer facts are
 evicted and fail recall/transfer, so retention is *partial*: the gain curve sits
 between the no-state floor and a full retainer.
 
-The cap defaults to ``DEFAULT_CAP`` entries and is overridable via the
+The cap defaults to ``DEFAULT_CAP`` entries, chosen against the task's *default*
+schedule: RB-16 widened ``symbolic_associative_retention`` to 48 trained facts
+(32 object->attribute facts followed by 16 attribute->bin rules), so the cap was
+retuned from 8 (the pre-RB-16 10-fact schedule) to 40 — evicting the 8 oldest
+object facts, i.e. the same one-quarter of object facts the old pairing evicted.
+A cap left at 8 would keep only the trailing rules, collapsing this rung onto the
+floor. The cap is overridable via the
 ``BOUNDED_MEMORY_CAP`` environment variable (a positive int; invalid or
 out-of-range values raise ``ValueError`` rather than silently falling back).
 The FIFO is global across both fact kinds (object->attribute facts and
@@ -23,7 +29,7 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator
 
 STATE_FILENAME = "bounded_associations.json"
-DEFAULT_CAP = 8
+DEFAULT_CAP = 40
 
 _OBJECT_RE = re.compile(r"^object:\s*(?P<object>\S+)\s*$", re.MULTILINE)
 _ATTRIBUTE_RE = re.compile(r"^attribute:\s*(?P<attribute>\S+)\s*$", re.MULTILINE)
