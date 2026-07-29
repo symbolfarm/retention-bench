@@ -43,7 +43,11 @@ difference visible. Filed as RB-16/17/18/19 below.
   constructive-retention, added the `random_guess` chance rung, and re-measured the
   ladder at the new 112-instance default. Two reference SUTs were retuned to the new
   schedule (`bounded_memory` cap 8→40, `reset_lossy` rate 0.05→0.01). See the debrief.
-- **RB-17** *(high, unblocked)* — README reframed as research instrument.
+- ~~**RB-17**~~ — **done 2026-07-29.** README reframed as a research instrument: thesis
+  up front, "bench" glossed as *workbench*, the RESET justified as converting a one-time
+  cost into a recurring one, an honest scope-limits section (one owned task, co-design
+  hazard named, no LLM measured yet), all figures re-checked against the post-RB-16
+  ladder, and `docs/ROADMAP.md` linked as the agenda. See the debrief.
 - ~~**RB-18**~~ — superseded 2026-07-29: not task-sized, written directly as
   [`docs/ROADMAP.md`](docs/ROADMAP.md). Functions as **pre-registration** — the probe design
   and thesis are on record before constructive-retention is measured through the instrument.
