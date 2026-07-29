@@ -64,3 +64,4 @@
 {"id":"RB-17","status":"completed","priority":"high","blocked_by":["RB-16"],"task_file":"RB-17-readme-reframe-research-instrument.md","commit":"e864c97","created_at":"2026-07-29T02:51:10Z","completed_at":"2026-07-29T05:35:00Z"}
 {"id":"RB-18","status":"superseded","priority":"high","blocked_by":[],"task_file":"RB-18-roadmap-research-agenda.md","commit":null,"created_at":"2026-07-29T02:51:10Z","completed_at":"2026-07-29T03:20:00Z","note":"downgraded to chore; delivered directly as docs/ROADMAP.md"}
 {"id":"RB-19","status":"pending","priority":"high","blocked_by":["RB-16"],"task_file":"RB-19-first-agentic-llm-measurement.md","commit":null,"created_at":"2026-07-29T02:51:10Z","completed_at":null}
+{"id":"RB-20","status":"pending","priority":"medium","blocked_by":[],"task_file":"RB-20-agents-md-orientation-refresh.md","commit":null,"created_at":"2026-07-29T05:40:00Z","completed_at":null}
