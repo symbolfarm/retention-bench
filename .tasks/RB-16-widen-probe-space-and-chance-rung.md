@@ -34,6 +34,30 @@ really testing composition. Knowing the attribute is binary gives you the bin wi
 consulting the taught rule. TRANSFER is the probe that carries the project's in-context-
 generalization claim, so it needs to be genuinely two-hop.
 
+**Third — the held-out split (added 2026-07-29 after the brief was filed).** Widening alone
+is not sufficient. Today every object has a unique attribute, so each `object → attribute →
+bin` chain is private to one object and the attribute is a pass-through relabeling with no
+reuse. Two consequences:
+
+1. An attribute that only ever applies to one object is not a shared abstraction. There is
+   nothing for a rule to *generalize over*.
+2. More importantly: a SUT may synthesize `object → bin` bridges **at write time**. CR's
+   bridging mode does exactly this. For such a system, composition is performed during
+   training and every TRANSFER probe degenerates into a lookup — it passes without any
+   query-time composition at all.
+
+Note the current task is *not* naively lookup-passable: `_build_instances` never teaches an
+object together with a bin, so any system that only memorises taught pairs must still chain
+at query time. The failure mode is specifically write-time bridging, and the fix is a
+**held-out split**: some objects are taught their attribute but flagged so that a
+bridge-synthesizing SUT does not build a bridge for them. Held-out transfer is then the
+composition-generalization signal.
+
+This is the shape constructive-retention already uses: its curriculum carries
+`role: bridge|holdout` in the TRAIN metadata, holds out the last `num_attrs` objects (one per
+attribute, each with bridged exemplars among the earlier objects), and reports transfer split
+by bridged vs held-out. RB should mirror it so the two repos measure the same thing.
+
 Prior art in the sibling repo: constructive-retention hit this and fixed it the same way —
 CR-9 widened to 16 attrs / 64 objects explicitly "to de-noise the held-out-transfer estimate",
 and CR-23 later gave each attribute/bin a distinct single ASCII byte to kill a shared-first-
@@ -43,17 +67,28 @@ adopted.
 
 ## Goal
 
-Make the guessing floor unambiguous: parametrise the attribute/bin sets so chance level is
-low, add an explicit `random_guess` reference rung so the chance line is visible rather than
-inferred, and re-measure `docs/reference-ladder.md` at the new width.
+Make the guessing floor unambiguous and make TRANSFER measure composition-generalization:
+parametrise the attribute/bin sets so chance level is low, give each attribute multiple
+objects with a held-out subset, add an explicit `random_guess` reference rung so the chance
+line is visible rather than inferred, and re-measure `docs/reference-ladder.md`.
 
 ## Acceptance criteria
 
 - [ ] `SymbolicAssociativeRetentionTask` takes a `num_attributes` argument; `_ATTRIBUTES` and
       `_BINS` are generated to that width rather than hard-coded pairs. Nonce words, not
       single bytes.
-- [ ] Default `num_attributes` chosen and justified in the docstring (see "Decisions" —
-      16 unless the objects-per-attribute maths argues otherwise).
+- [ ] Default `num_attributes` chosen and justified in the docstring (see "Decisions").
+- [ ] **≥2 objects per attribute**, with **one held-out object per attribute** (mirroring CR:
+      hold out the last `num_attributes` objects, each with bridged exemplars among the
+      earlier ones).
+- [ ] Held-out objects still receive their `object_attribute` TRAIN instance — they are held
+      out of *bridging*, not out of teaching, so RECALL stays fair for them.
+- [ ] TRAIN `object_attribute` instances carry a **`role: bridge|holdout`** metadata field, so
+      a write-time bridge-synthesizing SUT can honour the split.
+- [ ] `evaluate()` reports transfer split by **bridged vs held-out**; held-out transfer is the
+      headline composition-generalization number.
+- [ ] `_OBJECT_NAMES` expanded as needed — it currently has 12 entries, and ≥2 objects per
+      attribute at 16 attributes needs ≥32 nonce names.
 - [ ] `num_attributes=2` still reproduces the current schedule exactly, so the existing
       published numbers remain regenerable.
 - [ ] `r_max` continues to be computed per concrete schedule in `build_canonical_run_state()`
@@ -88,11 +123,21 @@ inferred, and re-measure `docs/reference-ladder.md` at the new width.
 - **Add the chance rung rather than only documenting chance analytically.** "`no_state`
   scores zero" invites "your floor SUT declines to answer". A measured guessing rung answers
   that directly, and it is cheap.
-- **Default width target ≈16** (chance ≈0.06), mirroring CR-9. The implementer should sanity-
-  check the interaction with `num_concepts`: with `num_concepts=8` and 16 attributes most
-  attributes have no object, which may make the attribute→bin rules mostly untested. Either
-  raise the default `num_concepts` or pick a width that keeps ≥2 objects per attribute —
-  **this is the one genuinely open design call in the task; record what you chose and why.**
+- **Default width target ≈16** (chance ≈0.06), mirroring CR-9.
+- **≥2 objects per attribute with a held-out split — decided 2026-07-29, no longer an open
+  call.** The originally-filed brief left the objects-per-attribute question to the
+  implementer. It is now a requirement, because without it a write-time bridge-synthesizing
+  SUT converts every TRANSFER probe into a lookup and passes without composing (see Context).
+  Held-out transfer is the number that carries the project's generalization claim, and it is
+  the same quantity CR reports, so the two repos stay comparable.
+- **Objects are derived from the width, not set independently.** With `num_attributes = A` and
+  `objects_per_attribute = n ≥ 2`, the schedule has `A × n` objects, of which the last `A` are
+  held out. Whether `num_concepts` survives as a parameter, becomes derived, or is replaced by
+  `objects_per_attribute` is the implementer's call — but the ≥2-and-held-out invariant is
+  not. Keep the `num_attributes=2` reproduction path working regardless.
+- **Mirror CR's metadata vocabulary** (`role: bridge|holdout`) rather than inventing a new
+  one. The two curricula are deliberately separate implementations, but a shared vocabulary
+  keeps their results legible against each other.
 
 ## Out of scope
 
