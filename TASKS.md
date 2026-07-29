@@ -87,7 +87,34 @@ Toby pushes host-side (SSH is host-only in the dev container) and flips visibili
   hop-2 runs at ceiling (held-out composed 1.000±0.000, additive + online, RESET-survived,
   n=10 — see CR debrief `CR-22-two-stage-chaining.md`), so a real additive-by-construction
   increment now exists; it should give the first non-degenerate band (retention flat in
-  `k`). Will spawn a small CR-side `--mode` companion task when picked up.
+  `k`).
+
+  **READY TO RUN 2026-07-29.** The CR-side companion landed (constructive-retention
+  **CR-29**, `--mode constructed-hop2`), and a single-point verification run through the real
+  harness already passed: `--reset-at 80` → `norm_gain 1.000 [0.708, 1.346]`, n=208, every
+  scored instance correct through a process-kill RESET. What remains is the *sweep*.
+
+  Sweep design (agreed in-session, not yet executed):
+
+  - **Log-spaced reset points**, not linear: `--reset-every` at 1, 2, 4, 8, 16 (k ≈ 207, 103,
+    51, 25, 12). Forgetting is geometric, so linear spacing wastes runs in the flat region.
+  - **Seeds: start at 3, escalate adaptively** — go to ~10 only at points that show spread.
+    CR-22 reported 1.000±0.000 over 10 seeds; if variance really is zero, 3 shows it.
+  - **A contrast arm on the same task** (CR's naive-SGD baseline, Δret ≈ −0.98 on this
+    increment) at the extreme `k` values. Without it a flat line is unfalsifiable — nothing
+    distinguishes "flat because constructed" from "flat because the harness isn't resetting
+    what we think".
+  - **Report raw `R(k)` as primary**, normalised gain as secondary. The wide CI on the
+    verification run is *structural*: `(R−P)/(C−P)` is a ratio whose denominator is
+    estimated, so it stays wide even when R is exact. More seeds will not narrow it. Raw
+    `R(k)` is a proportion with a clean binomial interval. (Same conclusion as RB-6.)
+  - **Set `CONSTRUCTIVE_HOP2_BASE_CACHE=<dir>`** — uncached, one arm took 28m05s; cached,
+    3m35s, bit-identical. The whole sweep is <1h cached, ~7h uncached.
+
+  **Writeup caveat:** `P` is *not* chance on this task (0.3077 = 64/208 = every RECALL, zero
+  TRANSFER). The hop-1 base exists before the first prompt, per CR-29's base-once design, so
+  `P` means "base before increment", not "no knowledge". Say so explicitly or it reads as
+  flattery.
 
 The repo-local dev loop uses `.venv/bin/python` (Python 3.13). CL-Bench is
 installed into that venv from the pinned dependency, with the editable source
