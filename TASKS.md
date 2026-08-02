@@ -31,10 +31,24 @@ the *instrument* a research programme uses and shares publicly, not a standalone
 seeking submissions. One owned task, co-designed with constructive-retention, no external
 users, unsettled cost metric — that is an instrument, and it is the correct stage. Adoption
 follows an interesting result, not benchmark infrastructure. The name stays (`bench` reads
-as *workbench*); the docs must say so. Thesis: **storage is not memory** — in-context
-learning and retrieval produce *access* without *integration*. RESET's justification:
-it **converts a one-time cost into a recurring one**, which is what makes the scaling
-difference visible. Filed as RB-16/17/18/19 below.
+as *workbench*); the docs must say so. RESET's justification: it **converts a one-time cost
+into a recurring one**, which is what makes the scaling difference visible. Filed as
+RB-16/17/18/19 below.
+
+**THESIS RESTATED (2026-08-02).** The earlier framing — *storage is not memory; in-context
+learning and retrieval produce access without integration* — is **retired, and its second
+half was false**: transformers integrate richly within a context window. Current claim:
+
+> Continual learning agents need expanding memory: episodic memory growing across sessions;
+> semantic memory growing across episodes.
+
+The distinction is between a **recording** and a **memory**, and the claim is about *where
+abstraction goes* — computed at query time and discarded, versus kept. Also decided that
+session: no metric is "the headline" (route by claim — ceiling vs slope), real mathematics
+is admissible given an elicitation-ceiling control arm, and the instrument's aim is stated
+up front in the ROADMAP. **Start at [`notebook/INDEX.md`](notebook/INDEX.md)** — the
+notebook is now this repo's record of what we believe and why (dev-only; not in
+`PUBLIC_PATHS`).
 
 **Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
@@ -51,9 +65,18 @@ difference visible. Filed as RB-16/17/18/19 below.
 - ~~**RB-18**~~ — superseded 2026-07-29: not task-sized, written directly as
   [`docs/ROADMAP.md`](docs/ROADMAP.md). Functions as **pre-registration** — the probe design
   and thesis are on record before constructive-retention is measured through the instrument.
-- **RB-19** *(high, blocked by RB-16)* — first real LLM measurement, agentic
-  (iterative-retrieval) SUT. The instrument has never measured an LLM; the headline claim is
-  currently unfalsified in either direction.
+- **RB-19** *(high, unblocked 2026-08-02 — RB-16 is done)* — **the next thing to do.** First
+  real LLM measurement, agentic (iterative-retrieval) SUT. The instrument has never measured
+  an LLM; the claim is unfalsified in either direction. Reaffirmed as highest-value after the
+  pre-publish review: the instrument has only ever been pointed at cheap, deterministic,
+  well-behaved systems, and three predicted strains (per-arm cost at scale, an unstable `P`
+  once the SUT is a language model, run-mean scoring diluting sparse acquisition events) are
+  all speculation until one real messy SUT runs through it. See
+  [`notebook/notes/instrument-scaling-limits.md`](notebook/notes/instrument-scaling-limits.md).
+- **RB-21** *(medium)* — phased store-removal reference ladder. The consolidation protocol
+  has no calibration ladder, so it is *argued* to discriminate rather than *demonstrated* to;
+  the gap is stated openly in three docs. Cheap (keyless, offline, ~a day) but deliberately
+  behind RB-19 — do not let it delay the LLM measurement.
 - **RB-3** — paused repeated-exposure curriculum variant for sample-efficiency /
   RL-adjacent exploration; resume after constructive-retention SUTs have advanced
   enough to make exposure-count curves informative.
