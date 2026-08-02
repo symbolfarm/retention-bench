@@ -65,45 +65,61 @@ The current default schedule is 48 train instances (32 object→attribute facts 
 (2-hop) — 112 total. The train/probe boundary is ordinal 48, so the phased run is
 `--reset-at "48"`.
 
-> **The run recorded below predates RB-16** and was measured on the older
-> 26-instance schedule (10 train instances, boundary at ordinal 10,
-> `C = 16/26`). It is kept as-is because it is a *dated measurement*, not a
-> spec; the protocol it illustrates is unchanged. Regenerate it with
-> `--reset-at "48"` when the constructive SUT is next measured. That schedule is
-> also still reachable directly, as
-> `--task-kwarg num_attributes=2 --task-kwarg objects_per_attribute=4`.
-
 The learned associative SUT (`constructive-retention --mode associative-learned`)
 buffers episodes in memory and checkpoints only weights, satisfying the contract.
+
+> The `--sut` command needs an **absolute** interpreter path. The SUT is spawned
+> with its own working directory, so a path relative to the retention-bench root
+> will not resolve.
 
 ```bash
 CONSTRUCTIVE_REPLAY_STEPS=60 python -m retention_bench.gain_curve \
   --task symbolic_associative_retention \
-  --sut "../constructive-retention/.venv/bin/python -m constructive_retention --mode associative-learned" \
-  --reset-at "10" --name learned-phased
+  --sut "/abs/path/to/constructive-retention/.venv/bin/python -m constructive_retention --mode associative-learned" \
+  --reset-at "48" --name learned-phased-48
 ```
 
-Result (2026-06-28, `REPLAY_STEPS=60`):
+Result (2026-08-02, `REPLAY_STEPS=60`, default 112-instance schedule):
 
 ```
-  prior   P  = 0.0000
-  ceiling C  = 0.3077
-    k  schedule        R(k)  norm_gain
-    1  boundaries:10  0.3077      1.000
+  prior   P  = 0.0000  [0.000,0.000]
+  ceiling C  = 0.2857  [0.196,0.375]
+    k  schedule        R(k)  95% CI        norm_gain  95% CI            n
+    1  boundaries:48  0.2857 [0.196,0.375]     1.000  [0.643,1.538]   112
 ```
 
 `R(k=1) = C` (`norm_gain = 1.000`): the capability the SUT consolidated **fully
 survived store removal** — integrated accuracy after the store is deleted equals
-the no-reset ceiling. (The ceiling is `0.3077 = 8/26` because 1-hop recall is 8/8
-but 2-hop transfer is 0/8 — the composition gap is a separate question. What this
-run shows is that whatever *did* integrate survived removal cleanly.) The matching
-uniform arm on the same SUT scores `R = 0.0000` (`norm_gain = 0.000`): the
-identical model, measured the conflating way, looks like it retained nothing.
+the no-reset ceiling.
 
-The contrast with the uniform arm is the whole point: under `--reset-every 1` the
-same SUT collapses to `R ≈ 0` (the buffer is wiped between every train instance,
-so earlier facts are never rehearsed), whereas the phased run shows the recall
+The ceiling is `0.2857 = 32/112` because 1-hop recall is 32/32 but 2-hop transfer
+is 0/32 — the composition gap is a separate question. What this run shows is that
+whatever *did* integrate survived removal cleanly.
+
+The matching uniform arm on the same SUT and schedule:
+
+```bash
+# ... same --sut, with:  --reset-every 1 --name learned-uniform-48
+    k  schedule   R(k)  95% CI        norm_gain  95% CI          n
+  111  every_1  0.0000 [0.000,0.000]      0.000  [0.000,0.000]  112
+```
+
+The contrast is the whole point: the identical model, measured the conflating way,
+looks like it retained *nothing*. Under `--reset-every 1` the buffer is wiped
+between every train instance, so earlier facts are never rehearsed and the SUT
+never gets to consolidate at all — whereas the phased run shows the recall
 capability genuinely survived store removal.
+
+> **On the interval.** `norm_gain`'s CI (`[0.643, 1.538]`) is a percentile
+> bootstrap over 112 per-instance outcomes and is wide. It supports "migration
+> happened"; it does not finely quantify how much. Read the point estimate as a
+> verdict, not a measurement.
+>
+> This example is one real SUT, not a calibrated ladder. Unlike the uniform sweep
+> (see [`reference-ladder.md`](reference-ladder.md)) there is no keyless floor,
+> chance, or partial-consolidation rung run through this protocol, so the protocol
+> is *argued* to discriminate rather than *demonstrated* to. Building that ladder
+> is open work.
 
 ## When to use which
 
