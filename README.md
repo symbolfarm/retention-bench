@@ -25,21 +25,39 @@ CL-Bench explicitly lacks:
 
 ## The claim it exists to test
 
-> **Storage is not memory.** A system can have complete access to every token it
-> has ever seen and still not know anything.
+> Continual learning agents need expanding memory: episodic memory growing
+> across sessions; semantic memory growing across episodes.
 
-The operational difference is composition. A fact that has been *integrated*
-combines with other facts you never anticipated combining it with, without
-anything prompting you to go look. A fact that has been *stored* requires first
-recognising that you need it, then retrieving it, then reasoning over the
-retrieved text.
+Two levels, and they are not the same requirement. The first asks that
+experience survive a discontinuity that erases working state. The second asks
+that it be abstracted — that the system end up knowing things no single episode
+contains.
 
-So the claim under test is not "language models forget." It is sharper:
-**in-context learning produces access without integration.** Everything in the
-window is available for lookup, but it does not restructure the system, so it
-does not compose the way learned knowledge composes. Retrieval is in-context
-learning with a bigger drawer — it improves access and does nothing for
-integration.
+The first is cheap: write to disk. The second is what this instrument measures.
+
+The distinction that does the work is between a **recording** and a **memory**.
+A recording is verbatim, retrieved unchanged, and complete. It answers any
+question whose answer sits inside a single stored item, and nothing else. A
+memory has been compressed into a structure — which is why it composes, and why
+it is lossy. Compression is not a defect here; it is what forces structure, and
+a store under no pressure to compress never acquires any.
+
+This is **not** a claim that transformers cannot abstract. Within a context
+window they plainly do: attention composes over the whole window, and a model
+shown instances of a rule can induce it and apply it to an input it never saw.
+That is abstraction over episodes, and it is what transformers are best at.
+
+The claim is about where that abstraction *goes*. It is computed at query time
+and discarded with the process; what persists is the token sequence that
+produced it. The store is a recording and the abstraction is transient, so the
+next session re-derives it from scratch — and re-derives it over whatever subset
+was retrieved, not over the whole history. That last part is structural:
+retrieval selects by query, so a system cannot abstract over what it did not
+retrieve, and questions whose answers are properties of the entire set have no
+query that surfaces them.
+
+This can be shown false, and the falsification is cheap to state: a system that
+clears the probe ladder with nothing but a store.
 
 ## Why a hard RESET
 
@@ -48,7 +66,8 @@ not, because of what the reset does.
 
 A long-context system can always reload everything from disk when the process
 restarts. That is a legitimate strategy and it works. And it costs the full
-re-read **every session, forever.**
+re-read — and the full re-derivation of whatever it had already worked out —
+**every session, forever.**
 
 Without resets, that cost is paid once and amortised across a run, and the
 difference between paying-per-session and paying-once is invisible. **The hard

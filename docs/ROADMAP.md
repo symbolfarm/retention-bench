@@ -21,19 +21,43 @@ is no leaderboard and no submission process. "Bench" here means *workbench*.
 
 ### The claim it exists to test
 
-> **Storage is not memory.** A system can have complete access to every token it has ever seen
-> and still not know anything.
+> Continual learning agents need expanding memory: episodic memory growing across sessions;
+> semantic memory growing across episodes.
 
-The operational difference is composition. A fact that has been *integrated* combines with
-other facts you never anticipated combining it with, without anything prompting you to go
-look. A fact that has been *stored* requires first recognising that you need it, then
-retrieving it, then reasoning over the retrieved text.
+Two levels, and they are not the same requirement. The first asks that experience survive a
+discontinuity that erases working state. The second asks that it be abstracted — that the
+system end up knowing things no single episode contains. The first is cheap: write to disk.
+The second is what this instrument measures.
 
-So the claim under test is not "language models forget." It is sharper: **in-context learning
-produces access without integration.** Everything in the window is available for lookup, but
-it does not restructure the system, so it does not compose the way learned knowledge composes.
-Retrieval is in-context learning with a bigger drawer — it improves access and does nothing
-for integration.
+The distinction that does the work is between a **recording** and a **memory**. A recording is
+verbatim, retrieved unchanged, and complete: it answers any question whose answer sits inside a
+single stored item, and nothing else. A memory has been compressed into a structure — which is
+why it composes, and why it is lossy. Compression is not a defect here; it is what forces
+structure, and a store under no pressure to compress never acquires any.
+
+This is **not** a claim that transformers cannot abstract. Within a context window they plainly
+do: attention composes over the whole window, and a model shown instances of a rule can induce
+it and apply it to an input it never saw. That is abstraction over episodes, and it is what
+transformers are best at. The claim is about where that abstraction *goes*. It is computed at
+query time and discarded with the process; what persists is the token sequence that produced
+it.
+
+Three positions, then, rather than two:
+
+| | what persists | where it abstracts | consequence |
+|---|---|---|---|
+| **In-context learning** | nothing | query time, richly | the abstraction dies with the process |
+| **Retrieval / notes** | a recording | query time, over a retrieved subset | re-derived every session, from a subset |
+| **Consolidation** | the abstraction | write time | kept |
+
+The middle row's limitation is structural rather than incidental: retrieval selects by query,
+so a system cannot abstract over what it did not retrieve, and questions whose answers are
+properties of the entire set have no query that surfaces them. This is the specific reason we
+expect the aggregation rung below to be hard for retrieval, and it does not require denying
+in-context learning any of its compositional power.
+
+The claim can be shown false, and the falsification is cheap to state: a system that clears the
+probe ladder with nothing but a store.
 
 ### Why a hard RESET
 
@@ -54,7 +78,12 @@ that is otherwise hidden.
 ## The organising axis
 
 We think there is one axis underneath, not a collection of independent difficulty knobs:
-**how far the probe sits from the surface form of what was taught.**
+**how far the probe sits from the episode that taught it** — how much of the answer had to
+become semantic memory rather than remain episodic.
+
+Distance from surface form is the observable proxy. The underlying quantity is the
+episodic→semantic transition: recall asks only that the episode survived, and each rung above
+it asks for something no single episode contains.
 
 | Probe family | What it asks | What it tests |
 |---|---|---|
@@ -70,6 +99,30 @@ though how fast, and whether iterative retrieval changes the shape, is precisely
 not yet know.
 
 Only **Recall** and a two-hop **Composition** probe exist today.
+
+### Read the profile, not the level
+
+A corollary of the recording/memory distinction: **a perfect score on Recall is not by itself
+good news.** Verbatim fidelity is what a recording is *for*. Human episodic memory is
+notoriously inaccurate, and the inaccuracy is not incidental — it is the signature of having
+been compressed into a structure, which is the same compression the upper rungs depend on.
+
+So the informative quantity is the *shape* across rungs, not the height at any one:
+
+| Profile | Reading |
+|---|---|
+| high recall, cliff immediately above | a recording |
+| moderate recall, graded decline with distance | a memory |
+| flat at chance | nothing retained |
+
+We do not predict that reconstruction is *required* — that would be an argument from human
+architecture, and this instrument is substrate-neutral. The functional version is what we
+actually claim: compression is what forces structure, and a store under no pressure to compress
+never acquires any. If a system clears every rung on a verbatim log, that refutes the claim and
+we would report it as such.
+
+This also generalises the scoring note under *Likely* below. Distance-based rather than
+exact-match scoring is not special pleading for aggregation; it follows from what a memory is.
 
 ### Two invariants
 
@@ -112,6 +165,17 @@ nothing.
 - **Two-tier publication.** Reproducible keyless numbers in one place; model-dependent numbers
   as dated snapshots with pinned model IDs and stored traces, kept visibly separate.
 
+- **Storage budget as an axis.** Promoted from *Exploring* on a structural argument rather than
+  an application one. We had justified it by deployment setting — disk is effectively free on
+  servers, genuinely scarce on edge devices — which made it look like a niche constraint. The
+  stronger reason: **if storage is free, a recording is never punished**, and the
+  recording/memory distinction becomes unmeasurable by that route entirely. We currently have
+  exactly one way to separate them — probes a recording structurally cannot answer — and a
+  capacity constraint is the second, independent one. Capacity pressure is what forces a system
+  to choose between keeping records and keeping conclusions. The axis will still be reported
+  under a stated budget rather than as a general claim, and it grows in importance as corpus
+  size grows: at pre-training scale, keeping the recording stops being free even on a server.
+
 ### Exploring
 
 - **How to measure cost.** We believe cost matters as much as accuracy — retrieval pays at
@@ -127,12 +191,6 @@ nothing.
   dimensionless and therefore is. That is a claim about the shape of a curve rather than about
   what any system can do today, so it does not expire when hardware improves. We are not
   confident enough in it to commit.
-
-- **Storage budget as an axis.** On servers, disk is effectively free and capping it is an
-  artificial constraint. On edge and embedded devices — arguably the more interesting setting
-  for continual learning — it is a real one, and capacity pressure is exactly what forces a
-  system to choose between keeping records and keeping conclusions. Valid under a stated
-  deployment regime, not as a general claim.
 
 - **Procedures that change.** A learned procedure that is revised mid-stream — the convention
   updated, the interface changed, the policy rewritten — is ordinary in real work and, we
@@ -182,6 +240,65 @@ documented process-level contract rather than having to take our word for anythi
 
 We would rather be told the instrument is measuring the wrong thing now than after we have
 published results on it.
+
+---
+
+## Relationship to ADUS
+
+The same author maintains a functional architecture of intelligence called **ADUS**
+(github.com/symbolfarm/intelligence). It is not a prerequisite for anything above, and nothing
+in this instrument depends on accepting it — the claim, the probes, and the metric are all
+stated without it. This section records the mapping because the framework is where several of
+the design decisions above came from, and because two of its registered claims are the
+questions this instrument exists to answer. It is our own framework, which is a reason to
+disclose the connection rather than to lean on it.
+
+ADUS classifies memory by **consolidation channel** — the route by which content acquired in an
+episode reaches a durable form. The channels map onto the reference SUT classes directly:
+
+| SUT class | ADUS channel | Route |
+|---|---|---|
+| `no_state` (the `P` arm) | **C-N** | none; gains do not outlast the episode |
+| notes, retrieval, long-context reload | **C-X** | external artifact, re-presented each session |
+| fine-tuning reference | **C-T** | substrate, initiated by something other than the agent |
+| constructive systems | **C-S** | substrate, self-initiated |
+
+That taxonomy is what the three-position table above is a specialisation of, and it is why the
+instrument treats fine-tuning, structural growth, notes, and retrieval as modes above one
+process-level contract: they differ in channel, not in kind of claim.
+
+Two ADUS claims are directly at stake.
+
+**Reachability (ADUS claim 9).** ADUS argues consolidation is an *ability* rather than a rate
+parameter, on the grounds that without a consolidation route any competence needing more
+acquisition than fits in one episode is unreachable at any effort. The prediction is a
+reachability boundary, not slower acquisition: there exist tasks unreachable under C-X *at any
+context budget* that become reachable under C-S. Note this is sharper than the version in the
+framework, which compares against C-N — C-N is only our stateless floor, and beating it is not
+interesting. The instrument for this claim is the **phased store removal** driver
+(`--reset-at`, see [`phased-store-removal.md`](phased-store-removal.md)), which asks whether
+capability migrated into the weights: a ceiling question with a yes/no answer.
+
+**Slope (ADUS claim 4).** Under matched task streams, per-session gain is predicted to be flat
+or decaying under C-X and flat or increasing under C-T/C-S, because the retrieval mechanism
+does not itself improve from the gains it stores — nothing makes the next gain easier. The
+instrument for this claim is the **uniform reset sweep** (`--reset-every k`), which measures
+degradation as resets accumulate.
+
+Two consequences worth stating plainly.
+
+*The two drivers answer different questions.* The `k`-sweep is currently the headline and
+`--reset-at` a secondary path, which reflects the order they were built rather than their
+weight. The reachability question is the more fundamental one. We are not reordering the
+released metric on the strength of a framework mapping, but the two should be read as ceiling
+and slope, not as two conveniences.
+
+*Claim 4 may resolve the cost problem in the Exploring tier above.* The obstacle there is that
+token counts are not architecture-neutral, which makes any accuracy-per-cost comparison
+depend on an assumed query/write ratio. A per-session *gain* slope sidesteps this entirely: it
+is dimensionless, it needs no cost accounting, and it is a claim about the shape of a curve
+rather than a level, so it does not expire when hardware improves. We have not adopted it as
+the cost metric, but it is the most promising candidate we have.
 
 ---
 

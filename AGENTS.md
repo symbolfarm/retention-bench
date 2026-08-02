@@ -21,8 +21,11 @@ thirteen archived or non-existent documents.
 two things CL-Bench lacks: a **hard RESET** (a process-kill discontinuity where only an on-disk
 survive-dir persists) and a **constructive/parametric system class**.
 
-There is no leaderboard and no submission process. The claim under test is that *storage is not
-memory*: in-context learning and retrieval produce access without integration.
+There is no leaderboard and no submission process. The claim under test: *continual learning
+agents need expanding memory — episodic memory growing across sessions, semantic memory growing
+across episodes.* In-context learning abstracts richly but persists nothing; retrieval persists
+a recording and re-derives the abstraction each session, over a retrieved subset. Neither keeps
+the abstraction. See `README.md` and `docs/ROADMAP.md`.
 
 ## Where to look
 
