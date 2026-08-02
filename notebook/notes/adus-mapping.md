@@ -58,10 +58,25 @@ instrument is the *other* driver (`--reset-at`), currently presented as a
 secondary path.
 
 So the two drivers are not two conveniences; they answer different questions
-(ceiling vs slope) and the ordering in the docs reflects build order, not weight.
-**Deliberately not reordered for the v0.1 release** — no code changes before
-publish, and reordering the headline metric on the strength of a framework mapping
-is not a decision to take under time pressure. Revisit after release.
+(ceiling vs slope) and the ordering in the docs reflected build order, not weight.
+
+**Resolved 2026-08-02 by routing rather than reordering.** The stronger argument
+turned out not to be the framework mapping at all — it was already sitting in
+[`phased-store-removal.md`](../../docs/phased-store-removal.md): the *same SUT*
+scores `1.000` phased and `0.000` uniform, because resetting mid-learning conflates
+"nothing migrated" with "the store wasn't around long enough to learn from". With
+the claim now explicitly about consolidation, the uniform sweep was the headline
+metric that cannot answer the headline claim.
+
+Swapping which driver is "the headline" was rejected: the keyless reference ladder
+— the only committed, calibrated, reproducible numbers — is entirely on the uniform
+sweep, and the phased worked example is stale (dated 2026-06-28 on the old
+26-instance schedule, needs regeneration at `--reset-at 48`). Leading with a driver
+that has no calibration ladder is worse than the mismatch.
+
+So: **retire the concept of a headline; route by claim.** Both drivers are
+first-class, each doc says which question each answers, and the calibration gap is
+stated rather than hidden. Reorder properly once a phased ladder exists.
 
 ## Claim 4 may resolve the cost problem
 
@@ -103,3 +118,5 @@ disclosure sits beside a precedent rather than arriving alone.
 ## Changelog
 
 - 2026-08-02: created alongside the public ROADMAP section.
+- 2026-08-02: known-mismatch section resolved — routed by claim rather than
+  reordered; recorded why swapping the headline was rejected.

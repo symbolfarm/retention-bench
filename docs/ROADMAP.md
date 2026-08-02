@@ -73,6 +73,22 @@ into a recurring one**, which is what makes the difference measurable. The reset
 handicap applied to retrieval systems; it is the mechanism that exposes a scaling difference
 that is otherwise hidden.
 
+### What would count as success
+
+The top rung is the target, not a stretch goal. An instrument that measured only whether a
+system can restate what it was told would be measuring the bottom rung and calling it the whole
+thing.
+
+What we want to be able to detect is a system that acquires genuinely new competence during a
+run — including competence that *corrects* something it previously held — and applies it to
+inputs it has never seen, in domains like mathematics and programming where the answer can be
+checked independently.
+
+We are a long way from that. As of this document the instrument has measured five keyless
+synthetic reference systems and one constructive system, and no language model at all. The
+tiers below describe what is *scheduled*. This describes what the schedule is aimed at, and the
+two are deliberately different.
+
 ---
 
 ## The organising axis
@@ -129,9 +145,23 @@ exact-match scoring is not special pleading for aggregation; it follows from wha
 **Acquisition happens during the run.** The operation being tested must be learned from the
 episode stream, not brought in from pretraining. Reasoning benchmarks hand you the rule and
 test whether you can apply it; this instrument hands you no rule and tests whether you can
-acquire one. That is why the curriculum uses nonce symbols, and it is why the long-horizon
-direction below requires *invented* mathematics rather than real mathematics — real
-mathematics measures pretraining.
+acquire one. That is why the curriculum uses nonce symbols.
+
+For the long-horizon mathematics direction, the invariant admits two routes. *Invented*
+mathematics is contamination-proof by construction, but expensive: it needs a formal system, a
+curriculum, and a verifier built from scratch, and the result is hard for a reader to interpret.
+*Real* mathematics past a small model's measured knowledge frontier is far cheaper on all three
+— but **behavioural absence is not representational absence.** A model that cannot do X may
+still hold all the substructure: notation, manipulation rules, the shape of the argument. A gain
+then confounds *acquisition* with *elicitation of latent competence*. We have measured exactly
+this confound in the sibling project: in constructive-retention's CR-21, the base model recalls
+a held-out attribute at 1.0 while the key derived to reach it fails to transfer — the
+information is present, but not reachable by the probe.
+
+So real mathematics is admissible **provided the elicitation ceiling is measured as a control
+arm**: the base model given maximal in-context help (few-shot, hints, staged elicitation), with
+consolidation counted only where it beats what elicitation alone recovers. Absent that control,
+invented formalism remains the default.
 
 **Probes use held-out inputs.** At every rung, the test input must be one the system never saw
 in that role. Without this, a lookup table over taught pairs passes while representing
@@ -287,11 +317,13 @@ degradation as resets accumulate.
 
 Two consequences worth stating plainly.
 
-*The two drivers answer different questions.* The `k`-sweep is currently the headline and
-`--reset-at` a secondary path, which reflects the order they were built rather than their
-weight. The reachability question is the more fundamental one. We are not reordering the
-released metric on the strength of a framework mapping, but the two should be read as ceiling
-and slope, not as two conveniences.
+*The two drivers answer different questions, and neither is the headline.* The `k`-sweep was
+presented as primary, which reflected the order the two were built rather than their weight —
+and left the instrument leading with a metric that cannot cleanly answer its own central claim.
+Both are now first-class, routed by the claim being made: ceiling for consolidation, slope for
+degradation. This is a documentation change, not a metric change; the keyless reference ladder
+is still calibrated on the uniform sweep only, and building a phased ladder is the work that
+would let the ordering actually change.
 
 *Claim 4 may resolve the cost problem in the Exploring tier above.* The obstacle there is that
 token counts are not architecture-neutral, which makes any accuracy-per-cost comparison

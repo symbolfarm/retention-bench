@@ -1,6 +1,6 @@
 # Metrics
 
-The headline output of a retention-bench evaluation is a **reset-axis retention curve**: normalised retention as a function of `k`, the number of hard `RESET`s the run executed. Each point applies a measured prior–ceiling band normalisation to the whole-run reward on a Continual Learning Bench task. This is the axis CL-Bench cannot express — its `mean_gain` is a single number at one implicit reset density. Resource metrics are reported alongside, not collapsed into the headline.
+The principal output of a retention-bench evaluation *under the uniform sweep* is a **reset-axis retention curve**: normalised retention as a function of `k`, the number of hard `RESET`s the run executed. (The uniform sweep is one of two drivers and answers the graceful-degradation question; consolidation claims are answered by phased store removal — see [`phased-store-removal.md`](phased-store-removal.md). Neither is *the* headline.) Each point applies a measured prior–ceiling band normalisation to the whole-run reward on a Continual Learning Bench task. This is the axis CL-Bench cannot express — its `mean_gain` is a single number at one implicit reset density. Resource metrics are reported alongside, not collapsed into the headline.
 
 > **Status tags.** Metrics in this document are marked **[implemented]**
 > (computed and rendered by the shipped code) or **[specified]** (defined here

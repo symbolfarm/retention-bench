@@ -8,9 +8,9 @@ cannot answer cleanly.
 ## Two questions a reset can ask
 
 1. **Graceful degradation** — "how well does the system hold task performance as
-   working state is erased *repeatedly* across the run?" This is retention-bench's
-   headline: the uniform `reset_every_k` retention curve. State erasure is
-   interleaved with learning, which is the realistic operating condition.
+   working state is erased *repeatedly* across the run?" The uniform
+   `reset_every_k` retention curve. State erasure is interleaved with learning,
+   which is the realistic operating condition.
 
 2. **Migration into the durable artifact** — "after the system has learned, and we
    then *remove its store*, how much capability remains in what persisted?" This is
@@ -113,6 +113,12 @@ capability genuinely survived store removal.
 | Did capability migrate into the durable artifact? | phased store-removal | `--reset-at <train_len>` |
 | Sensitivity to *where* a reset lands (drift) | boundary placement | `--reset-at <ordinals>` |
 
-The uniform curve remains retention-bench's headline measurement. Phased
-store-removal is the right tool when the claim under test is about consolidation /
-understanding migrating into weights, not graceful degradation.
+Neither protocol is *the* headline. Pick by the claim being made: phased
+store-removal when the claim is about consolidation / understanding migrating into
+the durable artifact, the uniform curve when it is about graceful degradation under
+repeated erasure. The instrument's central claim (see
+[`../README.md`](../README.md)) is a consolidation claim, so phased store removal is
+the protocol that bears on it most directly — but the keyless reference ladder is
+currently calibrated on the uniform sweep only, and a phased ladder does not exist
+yet. Reporting either without saying which question it answers is how the two get
+conflated.

@@ -49,6 +49,20 @@ Not yet migrated — still authoritative in `docs/`:
 [`phased-store-removal.md`](../docs/phased-store-removal.md) (the `--reset-at`
 ceiling driver).
 
+## What would count as success
+
+Detecting a system that acquires genuinely new competence during a run — including
+competence that **corrects** something it previously held — and applies it to unseen
+inputs in domains where the answer can be checked. Recall under resets is the bottom
+rung, not the goal.
+
+That is the *instrument's* aim. The **system** ambition — a learning algorithm that
+gets LLMs to persistently acquire new and corrected understanding in mathematics,
+coding and other domains — belongs to constructive-retention and adus-harness, and
+is deliberately kept out of this repo's public docs: stating it here would say, in
+the benchmark's own voice, that its author wants a particular class of system to
+win.
+
 ## Open questions
 
 Full list in [`docs/ROADMAP.md`](../docs/ROADMAP.md) §"Open questions". Live at the
@@ -56,13 +70,11 @@ notebook level:
 
 1. **Does the profile-across-rungs prediction hold?** Recording = high recall +
    cliff; memory = graded decline. Untested; needs a rung above composition.
-2. **Ceiling or slope as the headline metric?** `--reset-at` answers the
-   reachability question ADUS §3.2 says is the real one; the `k`-sweep is
-   currently the headline. Deferred past v0.1 — see
-   [ADUS mapping](notes/adus-mapping.md).
-3. **Real vs invented mathematics** for the long-horizon rung, and whether an
-   elicitation-ceiling control arm is enough to admit real mathematics. See
-   [2026-08-02](log/2026-08-02.md).
+2. **A phased reference ladder does not exist.** Both drivers are now first-class
+   and routed by claim, but calibration is uniform-sweep-only, so the consolidation
+   question has no ladder behind it. See [ADUS mapping](notes/adus-mapping.md).
+3. **Does the elicitation-ceiling control arm hold up** as the licence for real
+   rather than invented mathematics? Untested. See [2026-08-02](log/2026-08-02.md).
 4. **No language model has been measured yet.** The central claim is unfalsified
    in either direction.
 

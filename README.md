@@ -150,10 +150,12 @@ how you lower it. See
 (LLM-backed reference SUTs like `notes_llm` need an OpenAI-compatible endpoint —
 copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.)
 
-The uniform `--reset-every k` sweep is the headline retention curve (graceful
-degradation across repeated erasure). To instead ask *did capability migrate into
-the weights* — reset **once** at the train/probe boundary with `--reset-at` — see
-[`docs/phased-store-removal.md`](docs/phased-store-removal.md).
+The uniform `--reset-every k` sweep measures **graceful degradation** across
+repeated erasure. To instead ask *did capability migrate into the weights* — reset
+**once** at the train/probe boundary with `--reset-at`, removing the store — see
+[`docs/phased-store-removal.md`](docs/phased-store-removal.md). These answer
+different questions; see [How retention is scored](#how-retention-is-scored) for
+which to pick.
 
 ### Bring your own task
 
@@ -175,16 +177,37 @@ subprocess), so keep BYO task files dependency-light — pydantic/stdlib, no tor
 Each CL-Bench instance is scored by the task's own reward; we run three kinds of
 arm from a fresh survive-dir: `P` (prior — stateless, survive-dir wiped every
 reset), `C` (ceiling — no reset, state accumulates unbroken), and `R(k)`
-(retention after `k` hard resets). The headline metric is **normalised
+(retention after `k` hard resets). The metric is **normalised
 retention** `(R − P) / (C − P)` — how much of the *learnable band* survived the
 resets. A band where `C ≈ P` (nothing was learnable, or priors already saturate)
 is excluded rather than scored. Full definitions, the reset axis, and
 reconciliation with CL-Bench's gain are in [`docs/metrics.md`](docs/metrics.md).
 
+**Two questions, two drivers — pick by the claim you are making.** There is no
+single headline number. The uniform `--reset-every k` sweep measures *graceful
+degradation*: how performance holds as erasure accumulates, with state loss
+interleaved with learning. It cannot cleanly answer whether capability
+**migrated** into what persisted, because resetting mid-learning conflates
+"nothing migrated" with "the store wasn't around long enough to learn from" — a
+system that consolidates perfectly and one that only reads its store back can both
+score low, for opposite reasons. For that question — the one the claim above is
+about — use phased store removal (`--reset-at`), which resets once at the
+train/probe boundary with the store gone. The difference is not cosmetic: on the
+worked example in [`docs/phased-store-removal.md`](docs/phased-store-removal.md)
+the *same SUT* scores `1.000` phased and `0.000` uniform.
+
+The keyless reference ladder below is currently calibrated on the uniform sweep
+only; a phased ladder does not exist yet.
+
 ## Scope and limits
 
-This is an early-stage instrument, and it is worth being explicit about what that
-means:
+What this instrument is ultimately *for* is detecting a system that acquires
+genuinely new competence during a run — including competence that corrects
+something it previously held — and applies it to inputs it has never seen, in
+domains where the answer can be checked. Recall under resets is the bottom rung,
+not the goal; see [`docs/ROADMAP.md`](docs/ROADMAP.md) §"What would count as
+success". Against that aim, this is an early-stage instrument, and it is worth
+being explicit about what that means:
 
 - **One owned task.** The native curriculum is
   `symbolic_associative_retention` — deterministic nonce-symbol associations with
