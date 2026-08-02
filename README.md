@@ -88,12 +88,9 @@ Requires **Python 3.13+** (the `cl-benchmark` dependency sets this floor).
 # 1. Install (editable):
 pip install -e .
 
-# 2. Reinstall the cl-benchmark pin *editable*. This step matters: installed
-#    as a wheel (which step 1 does for dependencies), cl-benchmark's packaging
-#    silently drops the task data files (templates/variants/schedules) its
-#    tasks load at runtime, and every task construction fails. The editable
-#    install keeps the full source tree on disk. Keep the SHA in sync with
-#    the pin in pyproject.toml.
+# 2. Reinstall the cl-benchmark pin *editable* — required, not optional. As a
+#    wheel it silently drops the task data files its tasks load at runtime and
+#    every task construction fails. Keep the SHA in sync with pyproject.toml.
 pip install -e "git+https://github.com/pgasawa/continual-learning-bench.git@9cc63c0f429048b843e8d43ac4f2b0ea4df13724#egg=cl-benchmark"
 
 # 3. Run the canonical end-to-end smoke test (offline, no API key):
@@ -121,17 +118,11 @@ offline:
 ./run.sh ladder
 ```
 
-The committed numbers and interpretation are in
-[`docs/reference-ladder.md`](docs/reference-ladder.md). On the default
-112-instance schedule of `symbolic_associative_retention` (`r_max = 64/112 ≈
-0.571`, so `k = 55` and `k = 111` measured resets), normalised retention
-separates the stateless floor (`no_state`, `0.000`) from full retainers
-(`bounded_memory` and `associative_memory`, both `1.000`) and places a
-geometrically-forgetting rung strictly between them (`reset_lossy`, `0.547` at
-`k = 55` decaying to `0.344` at `k = 111`). Raw score adds the capacity tier and
-places every rung against a measured chance line — analytic chance is
-`1/num_attributes = 1/16 = 0.0625` per probe, `0.0357` as a run-mean, and the
-`random_guess` rung measures `0.027`.
+Normalised retention separates the stateless floor from full retainers, places a
+geometrically-forgetting rung strictly between them, and sits every rung against
+a measured chance line. The run is deterministic, so a clean checkout reproduces
+the committed numbers exactly; those numbers and their interpretation are in
+[`docs/reference-ladder.md`](docs/reference-ladder.md).
 
 For an arbitrary CL-Bench task / SUT, the gain-curve driver is SUT-agnostic:
 
@@ -141,10 +132,8 @@ python -m retention_bench.gain_curve --task <task> --sut "<launch command>" \
   --extra-pythonpath <sut-dir> --reset-every 1 --reset-every 2
 ```
 
-The width and length of the native task are knobs
-(`--task-kwarg num_attributes=16 --task-kwarg objects_per_attribute=2` are the
-defaults); chance level is `1/num_attributes`, so widening the attribute set is
-how you lower it. See
+The native task's width and length are knobs, and chance level is
+`1/num_attributes` — see
 [`docs/associative-curriculum.md`](docs/associative-curriculum.md).
 
 (LLM-backed reference SUTs like `notes_llm` need an OpenAI-compatible endpoint —
@@ -185,19 +174,14 @@ reconciliation with CL-Bench's gain are in [`docs/metrics.md`](docs/metrics.md).
 
 **Two questions, two drivers — pick by the claim you are making.** There is no
 single headline number. The uniform `--reset-every k` sweep measures *graceful
-degradation*: how performance holds as erasure accumulates, with state loss
-interleaved with learning. It cannot cleanly answer whether capability
-**migrated** into what persisted, because resetting mid-learning conflates
-"nothing migrated" with "the store wasn't around long enough to learn from" — a
-system that consolidates perfectly and one that only reads its store back can both
-score low, for opposite reasons. For that question — the one the claim above is
-about — use phased store removal (`--reset-at`), which resets once at the
-train/probe boundary with the store gone. The difference is not cosmetic: on the
-worked example in [`docs/phased-store-removal.md`](docs/phased-store-removal.md)
-the *same SUT* scores `1.000` phased and `0.000` uniform.
+degradation* under repeated erasure; phased store removal (`--reset-at`) asks
+whether capability **migrated** into what persisted, which is the question the
+claim above is about. Using the wrong one inverts verdicts — the *same SUT* can
+score `1.000` phased and `0.000` uniform. Why, and which to reach for, is in
+[`docs/phased-store-removal.md`](docs/phased-store-removal.md).
 
-The keyless reference ladder below is currently calibrated on the uniform sweep
-only; a phased ladder does not exist yet.
+The keyless reference ladder is currently calibrated on the uniform sweep only; a
+phased ladder does not exist yet.
 
 ## Scope and limits
 
