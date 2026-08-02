@@ -50,7 +50,8 @@ whole-run mean reward, but the ambition is about a *transition* — couldn't do 
 then could. A mean washes that out, and the sparser the event the worse it gets.
 **This has already happened once**: constructive-retention's RB-15 sweep found
 retention was a *step, not a decay curve*, and curve-shaped reporting nearly hid it
-(see that repo's [acquisition window](../../../constructive-retention/notebook/notes/acquisition-window.md)).
+(sibling repo, `notebook/notes/acquisition-window.md` — cited as a path rather than
+a link, since cross-repo links break CI where only this repo is checked out).
 On mathematics, acquisition events will be far sparser than on a 112-instance
 synthetic schedule. `W(3)` is the right instinct pointing at this, but it is one
 window statistic, not an acquisition-curve concept.
