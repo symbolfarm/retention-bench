@@ -1,7 +1,12 @@
 # RB-22 Retire the orphan-`main` split; move to a standard tag-based release
 
 **Priority:** high (blocks the public flip)
-**Blocked by:** none
+**Blocked by:** **TOBY — do not start.** Two decisions are his and are not
+delegated: whether to rewrite git history before publishing (see Notes), and the
+irreversible act of flipping repo visibility. Publishing is `third-party-contact`
+/ irreversible class either way. An agent may *draft* the `RELEASING.md` rewrite
+if explicitly asked for it; an agent may not delete branches, rename `dev`, change
+the default branch, push tags, cut a release, or change repo visibility.
 **Touches:** branch layout on GitHub, `RELEASING.md`, `scripts/promote.sh`,
 `PUBLIC_PATHS`, `README.md`, `.github/workflows/ci.yml`, repo settings
 

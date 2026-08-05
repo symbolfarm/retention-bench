@@ -63,6 +63,19 @@ task filed there (prefix `CR-`) that lands first; record the dependency with a
 **Python.** The dev loop uses `.venv/bin/python` (3.13); `./run.sh` prefers it automatically.
 Override with `RETENTION_BENCH_PYTHON=/path/to/python`.
 
+*If the venv is broken after a container rebuild* — only `/workspace` is host-backed, so the
+uv-managed interpreter and any checkout outside `/workspace` are container-local and do not
+survive. Repair (2026-08-05):
+
+```bash
+uv python install 3.13                       # heals the dangling .venv/bin/python symlink
+uv pip install --python .venv/bin/python -e /workspace/continual-learning-bench
+```
+
+The second line is the `cl-benchmark` pin, which **must** be editable — as a wheel it silently
+drops the task data files and every task construction fails. Keep that checkout on the SHA in
+`pyproject.toml`. It lives in `/workspace` deliberately, so the next rebuild does not take it.
+
 **Commits.** Trailer: `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
 
 ## Doc hygiene

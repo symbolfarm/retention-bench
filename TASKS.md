@@ -5,6 +5,15 @@
 > how to start and complete tasks; use its task template when creating new task
 > files.
 
+> **HOLD (2026-08-05): the v0.1 release is blocked on Toby — do not work it.**
+> The orphan-`main` split is being retired in favour of a single public branch
+> plus tag-based releases (**RB-22**), but two decisions in it are Toby's and are
+> not delegated: whether to rewrite git history before publishing, and the
+> visibility flip itself. **No agent may** delete or rename branches, change the
+> default branch, push tags, cut a release, run `scripts/promote.sh` against a
+> real branch, or change repo visibility. Other retention-bench tasks (RB-19,
+> RB-21, RB-3 …) are unaffected and remain open.
+
 ## Current focus
 
 **PIVOT (2026-06-07): retention-bench is now an extension on top of Continual
