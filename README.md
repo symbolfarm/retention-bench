@@ -19,9 +19,13 @@ CL-Bench explicitly lacks:
   survive-directory persists. A system under test (SUT) is a subprocess spanning
   one reset to the next; everything in memory is gone at each reset, so any score
   that survives must have been carried through the survive-dir.
-- **A constructive / parametric system class** — a train-and-grow reference
-  learner that grows capacity across reads, with compute accounting, alongside
-  the agent-memory reference SUTs.
+- **A constructive / parametric system class** — a train-and-grow learner that
+  grows capacity across reads, scored on the same footing as an agent-memory
+  store, with compute accounting. The learner itself is **not in this
+  repository**: it lives out of tree in `constructive-retention`, a sibling
+  research project by the same author that is not yet public, and it reaches the
+  harness through the same documented process contract a third party would use.
+  What ships here are the keyless agent-memory reference SUTs.
 
 ## The claim it exists to test
 
@@ -199,9 +203,10 @@ being explicit about what that means:
   split. CL-Bench's own tasks run through the same seam, but the probe families
   on the roadmap (aggregation, revision, application) do not exist yet.
 - **Co-designed with the system expected to do well on it.** retention-bench is
-  developed alongside [constructive-retention](https://github.com/symbolfarm/constructive-retention),
-  a research project on gradient-free constructive learning, by the same author.
-  That is a genuine validity hazard. We name it rather than hide it, and we
+  developed alongside `constructive-retention` — a research project on
+  gradient-free constructive learning, by the same author, not yet public and so
+  not yet linkable. That is a genuine validity hazard. We name it rather than
+  hide it, and we
   publish the probe design and thesis (in [`docs/ROADMAP.md`](docs/ROADMAP.md))
   *before* those systems are measured through the instrument, so the design is
   timestamped ahead of any favourable result.

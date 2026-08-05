@@ -258,9 +258,11 @@ answers, and we have deliberately not predicted them.
 
 ## Relationship to constructive-retention
 
-This instrument is developed alongside [constructive-retention](https://github.com/symbolfarm/constructive-retention),
-a research project on gradient-free constructive learning, by the same author. That project
-builds systems this instrument is intended to measure, and we expect them to do well on it.
+This instrument is developed alongside `constructive-retention`, a research project on
+gradient-free constructive learning, by the same author. That project builds systems this
+instrument is intended to measure, and we expect them to do well on it. It is not public yet,
+so there is nothing to link to; its systems reach this harness through the documented
+process-level SUT contract, not through anything in this repository.
 
 That is a genuine validity hazard and we would rather name it than have it noticed. Two things
 we do about it: the probe design and the thesis are published here before those systems are
