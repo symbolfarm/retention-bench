@@ -9,9 +9,10 @@
 > maps over it, and existing docs migrate into `notes/` incrementally when a task
 > touches their territory.
 >
-> `notebook/` is **not** in [`PUBLIC_PATHS`](../PUBLIC_PATHS) — it is dev-only and
-> never reaches the public `main` snapshot. Framework-internal reasoning (ADUS,
-> validity-hazard deliberation) belongs here rather than in `docs/`.
+> `notebook/` is **public**, like everything else in this repo (RB-22 retired the
+> public/private path split). Framework-internal reasoning (ADUS, validity-hazard
+> deliberation) belongs here rather than in `docs/` — but write it knowing it is
+> read, not as private working notes.
 
 ## The claim
 

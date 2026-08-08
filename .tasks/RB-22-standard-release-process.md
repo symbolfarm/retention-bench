@@ -47,12 +47,21 @@ One branch with real history, named `main`, with releases cut as tags.
 
 - [ ] Delete the stray remote agent branches: `claude/quirky-maxwell-hzz5r3`,
       `claude/continual-learning-benchmark-review-frrotp`.
-- [ ] Decide on history: the redaction in C5 removes a third party's address from
-      the *working tree*, not from the commits that introduced it. Either rewrite
-      history before publishing, or accept it (the address is published on the
-      paper). **Toby's call — see Notes.**
-- [ ] Confirm `docs/ROADMAP.md`'s ADUS reference (`symbolfarm/intelligence`) points
-      at something public, or keep it unlinked as it is now.
+- [x] **DECIDED 2026-08-07 (Toby): do not rewrite history.** The tree-level C5
+      redaction stands. Measured cost of the alternative: the blob enters at
+      `f802653` and leaves at `ff5217b`, so **139 of 214 commits carry it** — a
+      rewrite renumbers everything from mid-May on, invalidating 52 SHA fields in
+      `.tasks/LOG.jsonl` and hex references across ~59 markdown/jsonl files.
+      `git filter-repo` emits a commit-map so remapping is scriptable, but any
+      missed reference becomes a dead SHA in a public repo. Against that: the
+      address is published on the authors' own paper (marginal exposure ~0), and
+      the outreach-strategy phrasing reads as deliberate, not discreditable.
+- [x] **DONE 2026-08-08.** The ADUS reference pointed at `symbolfarm/intelligence`,
+      **a repo that does not exist** — it came from an earlier LLM-drafted tech
+      report and was never followed through. Link removed; the section now says the
+      framework is not yet gathered into a citable form. Toby intends
+      `adus-intelligence` (theory) + `adus-harness` (implementation) later; nothing
+      in retention-bench needs to name them until they exist.
 - [ ] Re-run the credential scan on the full tree (last run 2026-08-05: clean; no
       key material tracked, `.env` never committed and correctly ignored).
 

@@ -16,10 +16,12 @@ thirteen archived or non-existent documents.
 
 ## What this repo is
 
-**retention-bench** is a research *instrument* — a workbench, not a benchmark. It extends
-[Continual Learning Bench](https://arxiv.org/abs/2606.05661) (Asawa et al., Apache-2.0) with
-two things CL-Bench lacks: a **hard RESET** (a process-kill discontinuity where only an on-disk
-survive-dir persists) and a **constructive/parametric system class**.
+**retention-bench** is a research *instrument* — a workbench, not a benchmark. It adopts
+[Continual Learning Bench](https://arxiv.org/abs/2606.05661)'s (Asawa et al., Apache-2.0)
+runner, task interface and evaluation contract, and points them at a different question, using
+a **hard RESET** (a process-kill discontinuity where only an on-disk survive-dir persists) and
+a **mechanism-agnostic** SUT contract — fine-tuning, structural growth, notes and retrieval are
+all modes above one process-level interface. Nothing constructive ships in this repo.
 
 There is no leaderboard and no submission process. The claim under test: *continual learning
 agents need expanding memory — episodic memory growing across sessions, semantic memory growing
@@ -36,18 +38,19 @@ the abstraction. See `README.md` and `docs/ROADMAP.md`.
 | Research direction, probe ladder, open questions | `docs/ROADMAP.md` |
 | Public framing and the measured reference ladder | `README.md`, `docs/reference-ladder.md` |
 | Metric definitions | `docs/metrics.md` |
-| How to publish | `RELEASING.md`, `PUBLIC_PATHS` |
+| How to publish | `RELEASING.md` |
 
 ## Conventions
 
-**Branches.** `dev` is the working branch — everything lands here, including every edit to
-public files. `main` is an **orphan** public snapshot with no shared history, produced only by
-`scripts/promote.sh`. **Never hand-edit `main`**; the next snapshot would overwrite it. See
-`RELEASING.md`.
+**Branches.** One branch, `main`, with the full working history. Releases are annotated tags
+plus GitHub Releases, cut from `main` — see `RELEASING.md`. There is no promotion step and no
+public/private path split; both were retired with the orphan-`main` model in RB-22.
 
-**What is public.** `PUBLIC_PATHS` is the single source of truth for what reaches `main`.
-Anything unlisted is dev-only — `.tasks/`, `TASKS.md`, this file, `feedback/`, `history/`,
-`scratch/`, `scripts/`, `docs/archive/`, `docs/reviews/`.
+**What is public.** Everything is. The invariant is not "these paths are safe to show" but
+**nothing in this repo is unpublishable** — `.tasks/`, `TASKS.md`, this file, `feedback/`,
+`history/`, `notebook/`, `docs/archive/` and `docs/reviews/` are all part of what makes the
+instrument inspectable. Write accordingly: no credentials, no third-party personal details, and
+nothing you would not want read by the people it discusses.
 
 **Tasks.** Use the `task-cycle` skill. A brief is a *handoff artifact*: write one when work is
 going to a subagent or a future session, or when it is gated on review. Work you do yourself in

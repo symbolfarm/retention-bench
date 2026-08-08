@@ -1,64 +1,96 @@
 # Releasing retention-bench
 
-This repo uses a **two-branch model** to keep a clean public face while the full
-working history stays available:
+This repo has **one branch, `main`**, with the full working history, and cuts
+releases as **annotated tags plus GitHub Releases**.
 
-- **`dev`** — the working branch. Everything lives here: code, tests, docs, plus
-  the build process (`.tasks/`, `TASKS.md`, `AGENTS.md`, `feedback/`, `history/`,
-  `scratch/`, this `RELEASING.md`, and `scripts/`). This is where **all** work and
-  **all edits to public files** happen.
-- **`main`** — the public face. An **orphan branch** (its own root commit, *no
-  shared history with `dev`*), so nothing internal is reachable from `main`'s
-  `git log`. `main` is a strict **path-subset** of `dev`: it contains only the
-  paths listed in [`PUBLIC_PATHS`](PUBLIC_PATHS), minus the excludes.
+Everything is public: code, tests, docs, and the build process (`.tasks/`,
+`TASKS.md`, `AGENTS.md`, `notebook/`, `feedback/`, `history/`). That is
+deliberate. retention-bench is a research instrument, and its task queue,
+debriefs and negative results are part of what makes the instrument
+inspectable. There is no curated subset and no promotion step: the invariant is
+not "these paths are safe to show" but **nothing in this repo is
+unpublishable**.
 
-There are **no `main`-only files**. The README, LICENSE, NOTICE, etc. are authored
-on `dev` and snapshotted to `main`. **Never hand-edit `main`** — your change would
-be overwritten by the next snapshot. Edit on `dev`, then promote.
+A release is therefore not a different tree — it is a *name* for one commit on
+`main`, so that a result can say which exact tree produced it.
 
-## Why orphan, not a shared-history branch
+## What a version means here
 
-A normal branch shares ancestry, so `git log main` would still expose every
-internal commit. An orphan branch has a disjoint history, so the separation is
-*structural*, not a matter of discipline. The trade-off: you can't `merge`
-between `dev` and `main` (disjoint histories don't merge cleanly) — which is the
-point. Promotion is a **snapshot**, never a merge: merging would drag the mess up.
+Versions track the **measurement contract**, not the code:
 
-## The promote script
+- **Patch** (`v0.1.1`) — fixes, docs, new reference SUTs. Numbers published
+  against `v0.1.0` remain valid.
+- **Minor** (`v0.2.0`) — new tasks or probe rungs, new drivers. Old numbers
+  remain valid but the ladder is no longer the same ladder.
+- **Anything that changes what an existing number means** — the retention
+  formula, the reset semantics, task content or scoring — is at minimum a minor
+  bump, and must say so in the release notes. Silently changing a metric under a
+  fixed version is the one thing this process exists to prevent.
 
-[`scripts/promote.sh`](scripts/promote.sh) does the snapshot. It clears the target
-tree and re-extracts exactly the `PUBLIC_PATHS` whitelist from `dev` — clearing
-first so that **deletions on `dev` propagate** (a plain `git checkout dev -- <p>`
-never removes files). It verifies no dev-only path leaked, and it **never pushes**.
+`version` in [`pyproject.toml`](pyproject.toml) is the source of truth; the tag
+matches it with a `v` prefix.
 
-```bash
-# Validate mechanics without touching main (builds the snapshot in a temp worktree):
-scripts/promote.sh dryrun
+## Cutting a release
 
-# First public release — create the orphan `main`:
-scripts/promote.sh cut            # refuses if `main` already exists
-scripts/promote.sh cut --force    # replace an existing `main` with a fresh orphan
+1. **Land everything on `main`.** Ordinary changes go via PR or direct commit;
+   either way the release is cut from `main`, never from a side branch.
 
-# Subsequent releases — add a new snapshot commit onto the existing `main`:
-scripts/promote.sh release
-```
+2. **CI green on the release commit.** CI runs on every push and PR
+   (`.github/workflows/ci.yml`): non-editable install, `.[dev]`, the editable
+   `cl-benchmark` pin, then `pytest`.
 
-Source ref defaults to `dev`; override with `SRC=<ref> scripts/promote.sh ...`.
+3. **Reproduce from a clean checkout.** CI proves the tests pass; this proves a
+   stranger following the README gets the committed numbers. In a scratch
+   directory, outside your working clone:
 
-## Release checklist
+   ```bash
+   git clone https://github.com/symbolfarm/retention-bench && cd retention-bench
+   python3.13 -m venv .venv && . .venv/bin/activate
+   pip install -e .
+   pip install -e "git+https://github.com/pgasawa/continual-learning-bench.git@9cc63c0f429048b843e8d43ac4f2b0ea4df13724#egg=cl-benchmark"
+   ./run.sh smoke
+   ./run.sh ladder
+   ```
 
-1. Land all intended changes on `dev` (incl. README/LICENSE/docs edits).
-2. `scripts/promote.sh dryrun` — confirm the tree is what you expect and the leak
-   check passes.
-3. `scripts/promote.sh cut` (first time) or `release` (after).
-4. Review `main`: `git ls-files`, `git log`, and ideally `pytest` from a clean
-   checkout — the public tree must actually run on its own.
-5. Push when satisfied: `git push origin main`. Flipping repo visibility to public
-   is a manual GitHub step. The script never does either for you.
+   The keyless ladder is deterministic: its output must match the table in
+   [`docs/reference-ladder.md`](docs/reference-ladder.md) exactly. A mismatch
+   blocks the release — either the docs are stale or the metric moved.
 
-## What stays on `dev` only
+4. **Bump `version` in `pyproject.toml`** and commit, if it is not already at
+   the version being released.
 
-`feedback/`, `history/`, `scratch/` (incl. any author-outreach drafts), `.tasks/`,
-`TASKS.md`, `AGENTS.md`, `scripts/`, `PUBLIC_PATHS`, `RELEASING.md`, and
-`docs/archive/` (superseded pre-pivot specs). To change the public surface, edit
-`PUBLIC_PATHS` — it is the single source of truth for what is public.
+5. **Tag the release commit** with an annotated tag:
+
+   ```bash
+   git tag -a v0.1.0 -m "retention-bench v0.1.0"
+   git push origin v0.1.0
+   ```
+
+6. **Cut the GitHub Release** from that tag. Notes should cover: what changed,
+   whether any published number's meaning changed (see *What a version means*),
+   the `cl-benchmark` pin, and the commands that reproduce the ladder.
+
+7. **Anything that links to a result links to the tag**, not to `main`. `main`
+   moves; the tag is what a reader can check.
+
+## Reproducibility notes
+
+- The `cl-benchmark` dependency is pinned to a **commit SHA** in
+  `pyproject.toml`, and the same SHA appears in `README.md` and the CI workflow.
+  All three move together, and the pin belongs in the release notes — the
+  upstream repo is the one input a tag cannot freeze.
+- The `cl-benchmark` pin **must be installed editable**; as a wheel it drops the
+  task data files and every task construction fails. This is an upstream
+  packaging gap, documented at the install step in CI.
+- Keyless reference SUTs are deterministic and reproduce exactly. Anything
+  model-backed is not: those results are dated, pinned to a model identifier,
+  and reported separately rather than as part of the ladder.
+
+## Before the first public release
+
+One-time steps, not part of the recurring procedure:
+
+- Repo visibility flip — a manual GitHub action, and **Toby's decision alone**.
+  No agent performs it.
+- Confirm the branch ruleset (no delete, no force push) is applied to `main`.
+- Confirm no document describes a branch model the repo does not have.

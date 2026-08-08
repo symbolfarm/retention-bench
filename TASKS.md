@@ -56,8 +56,8 @@ abstraction goes* — computed at query time and discarded, versus kept. Also de
 session: no metric is "the headline" (route by claim — ceiling vs slope), real mathematics
 is admissible given an elicitation-ceiling control arm, and the instrument's aim is stated
 up front in the ROADMAP. **Start at [`notebook/INDEX.md`](notebook/INDEX.md)** — the
-notebook is now this repo's record of what we believe and why (dev-only; not in
-`PUBLIC_PATHS`).
+notebook is now this repo's record of what we believe and why (public, like the
+rest of the repo, since RB-22).
 
 **Current open queue (see `.tasks/LOG.jsonl` as source of truth):**
 
@@ -93,8 +93,9 @@ notebook is now this repo's record of what we believe and why (dev-only; not in
 - **C6** — superseded by **RB-2** after the curriculum-learning strategy pivot.
 - **C7** — optional upstream PRs / plugin-hook work.
 - **C12** — non-root SUT containers.
-- **C17** — cut the orphan public `main` release branch; stop before pushing.
-  **Land RB-14 (doc pass) first** so the first public snapshot is already clean.
+- **C17** — **SUPERSEDED by RB-22.** Cut the orphan public `main` release branch.
+  The orphan-`main` model it implements was retired 2026-08-05; the staged local
+  snapshot is dead and must not be pushed.
 
 **From the 2026-07-07 v0.1 review** (`docs/reviews/2026-07-07-v0.1-review.md`).
 RB-10 (RESET process-group integrity), RB-11 (scorer packaging + CI), RB-13
@@ -105,11 +106,11 @@ status tags, editable-install documentation, `!docs/reviews/` exclude, repo
 tour in `docs/README.md`) landed 2026-07-19 — see their debriefs. **The
 2026-07-07 review queue is now clear.**
 
-**C17 (public `main` cutover) is staged but NOT pushed.** The local `main` orphan snapshot
-is from 2026-06-24 and is now ~78 files / +4.6k lines behind `dev` on public paths (RB-12,
-RB-13, RB-14 and the new tests are all missing from it). **Do not push that commit.** The
-sequence is: land RB-16→RB-19 → `scripts/promote.sh release` for a fresh snapshot → then
-Toby pushes host-side (SSH is host-only in the dev container) and flips visibility.
+**C17 (orphan `main` cutover) is dead — superseded by RB-22.** The local `main` orphan
+snapshot is from 2026-06-24, is ~78 files behind, and implements a branch model the project
+has retired. **Do not push it.** The current sequence is RB-22: rename `dev` → `main`, set
+the default branch, tag `v0.1.0`, then Toby pushes host-side (SSH is host-only in the dev
+container) and flips visibility.
 
 **Cross-repo keystone:**
 
