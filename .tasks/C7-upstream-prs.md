@@ -1,7 +1,14 @@
-# C7 Upstream PRs — plugin entry-point discovery (+ optional reset schedule)
+# C7 OPTIONAL: upstream PRs, if the CL-Bench authors are interested
 
 **Priority:** low
-**Blocked by:** nothing
+**Blocked by:** nothing — but see Status below; do not start speculatively.
+
+> **Status (2026-08-08).** This task was filed assuming our changes would want to go
+> upstream. That assumption is not held any more: retention-bench points CL-Bench's
+> contract at a different question rather than filling a gap they overlooked, and
+> integration may well not interest them. Keep it filed as an *option* that becomes
+> live only if a conversation with the authors invites it. The v0.1.0 release gives
+> that conversation something concrete to point at.
 **Touches:** `unknown` (CL-Bench fork/PR, not this repo)
 
 ## Context

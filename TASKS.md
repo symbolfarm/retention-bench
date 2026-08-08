@@ -5,14 +5,17 @@
 > how to start and complete tasks; use its task template when creating new task
 > files.
 
-> **HOLD (2026-08-05): the v0.1 release is blocked on Toby — do not work it.**
-> The orphan-`main` split is being retired in favour of a single public branch
-> plus tag-based releases (**RB-22**), but two decisions in it are Toby's and are
-> not delegated: whether to rewrite git history before publishing, and the
-> visibility flip itself. **No agent may** delete or rename branches, change the
-> default branch, push tags, cut a release, run `scripts/promote.sh` against a
-> real branch, or change repo visibility. Other retention-bench tasks (RB-19,
-> RB-21, RB-3 …) are unaffected and remain open.
+> **RELEASED (2026-08-08): `v0.1.0` is public.** RB-22 is complete — one branch
+> (`main`) with full history, tag-based releases, the repo public, and the
+> reference ladder verified to reproduce exactly from an unauthenticated clone.
+> History was deliberately **not** rewritten; see the RB-22 debrief. The old
+> orphan snapshot is kept as `archive/orphan-main-v0.1` (disjoint history — that
+> is expected).
+>
+> **Release actions remain Toby's**: no agent pushes tags, cuts releases, renames
+> or deletes branches, changes the default branch, or changes repo visibility.
+> Ordinary work on `main` proceeds normally. See [`RELEASING.md`](RELEASING.md)
+> for the procedure, including the clean-checkout ladder gate.
 
 ## Current focus
 
@@ -91,7 +94,8 @@ rest of the repo, since RB-22).
   enough to make exposure-count curves informative.
 - **C5** — author outreach draft, gated on Toby review before anything is sent.
 - **C6** — superseded by **RB-2** after the curriculum-learning strategy pivot.
-- **C7** — optional upstream PRs / plugin-hook work.
+- **C7** — **optional**: upstream PRs *if* the CL-Bench authors are interested.
+  Not a commitment; do not start speculatively.
 - **C12** — non-root SUT containers.
 - **C17** — **SUPERSEDED by RB-22.** Cut the orphan public `main` release branch.
   The orphan-`main` model it implements was retired 2026-08-05; the staged local
