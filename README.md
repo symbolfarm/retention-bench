@@ -104,6 +104,12 @@ pip install -e "git+https://github.com/pgasawa/continual-learning-bench.git@9cc6
 ./run.sh smoke
 ```
 
+Use `pip` for step 2 specifically, even if you manage the rest of the
+environment with `uv`: `uv pip install -e` rejects a git URL outright
+("Editable must refer to a local directory"), and a non-editable install fails
+at runtime for the reason in the comment. `uv pip install pip` into the venv,
+then run step 2 with `python -m pip`.
+
 This drives the **keyless `bsm-accumulator`** reference SUT through CL-Bench's
 `blind_spectrum_monitoring` task on the gain-curve sweep, printing the
 `P` / `C` / `R(k)` retention table. It runs **offline with no API key and no
