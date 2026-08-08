@@ -1,8 +1,10 @@
 # Research agenda
 
-**Dated 2026-07-29.** This is a research agenda, not a benchmark specification. It records
-what we think we are measuring and what we intend to measure next, published *before* the
-measurements exist so that the design is on record ahead of the results.
+**Last revised 2026-08-08, ahead of the v0.1 release.** This is a research agenda, not a
+benchmark specification. It records what we think we are measuring and what we intend to
+measure next, written before the measurements exist so that the design is on record ahead of
+the results. What fixes that record is the git history of this file, not the prose: from v0.1
+onward, every revision is a public commit with a date on it.
 
 Nothing here is a commitment to a finding. Where we state an expectation, we state it as a
 question we intend to answer.
@@ -11,10 +13,11 @@ question we intend to answer.
 
 ## What this instrument is for
 
-Retention Bench is an extension to [Continual Learning Bench](https://arxiv.org/abs/2606.05661)
-(Asawa et al., Apache-2.0) contributing two things it does not have: a **hard RESET** — a
-process-kill discontinuity where only an on-disk survive-dir persists — and a
-**constructive/parametric system class**.
+Retention Bench adopts [Continual Learning Bench](https://arxiv.org/abs/2606.05661)'s (Asawa
+et al., Apache-2.0) runner, task interface and evaluation contract, and points them at a
+different question, using a **hard RESET** — a process-kill discontinuity where only an on-disk
+survive-dir persists — and a **mechanism-agnostic SUT contract**, under which fine-tuning,
+structural growth, notes and retrieval are all modes above one process-level interface.
 
 It is a research instrument that we use and share, not a benchmark seeking submissions. There
 is no leaderboard and no submission process. "Bench" here means *workbench*.
@@ -31,18 +34,25 @@ The second is what this instrument measures.
 
 The distinction that does the work is between a **recording** and a **memory**. A recording is
 verbatim, retrieved unchanged, and complete: it answers any question whose answer sits inside a
-single stored item, and nothing else. A memory has been compressed into a structure — which is
-why it composes, and why it is lossy. Compression is not a defect here; it is what forces
-structure, and a store under no pressure to compress never acquires any.
+single stored item, and nothing else. A memory has been **re-represented** — stored in a form
+other than the one it arrived in, and one that supports queries the arrival form does not.
+
+Two things re-representation is not. It is not the same as **lossiness**: lossiness is a
+frequent symptom, not the definition, and random deletion is lossy while structuring nothing.
+And it is not the same as **compression**: lossless compression removes redundancy while
+producing nothing queryable, and a growing semantic index re-represents without shrinking at
+all. Capacity pressure is one reliable *cause* — you cannot answer about `N` items from less
+than `N` items' worth of storage without exploiting regularity, and exploiting regularity is
+structure — which is why the storage-budget axis below is a way to force the issue. It is a
+cause, not the definition. The claim under test is explicitly about memory that **expands**, so
+the instrument must not accidentally require that memory shrink.
 
 This is **not** a claim that transformers cannot abstract. Within a context window they plainly
 do: attention composes over the whole window, and a model shown instances of a rule can induce
-it and apply it to an input it never saw. That is abstraction over episodes, and it is what
-transformers are best at. The claim is about where that abstraction *goes*. It is computed at
-query time and discarded with the process; what persists is the token sequence that produced
-it.
-
-Three positions, then, rather than two:
+it and apply it to an input it never saw. That is abstraction *within an episode*, and it is
+what transformers are best at. The claim is about where that abstraction goes: it is computed
+at query time and discarded with the process, and what persists is the token sequence that
+produced it.
 
 | | what persists | where it abstracts | consequence |
 |---|---|---|---|
@@ -56,38 +66,26 @@ properties of the entire set have no query that surfaces them. This is the speci
 expect the aggregation rung below to be hard for retrieval, and it does not require denying
 in-context learning any of its compositional power.
 
-The claim can be shown false, and the falsification is cheap to state: a system that clears the
-probe ladder with nothing but a store.
+**How this could be wrong.** A well-built agentic harness that manages context and retrieval
+aggressively may show no limit we can discern at the scales we can test. That is the live
+possibility, and open questions 1–3 are where we confront it.
+
+**How it could be shown false.** A system that clears the probe ladder with nothing but a
+store. That result is ambiguous on its own, and the two readings are distinguishable by what
+the probe asks for: a store passing a probe whose answer sits inside a single stored item means
+the rung was too easy; a store passing probes whose answers are properties of the whole set is
+evidence against the claim.
 
 ### Why a hard RESET
 
-The obvious objection is that longer context windows will make this moot. They will not,
-because of what the reset does.
-
-A long-context system can always reload everything from disk when the process restarts. That
-is a legitimate strategy and it works. And it costs the full re-read **every session, forever.**
-
-Without resets, that cost is paid once and amortised across a run, and the difference between
-paying-per-session and paying-once is invisible. **The hard RESET converts a one-time cost
-into a recurring one**, which is what makes the difference measurable. The reset is not a
-handicap applied to retrieval systems; it is the mechanism that exposes a scaling difference
-that is otherwise hidden.
-
-### What would count as success
-
-The top rung is the target, not a stretch goal. An instrument that measured only whether a
-system can restate what it was told would be measuring the bottom rung and calling it the whole
-thing.
-
-What we want to be able to detect is a system that acquires genuinely new competence during a
-run — including competence that *corrects* something it previously held — and applies it to
-inputs it has never seen, in domains like mathematics and programming where the answer can be
-checked independently.
-
-We are a long way from that. As of this document the instrument has measured five keyless
-synthetic reference systems and one constructive system, and no language model at all. The
-tiers below describe what is *scheduled*. This describes what the schedule is aimed at, and the
-two are deliberately different.
+The obvious objection is that longer context windows will make this moot. They will not. A
+long-context system can always reload everything from disk when the process restarts — a
+legitimate strategy that works, and costs the full re-read **every session, forever.** Without
+resets that cost is paid once and amortised across a run, so the difference between
+paying-per-session and paying-once is invisible. **The hard RESET converts a one-time cost into
+a recurring one**, which is what makes the difference measurable. The reset is not a handicap
+applied to retrieval systems; it is the mechanism that exposes a scaling difference that is
+otherwise hidden.
 
 ---
 
@@ -96,10 +94,6 @@ two are deliberately different.
 We think there is one axis underneath, not a collection of independent difficulty knobs:
 **how far the probe sits from the episode that taught it** — how much of the answer had to
 become semantic memory rather than remain episodic.
-
-Distance from surface form is the observable proxy. The underlying quantity is the
-episodic→semantic transition: recall asks only that the episode survived, and each rung above
-it asks for something no single episode contains.
 
 | Probe family | What it asks | What it tests |
 |---|---|---|
@@ -116,14 +110,20 @@ not yet know.
 
 Only **Recall** and a two-hop **Composition** probe exist today.
 
+### What would count as success
+
+The top rung is the target, not a stretch goal: a system that acquires genuinely new competence
+during a run — including competence that *corrects* something it previously held — and applies
+it to inputs it has never seen, in domains where the answer can be checked independently. An
+instrument that measured only whether a system can restate what it was told would be measuring
+the bottom rung and calling it the whole thing. The tiers below describe what is *scheduled*;
+this is what the schedule is aimed at, and the two are deliberately different.
+
 ### Read the profile, not the level
 
-A corollary of the recording/memory distinction: **a perfect score on Recall is not by itself
-good news.** Verbatim fidelity is what a recording is *for*. Human episodic memory is
-notoriously inaccurate, and the inaccuracy is not incidental — it is the signature of having
-been compressed into a structure, which is the same compression the upper rungs depend on.
-
-So the informative quantity is the *shape* across rungs, not the height at any one:
+A corollary: **a perfect score on Recall is not by itself good news** — verbatim fidelity is
+what a recording is *for*. The informative quantity is the *shape* across rungs, not the height
+at any one:
 
 | Profile | Reading |
 |---|---|
@@ -133,39 +133,35 @@ So the informative quantity is the *shape* across rungs, not the height at any o
 
 We do not predict that reconstruction is *required* — that would be an argument from human
 architecture, and this instrument is substrate-neutral. The functional version is what we
-actually claim: compression is what forces structure, and a store under no pressure to compress
-never acquires any. If a system clears every rung on a verbatim log, that refutes the claim and
-we would report it as such.
-
-This also generalises the scoring note under *Likely* below. Distance-based rather than
-exact-match scoring is not special pleading for aggregation; it follows from what a memory is.
+claim: a store that keeps only the arrival form, under no pressure to re-represent, has no
+route to the upper rungs. If a system clears every rung on a verbatim log, that refutes the
+claim and we would report it as such.
 
 ### Two invariants
 
 **Acquisition happens during the run.** The operation being tested must be learned from the
 episode stream, not brought in from pretraining. Reasoning benchmarks hand you the rule and
 test whether you can apply it; this instrument hands you no rule and tests whether you can
-acquire one. That is why the curriculum uses nonce symbols.
-
-For the long-horizon mathematics direction, the invariant admits two routes. *Invented*
-mathematics is contamination-proof by construction, but expensive: it needs a formal system, a
-curriculum, and a verifier built from scratch, and the result is hard for a reader to interpret.
-*Real* mathematics past a small model's measured knowledge frontier is far cheaper on all three
-— but **behavioural absence is not representational absence.** A model that cannot do X may
-still hold all the substructure: notation, manipulation rules, the shape of the argument. A gain
-then confounds *acquisition* with *elicitation of latent competence*. We have measured exactly
-this confound in the sibling project: in constructive-retention's CR-21, the base model recalls
-a held-out attribute at 1.0 while the key derived to reach it fails to transfer — the
-information is present, but not reachable by the probe.
-
-So real mathematics is admissible **provided the elicitation ceiling is measured as a control
-arm**: the base model given maximal in-context help (few-shot, hints, staged elicitation), with
-consolidation counted only where it beats what elicitation alone recovers. Absent that control,
-invented formalism remains the default.
+acquire one. That is why the current curriculum uses nonce symbols.
 
 **Probes use held-out inputs.** At every rung, the test input must be one the system never saw
 in that role. Without this, a lookup table over taught pairs passes while representing
 nothing.
+
+### The elicitation ceiling
+
+Nonce symbols make acquisition airtight but cap what the instrument can say about real
+competence. Any move to real material runs into the same problem: **behavioural absence is not
+representational absence.** A model that cannot do X may still hold all the substructure, so a
+measured gain confounds *acquisition* with *elicitation of latent competence*. We have measured
+exactly this confound in the sibling project: in constructive-retention's CR-21, the base model
+recalls a held-out attribute at 1.0 while the key derived to reach it fails to transfer — the
+information is present, but not reachable by the probe.
+
+So real material is admissible **provided the elicitation ceiling is measured as a control
+arm**: the base model given maximal in-context help (few-shot, hints, staged elicitation), with
+consolidation counted only where it beats what elicitation alone recovers. This applies to every
+candidate below; it is not specific to any one of them.
 
 ---
 
@@ -194,43 +190,49 @@ nothing.
   retrieval is a calibration rung, not a result.
 - **Two-tier publication.** Reproducible keyless numbers in one place; model-dependent numbers
   as dated snapshots with pinned model IDs and stored traces, kept visibly separate.
-
-- **Storage budget as an axis.** Promoted from *Exploring* on a structural argument rather than
-  an application one. We had justified it by deployment setting — disk is effectively free on
-  servers, genuinely scarce on edge devices — which made it look like a niche constraint. The
-  stronger reason: **if storage is free, a recording is never punished**, and the
-  recording/memory distinction becomes unmeasurable by that route entirely. We currently have
-  exactly one way to separate them — probes a recording structurally cannot answer — and a
-  capacity constraint is the second, independent one. Capacity pressure is what forces a system
-  to choose between keeping records and keeping conclusions. The axis will still be reported
-  under a stated budget rather than as a general claim, and it grows in importance as corpus
-  size grows: at pre-training scale, keeping the recording stops being free even on a server.
+- **Storage budget as an axis.** If storage is free, a recording is never punished. Probes a
+  recording structurally cannot answer are one way to separate recording from memory; a
+  capacity constraint is the second, independent one, because capacity pressure forces a system
+  to choose between keeping records and keeping conclusions. Reported under a stated budget
+  rather than as a general claim.
 
 ### Exploring
 
-- **How to measure cost.** We believe cost matters as much as accuracy — retrieval pays at
-  query time and integration pays at write time — but we do not yet have a defensible metric.
-  Token count is not architecture-neutral: a constructive system spends *zero* tokens, which
-  makes the metric vacuous exactly where it matters most. Any accuracy-per-cost comparison
-  also depends on an assumed ratio of queries to writes, and choosing that ratio chooses the
-  winner. Token counts are gameable by terser notation, and query-time tokens conflate memory
-  access with reasoning.
+- **What the realistic acquisition target is.** Nonce symbols are contamination-proof but
+  synthetic. Two candidates are more real, and neither is settled:
 
-  Our current best idea is to **commit to the slope rather than the level**: absolute cost is
-  not comparable across architectures, but *how cost grows with accumulated history* is
-  dimensionless and therefore is. That is a claim about the shape of a curve rather than about
-  what any system can do today, so it does not expire when hardware improves. We are not
-  confident enough in it to commit.
+  *Post-cutoff codebases* — material created after a model's training cutoff, verified by the
+  repo's own test suite. Contamination-proof by date, cheap, and interpretable. The catch is
+  shelf life: every model generation moves the cutoff, so the corpus needs refreshing and a
+  result is not directly re-runnable on a newer model. Idiom is also not novel even when the
+  code is, so the elicitation control arm above does real work here.
+
+  *Knowledge gaps in small models* — abundant and stable, with no expiry. The catch is that the
+  confound is at its sharpest: a gap in behaviour is exactly where latent-but-unreachable
+  competence is most likely, so the control arm moves from prudent to mandatory.
+
+  Both are admissible and they are not the same experiment; we have committed to neither.
+  *Invented formalism* — a formal system, curriculum and verifier built from scratch — is
+  contamination-proof by construction but expensive and hard for a reader to interpret. We do
+  not expect to reach for it, and it stays available if it turns out to be cheap or necessary.
+
+- **How to measure cost.** Cost matters, but capability gates and cost compares: among systems
+  that clear the capability bar cost is the whole comparison, and where nothing separates on
+  capability there is nothing to price. We have no defensible metric yet. Token count is not
+  architecture-neutral — a constructive system spends *zero*, which makes it vacuous exactly
+  where it matters most — and any accuracy-per-cost ratio depends on an assumed query/write
+  mix, where choosing the mix chooses the winner.
+
+  One candidate is to report **how cost grows with accumulated history** rather than its level:
+  a growth rate is dimensionless and therefore comparable across architectures, where an
+  absolute cost is not. We are not sold on it. The more likely outcome is that there is no
+  single architecture-neutral number: different memory mechanisms may simply win on different
+  measures, qualitatively as well as quantitatively, and the honest report is a profile rather
+  than a ranking.
 
 - **Procedures that change.** A learned procedure that is revised mid-stream — the convention
   updated, the interface changed, the policy rewritten — is ordinary in real work and, we
   suspect, badly handled by retrieval. We are not aware of anyone measuring it.
-
-- **Learning mathematics or programming from scratch.** The far end of the ladder: a small
-  model acquiring genuinely novel formal operations during a run and applying them to unseen
-  inputs. Skills sit on this ladder rather than outside it — applying a learned procedure is
-  what understanding is *for*, and stopping at recall would be measuring the bottom rung and
-  calling it the whole thing. Long-horizon and not scheduled.
 
 ---
 
@@ -261,8 +263,8 @@ answers, and we have deliberately not predicted them.
 This instrument is developed alongside `constructive-retention`, a research project on
 gradient-free constructive learning, by the same author. That project builds systems this
 instrument is intended to measure, and we expect them to do well on it. It is not public yet,
-so there is nothing to link to; its systems reach this harness through the documented
-process-level SUT contract, not through anything in this repository.
+so there is nothing to link to; **nothing constructive ships in this repository**, and its
+systems reach this harness through the documented process-level SUT contract.
 
 That is a genuine validity hazard and we would rather name it than have it noticed. Two things
 we do about it: the probe design and the thesis are published here before those systems are
@@ -273,66 +275,25 @@ documented process-level contract rather than having to take our word for anythi
 We would rather be told the instrument is measuring the wrong thing now than after we have
 published results on it.
 
----
-
 ## Relationship to ADUS
 
-The same author maintains a functional architecture of intelligence called **ADUS**
-(github.com/symbolfarm/intelligence). It is not a prerequisite for anything above, and nothing
-in this instrument depends on accepting it — the claim, the probes, and the metric are all
-stated without it. This section records the mapping because the framework is where several of
-the design decisions above came from, and because two of its registered claims are the
-questions this instrument exists to answer. It is our own framework, which is a reason to
-disclose the connection rather than to lean on it.
+The same author is developing a functional architecture of intelligence called **ADUS**. It is
+not yet gathered into a single published form, so there is nothing to cite. Nothing here
+depends on accepting it — the claim, the probes and the metric are all stated without it — but
+it is where several of the design decisions above came from, and it is our own framework, which
+is a reason to disclose the connection rather than to lean on it.
 
-ADUS classifies memory by **consolidation channel** — the route by which content acquired in an
-episode reaches a durable form. The channels map onto the reference SUT classes directly:
-
-| SUT class | ADUS channel | Route |
-|---|---|---|
-| `no_state` (the `P` arm) | **C-N** | none; gains do not outlast the episode |
-| notes, retrieval, long-context reload | **C-X** | external artifact, re-presented each session |
-| fine-tuning reference | **C-T** | substrate, initiated by something other than the agent |
-| constructive systems | **C-S** | substrate, self-initiated |
-
-That taxonomy is what the three-position table above is a specialisation of, and it is why the
-instrument treats fine-tuning, structural growth, notes, and retrieval as modes above one
-process-level contract: they differ in channel, not in kind of claim.
-
-Two ADUS claims are directly at stake.
-
-**Reachability (ADUS claim 9).** ADUS argues consolidation is an *ability* rather than a rate
-parameter, on the grounds that without a consolidation route any competence needing more
-acquisition than fits in one episode is unreachable at any effort. The prediction is a
-reachability boundary, not slower acquisition: there exist tasks unreachable under C-X *at any
-context budget* that become reachable under C-S. Note this is sharper than the version in the
-framework, which compares against C-N — C-N is only our stateless floor, and beating it is not
-interesting. The instrument for this claim is the **phased store removal** driver
-(`--reset-at`, see [`phased-store-removal.md`](phased-store-removal.md)), which asks whether
-capability migrated into the weights: a ceiling question with a yes/no answer.
-
-**Slope (ADUS claim 4).** Under matched task streams, per-session gain is predicted to be flat
-or decaying under C-X and flat or increasing under C-T/C-S, because the retrieval mechanism
-does not itself improve from the gains it stores — nothing makes the next gain easier. The
-instrument for this claim is the **uniform reset sweep** (`--reset-every k`), which measures
-degradation as resets accumulate.
-
-Two consequences worth stating plainly.
-
-*The two drivers answer different questions, and neither is the headline.* The `k`-sweep was
-presented as primary, which reflected the order the two were built rather than their weight —
-and left the instrument leading with a metric that cannot cleanly answer its own central claim.
-Both are now first-class, routed by the claim being made: ceiling for consolidation, slope for
-degradation. This is a documentation change, not a metric change; the keyless reference ladder
-is still calibrated on the uniform sweep only, and building a phased ladder is the work that
-would let the ordering actually change.
-
-*Claim 4 may resolve the cost problem in the Exploring tier above.* The obstacle there is that
-token counts are not architecture-neutral, which makes any accuracy-per-cost comparison
-depend on an assumed query/write ratio. A per-session *gain* slope sidesteps this entirely: it
-is dimensionless, it needs no cost accounting, and it is a claim about the shape of a curve
-rather than a level, so it does not expire when hardware improves. We have not adopted it as
-the cost metric, but it is the most promising candidate we have.
+ADUS classifies memory by **consolidation channel**, the route by which content acquired in an
+episode reaches a durable form, and those channels map onto the reference SUT classes directly:
+`no_state` → C-N (no route), notes/retrieval/long-context reload → C-X (external artifact),
+fine-tuning → C-T (substrate, externally initiated), constructive systems → C-S (substrate,
+self-initiated). That taxonomy is what the three-position table above specialises, and it is
+why the instrument treats these as modes above one contract: they differ in channel, not in
+kind of claim. Two ADUS claims are directly at stake — a **reachability** boundary under C-X
+(measured by phased store removal, [`phased-store-removal.md`](phased-store-removal.md)) and a
+per-session **gain slope** (measured by the uniform reset sweep). The full mapping, including
+where our metric does not yet match the claim it is meant to test, is in
+[`../notebook/notes/adus-mapping.md`](../notebook/notes/adus-mapping.md).
 
 ---
 
@@ -340,6 +301,15 @@ the cost metric, but it is the most promising candidate we have.
 
 As of this document, the instrument has measured five keyless synthetic reference systems —
 four retention mechanisms plus a chance line — and one constructive (weights-mutating) system
-through a real process-kill reset. It has measured **no language model**. The central claim is
-therefore unfalsified in either direction. Coherence is not evidence, and the first real
-measurement is the immediate next step.
+through a real process-kill reset. That constructive measurement was of an out-of-tree system
+reached through the process contract; it is **not reproducible from this repository**, and the
+reference ladder a reader can run covers the keyless systems only.
+
+It has measured **no language model**. The central claim is therefore unfalsified in either
+direction. Coherence is not evidence, and the first real measurement is the immediate next
+step.
+
+**Neither driver is the headline.** The uniform `k`-sweep and phased store removal answer
+different questions and are routed by the claim being made: ceiling for consolidation, slope
+for degradation. The keyless reference ladder is calibrated on the uniform sweep only; building
+a phased ladder is the work that would let that ordering change.

@@ -81,7 +81,7 @@ normalized_retention(k, q) = (R(k, q) − P(q)) / max(C(q) − P(q), ε)
 
 — with an `ε` floor to handle questions where `C(q) ≈ P(q)` (the SUT couldn't answer even with the text, or already knew without it; in either case the question carries no usable signal at this SUT and is reported but not aggregated).
 
-Aggregation across questions and across `k` produces the retention curve (see [`metrics.md`](./metrics.md)). Higher-weight aggregation on later-stage retroactively-relevant and thematic questions remains the default.
+Aggregation across questions and across `k` produces the retention curve (see [`metrics.md`](../metrics.md)). Higher-weight aggregation on later-stage retroactively-relevant and thematic questions remains the default.
 
 ### Cross-reset purity (the load-bearing constraint)
 

@@ -318,5 +318,5 @@ These are yours to make; flag them back when you've chosen:
 | The SUT-as-CL-Bench-system adapter | `retention_bench/system.py` (`SubprocessSystem`) |
 | Reset schedules / `k`-axis | `retention_bench/reset_schedule.py` |
 | Gain-vs-`k` curve + metric definitions | `retention_bench/gain_curve.py`; `docs/metrics.md` |
-| Design history (pivot rationale; task triage) | `docs/archive/` on the `dev` branch (not part of the public snapshot) |
+| Design history (pivot rationale; task triage) | `docs/archive/` (superseded, retained for "why" archaeology) |
 | Upstream benchmark | Continual Learning Bench (Asawa et al.), Apache-2.0 |

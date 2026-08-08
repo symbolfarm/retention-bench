@@ -163,5 +163,5 @@ Deliver `question-set.yaml` in the same directory as the novella (`cohort-1/nove
 - [`book-spec.md`](./book-spec.md) — the novella brief (the question-author **does not** receive this).
 - [`memory-targets-spec.md`](./memory-targets-spec.md) — the question-author's primary input alongside the novella.
 - [`tasks.md`](./tasks.md) — Track 1 structure and probe semantics.
-- [`metrics.md`](./metrics.md) — how `P`, `C`, `R(k)` flow into normalised retention.
+- [`metrics.md`](../metrics.md) — how `P`, `C`, `R(k)` flow into normalised retention.
 - [`worked-example-book-track.md`](./worked-example-book-track.md) — concrete event sequence that consumes this question set.

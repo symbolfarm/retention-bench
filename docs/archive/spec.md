@@ -29,7 +29,7 @@ CL-N fixes the task and varies the clear topology, producing a **retention curve
 
 - [`protocol.md`](./protocol.md) — the CL-N protocol: clears, stages, run semantics
 - [`interface.md`](./interface.md) — the system-under-test contract
-- [`metrics.md`](./metrics.md) — retention curves, resource metrics, reporting
+- [`metrics.md`](../metrics.md) — retention curves, resource metrics, reporting
 - [`tasks.md`](./tasks.md) — task track specifications (book-episodic, codebase; others flagged)
 - [`topology.md`](./topology.md) — clear-topology design space and parameters
 - [`validity.md`](./validity.md) — contamination, confounds, and guardrails

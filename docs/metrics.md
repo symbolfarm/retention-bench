@@ -311,8 +311,7 @@ definition.
 The book-track `Scorer` seam (exact-match / LLM-as-judge dispatch by
 `question_type`, the `judge_resource_appendix`, the `python -m scorer` CLI) was
 retired with the per-question harness. It is preserved only in
-`docs/archive/` on the `dev` branch for "why" archaeology (not part of the
-public snapshot).
+`docs/archive/` for "why" archaeology; those documents are superseded.
 
 ## Resource metrics
 

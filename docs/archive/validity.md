@@ -12,7 +12,7 @@ Books, papers, popular codebases, and well-known datasets are in pretraining cor
 
 ### Primary handling: measurement, not avoidance (locked Turn 5 of [[design-dialogue]])
 
-The three-probe baseline structure (see [`tasks.md`](./tasks.md) and [`metrics.md`](./metrics.md)) measures contamination per question. A `prior`-probe `QUIZ` issued *before* any `READ` event records `P(q)` — the SUT's score on `q` from pretraining or general knowledge alone. The headline metric `(R − P) / (C − P)` then quantifies how much the SUT learned *and retained beyond what it already knew*, not raw post-reset score.
+The three-probe baseline structure (see [`tasks.md`](./tasks.md) and [`metrics.md`](../metrics.md)) measures contamination per question. A `prior`-probe `QUIZ` issued *before* any `READ` event records `P(q)` — the SUT's score on `q` from pretraining or general knowledge alone. The headline metric `(R − P) / (C − P)` then quantifies how much the SUT learned *and retained beyond what it already knew*, not raw post-reset score.
 
 Consequences:
 

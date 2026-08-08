@@ -1,88 +1,91 @@
 # retention-bench
 
-A research instrument for measuring whether what a system learned during a run
-**survives a discontinuity that erases working state** — and whether what
-survives is *integrated* or merely *stored*.
+[![CI](https://github.com/symbolfarm/retention-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/symbolfarm/retention-bench/actions/workflows/ci.yml)
 
-"Bench" here means **workbench**, not benchmark. There is no leaderboard and no
-submission process: this is the instrument a research programme uses and shares
-publicly, so that its design can be inspected and pointed at other systems. See
-[`docs/ROADMAP.md`](docs/ROADMAP.md) for the research agenda, and
-[Scope and limits](#scope-and-limits) below for what it does *not* yet do.
+A research workbench and instrument for measuring what a system learned during a
+run, i.e., continual learning. Two topics of interest are:
+
+- **Learning that survives a discontinuity that erases working state**
+- **Learning that is integrated and not merely stored**
+
+"Bench" here means **workbench**, not benchmark. This is the instrument a
+research programme uses and shares publicly, so that its design can be inspected
+and pointed at other systems. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the
+research agenda, and [Scope and limits](#scope-and-limits) below.
 
 retention-bench is an **extension on top of [Continual Learning Bench](https://github.com/pgasawa/continual-learning-bench)**
 (CL-Bench; Asawa et al., arXiv:2606.05661, Apache-2.0). It adopts CL-Bench's
-runner, task interface, and evaluation contract, and contributes the two things
-CL-Bench explicitly lacks:
+runner, task interface, and evaluation contract, and points them at a different
+question, using:
 
 - **A hard RESET** — a process-kill discontinuity across which *only* an on-disk
   survive-directory persists. A system under test (SUT) is a subprocess spanning
-  one reset to the next; everything in memory is gone at each reset, so any score
-  that survives must have been carried through the survive-dir.
-- **A constructive / parametric system class** — a train-and-grow learner that
-  grows capacity across reads, scored on the same footing as an agent-memory
-  store, with compute accounting. The learner itself is **not in this
-  repository**: it lives out of tree in `constructive-retention`, a sibling
-  research project by the same author that is not yet public, and it reaches the
-  harness through the same documented process contract a third party would use.
-  What ships here are the keyless agent-memory reference SUTs.
+  one reset to the next, so scoring evaluates learning survival or retention.
+- **Mechanism-agnostic memory** — the SUT interface (read a stage, optionally
+  mutate the survive-dir, write a response) does not distinguish between memory
+  implemented with fine-tuning, structural growth, notes, and/or retrieval.
+
+There are three main reasons to use performance across hard resets:
+
+1. Realism: in real-world agentic systems, agents are regularly reset or have
+   their context cleared. Being able to resume or continue tasks across resets
+   is an important agent capability.
+2. Memory: hard resets motivate exploration and innovation of persistent and
+   efficient memory mechanisms. This workbench is agnostic to memory mechanism,
+   but aims to quantify performance and cost trade-offs. Reloading everything
+   from disk on each reset is a legitimate strategy; the reset only makes its
+   recurring cost visible rather than amortised across a run.
+3. Horizon: some job and task types require integrating and abstracting information
+   over a very large number of episodes. This workbench aims to build to tasks
+   that demonstrate long-term episodic and semantic learning.
 
 ## The claim it exists to test
 
 > Continual learning agents need expanding memory: episodic memory growing
 > across sessions; semantic memory growing across episodes.
 
-Two levels, and they are not the same requirement. The first asks that
-experience survive a discontinuity that erases working state. The second asks
-that it be abstracted — that the system end up knowing things no single episode
-contains.
+First, experiences must survive discontinuities that erase working state. Second,
+experiences must be abstracted so the system ends up knowing things no single
+episode contains.
 
-The first is cheap: write to disk. The second is what this instrument measures.
+A distinction that does the work is between a **recording** and a **memory**.
+A recording is verbatim, retrieved unchanged, and complete. A memory has been
+re-represented — stored in a form other than the one it arrived in — which is
+why it composes. Lossiness is a frequent symptom of that rather than the
+definition of it, and re-representing is not the same as compressing: a growing
+semantic index restructures without shrinking at all.
+Global attention composes over the whole window, and a model shown instances of
+a rule can induce it and apply it to an input it never saw. That is abstraction
+within an episode, and it is what transformers are best at.
 
-The distinction that does the work is between a **recording** and a **memory**.
-A recording is verbatim, retrieved unchanged, and complete. It answers any
-question whose answer sits inside a single stored item, and nothing else. A
-memory has been compressed into a structure — which is why it composes, and why
-it is lossy. Compression is not a defect here; it is what forces structure, and
-a store under no pressure to compress never acquires any.
+What are the limits and trade-offs to in-context learning (ICL) and efficient long
+context? What are the limits to recordings and retrieval for abstracting across
+episodes? Contexts are transient and ICL may have structural limitations in
+compositional depth of abstraction. Retrieval from recordings is necessarily
+selective and a system cannot abstract over what it did not retrieve.
+Agentic harnesses with frontier models that effectively manage context and 
+retrieval may not have easily discernible limitations.
 
-This is **not** a claim that transformers cannot abstract. Within a context
-window they plainly do: attention composes over the whole window, and a model
-shown instances of a rule can induce it and apply it to an input it never saw.
-That is abstraction over episodes, and it is what transformers are best at.
+The suspicion behind this workbench is that most agent memory today is recording
+rather than memory: stored verbatim, retrieved selectively, and re-derived from
+scratch each session. We would rather find out than assume it. A motivation for
+developing the workbench is to investigate constructive or growing neural
+networks as an approach to growing episodic and semantic memory — work that
+happens in `constructive-retention`, a sibling project by the same author that
+is not yet public. **No such learner ships in this repository**; it reaches the
+harness through the same documented process contract a third party would use,
+and the validity hazard that creates is discussed under
+[Scope and limits](#scope-and-limits). The mechanism-agnostic interface lets
+agents, memory systems, and novel learning algorithms be compared on the same
+footing.
 
-The claim is about where that abstraction *goes*. It is computed at query time
-and discarded with the process; what persists is the token sequence that
-produced it. The store is a recording and the abstraction is transient, so the
-next session re-derives it from scratch — and re-derives it over whatever subset
-was retrieved, not over the whole history. That last part is structural:
-retrieval selects by query, so a system cannot abstract over what it did not
-retrieve, and questions whose answers are properties of the entire set have no
-query that surfaces them.
-
-This can be shown false, and the falsification is cheap to state: a system that
-clears the probe ladder with nothing but a store.
-
-## Why a hard RESET
-
-The obvious objection is that longer context windows make this moot. They do
-not, because of what the reset does.
-
-A long-context system can always reload everything from disk when the process
-restarts. That is a legitimate strategy and it works. And it costs the full
-re-read — and the full re-derivation of whatever it had already worked out —
-**every session, forever.**
-
-Without resets, that cost is paid once and amortised across a run, and the
-difference between paying-per-session and paying-once is invisible. **The hard
-RESET converts a one-time cost into a recurring one**, which is what makes the
-difference measurable. The reset is not a handicap applied to retrieval systems;
-it is the mechanism that exposes a scaling difference that is otherwise hidden.
-
-Because the SUT interface is **mechanism-agnostic** (read a stage, optionally
-mutate the survive-dir, write a response), fine-tuning, structural growth, notes,
-and retrieval are all just reference modes above one contract — the harness
-cannot tell them apart.
+The probe ladder in this workbench is being designed to evaluate episodic and 
+semantic memory capabilities of agents and memory systems. A probe ladder that can
+be passed with a simple memory store could indicate the claim is false or that the
+probe ladder is deficient. The two are distinguishable by what the probe asks
+for: a store passing a probe whose answer sits inside a single stored item means
+the rung was too easy, while a store passing probes whose answers are properties
+of the whole set is evidence against the claim.
 
 ## Quickstart
 
@@ -190,8 +193,8 @@ phased ladder does not exist yet.
 ## Scope and limits
 
 What this instrument is ultimately *for* is detecting a system that acquires
-genuinely new competence during a run — including competence that corrects
-something it previously held — and applies it to inputs it has never seen, in
+genuinely new competence during a run. This includes competence that corrects
+something it previously held and applies it to inputs it has never seen, in
 domains where the answer can be checked. Recall under resets is the bottom rung,
 not the goal; see [`docs/ROADMAP.md`](docs/ROADMAP.md) §"What would count as
 success". Against that aim, this is an early-stage instrument, and it is worth
@@ -204,19 +207,18 @@ being explicit about what that means:
   on the roadmap (aggregation, revision, application) do not exist yet.
 - **Co-designed with the system expected to do well on it.** retention-bench is
   developed alongside `constructive-retention` — a research project on
-  gradient-free constructive learning, by the same author, not yet public and so
-  not yet linkable. That is a genuine validity hazard. We name it rather than
-  hide it, and we
-  publish the probe design and thesis (in [`docs/ROADMAP.md`](docs/ROADMAP.md))
-  *before* those systems are measured through the instrument, so the design is
-  timestamped ahead of any favourable result.
+  unreleased gradient-free constructive learning, by the same author. This is a
+  genuine validity hazard. To mitigate this, we are publishing the probe design
+  and thesis (in [`docs/ROADMAP.md`](docs/ROADMAP.md)) *before* those systems
+  are measured through the instrument, so the design is timestamped ahead of any
+  favourable result.
 - **No language model has been measured yet.** As of this release the ladder
   covers keyless synthetic reference systems only. The central claim above is
   therefore unfalsified in either direction; the first real LLM measurement is
   the immediate next step.
-- **Cost is not settled.** We believe cost matters as much as accuracy, but token
-  counts are not architecture-neutral (a constructive system spends zero), so no
-  cost metric is published as authoritative. See the roadmap's *Exploring* tier.
+- **Cost is not settled.** Cost matters (less than accuracy) but token counts are
+  not architecture-neutral (a constructive system spends zero), so no cost metric
+  is published as authoritative. See the roadmap's *Exploring* tier.
 - **All published results are the authors' own**, produced by the commands in
   this README. The keyless ladder is deterministic and reproducible from a clean
   checkout; anything model-dependent will be dated and pinned separately.
@@ -234,6 +236,15 @@ thing now than after we have published results on it.
   [`docs/sut-interface.md`](docs/sut-interface.md) (the SUT process contract) and
   [`docs/metrics.md`](docs/metrics.md) (how retention is scored);
   [`docs/README.md`](docs/README.md) is the full index and repo tour.
+
+## Authorship
+
+The research direction, the claim under test, and the design decisions in this
+repository are Toby Lightheart's. Much of the prose — including these docs — and
+a substantial share of the code were drafted or revised in collaboration with
+Claude (Anthropic), working as an assistant across many sessions. The
+`Co-Authored-By` trailers in the git history record this commit by commit; this
+note states it plainly rather than leaving it to be inferred.
 
 ## License
 

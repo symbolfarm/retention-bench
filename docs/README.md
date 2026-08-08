@@ -2,9 +2,11 @@
 
 retention-bench extends [Continual Learning Bench](https://github.com/pgasawa/continual-learning-bench)
 (Asawa et al.) with a hard **RESET** (a process-kill discontinuity across which
-only an on-disk survive-directory persists) and a **constructive/parametric**
-system class. It is a research *instrument* — a workbench we use and share, not a
-benchmark seeking submissions; there is no leaderboard. These docs are the
+only an on-disk survive-directory persists) and a **mechanism-agnostic** SUT
+contract, under which fine-tuning, structural growth, notes, and retrieval are
+all modes above one process-level interface. It is a research *instrument* — a
+workbench we use and share, not a benchmark seeking submissions; there is no
+leaderboard. These docs are the
 reference for building a system-under-test (SUT) and interpreting its results;
 the project overview, thesis, and quickstart are in the
 [root README](../README.md), and the research agenda is in
@@ -12,7 +14,7 @@ the project overview, thesis, and quickstart are in the
 
 | Doc | What it covers |
 |---|---|
-| [`ROADMAP.md`](ROADMAP.md) | The research agenda, published ahead of the measurements: the storage-vs-memory thesis, why the hard RESET, the probe ladder (recall → composition → aggregation → revision → application), confidence tiers, and the open questions. Start here for *why*. |
+| [`ROADMAP.md`](ROADMAP.md) | The research agenda, published ahead of the measurements: the recording-vs-memory thesis, why the hard RESET, the probe ladder (recall → composition → aggregation → revision → application), confidence tiers, and the open questions. Start here for *why*. |
 | [`sut-interface.md`](sut-interface.md) | The system-under-test process contract — the `SubprocessSystem` one-line-JSON query/reply per CL-Bench instance, the survive-dir / hard-`RESET` mechanics, resource self-report, and launch (subprocess / container). Start here if you're building a SUT. |
 | [`metrics.md`](metrics.md) | The retention metric — the reset-axis gain curve `norm_gain(k) = (R − P) / max(C − P, ε)`, the `C ≈ P` exclusion rule, and reconciliation with CL-Bench's gain. |
 | [`associative-curriculum.md`](associative-curriculum.md) | Implementation spec for the first small constructive-retention curriculum task: deterministic symbolic associations, exact scoring, memorization-vs-transfer probes, the probe-space width / chance level, the never-bridged held-out composition split, and the repeated-exposure extension path. |
@@ -54,6 +56,6 @@ the full sweep offline and prints the curve the docs describe.
 
 > **History.** retention-bench began life as a standalone benchmark (working name
 > "CL-N") before the 2026-06 pivot onto CL-Bench. Those earlier standalone-era
-> specs — and the pivot/triage decision records — are retained on the `dev` branch
-> under `docs/archive/` for "why" archaeology; they are superseded and
-> intentionally not part of the public docs.
+> specs — and the pivot/triage decision records — are retained under
+> [`archive/`](archive/) for "why" archaeology. They are **superseded**: where
+> they disagree with the docs above, the docs above are current.

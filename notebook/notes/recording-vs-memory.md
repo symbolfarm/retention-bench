@@ -7,7 +7,19 @@ tasks: []
 # Recording vs memory
 
 **A recording is verbatim, retrieved unchanged, and complete. A memory has been
-compressed into a structure — which is why it composes, and why it is lossy.**
+re-represented — stored in a form other than the one it arrived in, and one that
+supports queries the arrival form does not — which is why it composes.**
+
+> **Correction (2026-08-08).** This previously read "compressed into a structure
+> — which is why it composes, and why it is lossy". That conflated three things.
+> **Lossiness** is a frequent *symptom* of re-representation, not its definition:
+> random deletion is lossy and structures nothing. **Compression** is one reliable
+> *cause*, not the definition: lossless compression removes redundancy while
+> producing nothing queryable, and a growing semantic index re-represents without
+> shrinking at all. The load-bearing property is re-representation. This matters
+> because the project's own claim is about memory that **expands** — an instrument
+> built on "compression forces structure" would be in tension with its own thesis,
+> and could accidentally require that memory shrink.
 
 This is the distinction the project's public claim now rests on. It replaced
 "storage is not memory" (2026-08-02), which was wrong in a way worth recording:
@@ -106,8 +118,9 @@ memory architecture is the best available prior for *where to look* — it is th
 agreed existence proof of general intelligence, and reasoning from it is what
 produced this whole note. What does not survive a skeptic is the same fact used as
 *evidence*: "humans reconstruct, therefore a system that doesn't can't understand."
-The functional version costs nothing and stays falsifiable: **compression is what
-forces structure, and a store under no pressure to compress never acquires any.**
+The functional version costs nothing and stays falsifiable: **a store that keeps
+only the arrival form, under no pressure to re-represent, has no route to the
+upper rungs.** (Corrected 2026-08-08 — see the header.)
 
 ## Related
 
@@ -119,3 +132,6 @@ forces structure, and a store under no pressure to compress never acquires any.*
 
 - 2026-08-02: created. Supersedes the "storage is not memory" framing in README
   and ROADMAP; records the ICL correction and the reconstruction provenance.
+- 2026-08-08: **compression → re-representation.** Compression and lossiness were
+  standing in for the load-bearing property; see the correction in the header.
+  Propagated to `README.md` and `docs/ROADMAP.md`. Raised by Toby.

@@ -20,11 +20,10 @@ runner, task interface, and evaluation contract via a thin adapter layer
 
   - a hard RESET — a process-kill discontinuity across which only an on-disk
     survive-directory persists; and
-  - a constructive / parametric system class — the contract and compute
-    accounting under which a train-and-grow learner is scored on the same
-    footing as an agent-memory store. The learner itself is not part of this
-    repository; it is developed separately and connects through the documented
-    process-level SUT contract.
+  - a mechanism-agnostic system-under-test contract, under which fine-tuning,
+    structural growth, notes and retrieval are all modes above one process-level
+    interface. Learners themselves are not part of this repository; they connect
+    through that documented contract.
 
 Original copyright in CL-Bench is held by its respective authors. This NOTICE
 is provided for attribution under Apache-2.0 §4(d) and is informational; it

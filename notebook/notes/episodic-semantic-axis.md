@@ -29,8 +29,9 @@ actionable thing to come out of the 2026-08-02 session:
 
 **A perfect score on Recall is not by itself good news.** Verbatim fidelity is
 what a recording is *for*. Human episodic memory is notoriously inaccurate and the
-inaccuracy is the signature of compression into a structure — the same compression
-the upper rungs depend on.
+inaccuracy is the signature of re-representation — the same re-representation the
+upper rungs depend on. (Was "compression into a structure"; corrected 2026-08-08,
+see [recording-vs-memory](recording-vs-memory.md).)
 
 | Profile across rungs | Reading |
 |---|---|
