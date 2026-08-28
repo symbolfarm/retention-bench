@@ -118,7 +118,31 @@ container) and flips visibility.
 
 **Cross-repo keystone:**
 
-- **RB-15** *(high, **UNBLOCKED 2026-07-20** — constructive-retention CR-22 landed)* — claim
+- **RB-15** *(**DONE 2026-07-29**, closed out 2026-08-28)* — the sweep **ran**. Retention
+  flat at ceiling (`R(k) = 0.6154`, norm_gain 1.000, zero seed spread) at k = 3, 6, 12;
+  `R = P` exactly (0.3077) at k = 25, 51, 103, 207, where construction never fires
+  because the contiguous 16-rule block gets split across a reset and CR-29 buffers
+  pending rules in memory only. **Milestone 2 is not claimed** — M2 needs non-overlapping
+  CIs and the normalised-gain interval is structurally wide. Numbers:
+  `constructive-retention/notebook/experiments/RB-15-constructed-hop2-reset-sweep.md`.
+  Event record: `.tasks/debriefs/RB-15-m2-constructed-mode-gain-curve.md`.
+
+  **The specified naive-SGD contrast arm was not run** — a `no_state` control ran
+  instead, which proves the harness resets but does not contrast constructed flatness
+  against SGD degradation on the same increment. → **RB-24**.
+
+  *This entry read "READY TO RUN … what remains is the sweep" for five weeks after the
+  sweep had run, because the write-up landed in the sibling repo's notebook and RB-15
+  was never closed here. The measurement is retention-bench's even when the
+  interpretation is not.*
+
+- **RB-24** *(high)* — **naive-SGD contrast arm at extreme k.** Runs the falsification
+  control RB-15 specified and omitted: without it, nothing distinguishes "flat because
+  constructed" from "flat because the harness isn't resetting what we think". Blocked on
+  constructive-retention **CR-30** (`NaiveSGDContinue` exists in `baselines.py` but is
+  not exposed through the wire contract). Brief: `.tasks/RB-24-naive-sgd-contrast-arm.md`.
+
+- **RB-15 (original brief, retained for context)** — claim
   **Milestone 2**: wire the constructed-hop-2 SUT into a `--mode` and take the gain-vs-`k`
   curve (RB-12's bootstrap CIs + `W_norm` are now available for it). CR-22's constructed
   hop-2 runs at ceiling (held-out composed 1.000±0.000, additive + online, RESET-survived,
