@@ -136,11 +136,24 @@ container) and flips visibility.
   was never closed here. The measurement is retention-bench's even when the
   interpretation is not.*
 
-- **RB-24** *(high)* — **naive-SGD contrast arm at extreme k.** Runs the falsification
-  control RB-15 specified and omitted: without it, nothing distinguishes "flat because
-  constructed" from "flat because the harness isn't resetting what we think". Blocked on
-  constructive-retention **CR-30** (`NaiveSGDContinue` exists in `baselines.py` but is
-  not exposed through the wire contract). Brief: `.tasks/RB-24-naive-sgd-contrast-arm.md`.
+- **RB-24** *(**DONE 2026-08-28**)* — **naive-SGD contrast arm at extreme k.** Ran the
+  falsification control RB-15 specified and omitted, via constructive-retention
+  **CR-30**'s `--mode naive-sgd-hop2` (same base, same task, same increment boundary;
+  the Constructor is the only difference). At both k=3 and k=12 the SGD arm scores
+  `R = 0.0192 / 0.0481 / 0.1202` (seeds 0/1/2) against the constructed arm's
+  `0.6154 = r_max` — and **below its own prior** (`P = 0.3077`), so the band `C − P` is
+  negative and `norm_gain` is undefined. In-process `Δret = −1.000 / −0.922 / −0.719`.
+  A supplementary 4×-budget arm answers the under-training objection (`rule_acq`
+  0.062 → 0.188 moves `R` only 0.0192 → 0.0529). **The flat line survives its
+  control.** Numbers:
+  `constructive-retention/notebook/experiments/RB-24-naive-sgd-contrast-arm.md`.
+  Event record: `.tasks/debriefs/RB-24-naive-sgd-contrast-arm.md`. Logs:
+  `runs/RB-24-2026-08-28/` (gitignored, local; includes the per-arm SUT stderr).
+
+  *Caveat worth carrying: this arm discriminates on **level**, not slope — it is flat
+  in `k` too, including at its own `k=0` ceiling. RB-15's `no_state` arm remains what
+  establishes the harness genuinely resets; the two controls answer different halves of
+  the original rationale.*
 
 - **RB-15 (original brief, retained for context)** — claim
   **Milestone 2**: wire the constructed-hop-2 SUT into a `--mode` and take the gain-vs-`k`
