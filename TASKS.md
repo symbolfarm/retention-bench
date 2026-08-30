@@ -1,7 +1,7 @@
 # Tasks
 
 > **Agents:** read this file at the start of every session, then consult
-> `.tasks/LOG.jsonl` for the current task queue. The `task-cycle` skill describes
+> `.tasks/LOG.jsonl` for the current task queue. The `work-cycle` skill describes
 > how to start and complete tasks; use its task template when creating new task
 > files.
 
@@ -296,6 +296,6 @@ individual `.tasks/M*.md` task files after a debrief pass.
 | Full task queue | `.tasks/LOG.jsonl` |
 | Active task files | `.tasks/*.md` |
 | Completed debriefs | `.tasks/debriefs/` |
-| Task template | `~/.claude/skills/task-cycle/assets/task-template.md` |
-| Debrief template | `~/.claude/skills/task-cycle/assets/debrief-template.md` |
-| Skill instructions | `~/.claude/skills/task-cycle/SKILL.md` |
+| Task template | `work-cycle` skill → `assets/task-template.md` |
+| Debrief template | `work-cycle` skill → `assets/debrief-template.md` |
+| Skill instructions | `work-cycle` skill (`symbolfarm/agent-skills`) |

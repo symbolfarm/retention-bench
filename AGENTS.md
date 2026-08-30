@@ -52,7 +52,7 @@ public/private path split; both were retired with the orphan-`main` model in RB-
 instrument inspectable. Write accordingly: no credentials, no third-party personal details, and
 nothing you would not want read by the people it discusses.
 
-**Tasks.** Use the `task-cycle` skill. A brief is a *handoff artifact*: write one when work is
+**Tasks.** Use the `work-cycle` skill. A brief is a *handoff artifact*: write one when work is
 going to a subagent or a future session, or when it is gated on review. Work you do yourself in
 one sitting is a `chore:` or `docs:` commit, with a short "Decisions" paragraph in the message
 body if you made a judgment call worth recording.
