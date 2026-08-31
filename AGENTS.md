@@ -87,6 +87,13 @@ drops the task data files and every task construction fails. Keep that checkout 
 you move or delete a doc, that test tells you what you broke — which is the entire reason it
 exists.
 
+`tests/test_doc_claims.py` goes one step further: it asserts the prose is still *true*. Every
+source anchor in `pages/map.js` must name a live Python symbol or markdown heading, and every
+quoted ε / schedule-size number must match the code that defines it. Rename `observe`, retune
+`EPSILON`, or reshape the default schedule and it names every file that now lies. Use symbol
+and heading anchors, never line numbers — a line number is correct only on the day it is
+written and has no way to stay correct.
+
 Prefer facts that are **executable** (a test or a command fails when they drift) or **adjacent**
 (a module docstring, so a code change drags them into the same diff) over prose in a separate
 file. Prose in a separate file is what rots, and this file is the cautionary example.

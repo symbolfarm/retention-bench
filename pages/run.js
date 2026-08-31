@@ -51,7 +51,7 @@ const steps = [
     label:"Normalise", title:"Ask how much learnable improvement survived",
     copy:"The learnable band is C − P = 1 − 0.5 = 0.5. The retained improvement is R − P = 1 − 0.5 = 0.5. Their ratio is 1.0.",
     visual:`<span class="token">R − P<br><strong>0.5</strong></span><span class="arrow">÷</span><span class="token">C − P<br><strong>0.5</strong></span><span class="arrow">=</span><span class="token">1.0</span>`,
-    note:"Read this as “all of what this system could learn was still visible after one reset,” not “the system has perfect memory in general.”", state:{p:.5,c:1,r:1,k:1,disk:"1 file"}
+    note:"Read this as “all of what this system could learn was still visible after one reset,” not “the system has perfect memory in general.” The real implementation divides by max(C − P, ε) and excludes the point outright when the band falls below ε; this toy band of 0.5 is far above it.", state:{p:.5,c:1,r:1,k:1,disk:"1 file"}
   },
   {
     label:"Interpret", title:"Now choose the claim you actually want to test",

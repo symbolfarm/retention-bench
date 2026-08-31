@@ -77,6 +77,7 @@
     <div class="callout">
       <h3>The key formula, in plain language</h3>
       <p><code>(R − P) / (C − P)</code> asks: <strong>of the improvement this particular system could acquire during this task, how much was still visible after resets?</strong> When <code>C − P</code> is too small, there was no credible learnable signal, so the curve is marked <em>excluded</em>.</p>
+      <p class="fine">The implementation guards the division: it computes <code>(R − P) / max(C − P, ε)</code>, where <code>ε = 0.05 × r_max</code> is 5% of the score a run can actually achieve on the schedule being played. A band below <code>ε</code> is excluded rather than divided through.</p>
       <a href="run.html">Calculate it in the worked run →</a>
     </div>
   </section>
@@ -93,12 +94,12 @@
   <section class="section">
     <div class="section-intro"><p class="kicker">Grounding</p><h2>Primary project sources</h2><p>The pages paraphrase current repository documentation and code; they do not introduce a new specification.</p></div>
     <ul class="source-list">
-      <li><a href="../README.md">README — thesis, reset rationale, scope</a></li>
-      <li><a href="../docs/ROADMAP.md">Research agenda — claim and probe ladder</a></li>
-      <li><a href="../docs/metrics.md">Metrics — P, C, R(k), exclusion and W(m)</a></li>
-      <li><a href="../docs/phased-store-removal.md">Phased store-removal protocol</a></li>
-      <li><a href="../docs/sut-interface.md">SUT process and survive-dir contract</a></li>
-      <li><a href="../retention_bench/system.py">SubprocessSystem implementation</a></li>
+      <li><a href="https://github.com/symbolfarm/retention-bench/blob/main/README.md#the-claim-it-exists-to-test">README — thesis, reset rationale, scope</a></li>
+      <li><a href="https://github.com/symbolfarm/retention-bench/blob/main/docs/ROADMAP.md">Research agenda — claim and probe ladder</a></li>
+      <li><a href="https://github.com/symbolfarm/retention-bench/blob/main/docs/metrics.md">Metrics — P, C, R(k), exclusion and W(m)</a></li>
+      <li><a href="https://github.com/symbolfarm/retention-bench/blob/main/docs/phased-store-removal.md">Phased store-removal protocol</a></li>
+      <li><a href="https://github.com/symbolfarm/retention-bench/blob/main/docs/sut-interface.md">SUT process and survive-dir contract</a></li>
+      <li><a href="https://github.com/symbolfarm/retention-bench/blob/main/retention_bench/system.py">SubprocessSystem implementation</a></li>
     </ul>
   </section>
 

@@ -35,6 +35,7 @@ body::before {
   z-index: -1;
 }
 a { color: var(--teal-dark); text-underline-offset: 3px; }
+.fine { font-size: .92em; color: var(--muted); }
 a:hover { color: var(--coral); }
 button, input { font: inherit; }
 button { cursor: pointer; }
