@@ -1,0 +1,148 @@
+const nodes = [
+  {
+    id: "suspicion", depth: "motivation", title: "Persisting is not necessarily integrating", hint: "The research suspicion",
+    summary: "A system may carry records across sessions yet recompute every useful abstraction at query time. Retention Bench asks where acquired capability actually lives.",
+    why: "Long-lived agents need experience to survive resets, but survival alone can be satisfied by writing a transcript to disk.",
+    buys: "A functional distinction between replayable recordings and re-represented memory.",
+    tradeoff: "The distinction must be tested through behaviour; storage format alone cannot prove understanding.",
+    leads: "Hard reset · probe ladder · phased store removal", source: "../docs/ROADMAP.md", anchor: "docs/ROADMAP.md — The claim it exists to test"
+  },
+  {
+    id: "reset", depth: "design", title: "Erase working state mechanically", hint: "Why a hard RESET?",
+    summary: "The harness kills the SUT process group. A fresh process can inherit only state that was already persisted in the survive-directory.",
+    why: "A polite reset method asks the system to forget and cannot rule out hidden in-memory state.",
+    buys: "A substrate-neutral discontinuity with an observable persistence boundary.",
+    tradeoff: "Reloading records is still allowed; RESET exposes its recurring cost rather than forbidding it.",
+    leads: "Process-group kill · survive-dir · flush-before-reply", source: "../docs/sut-interface.md", anchor: "docs/sut-interface.md — Lifecycle"
+  },
+  {
+    id: "band", depth: "design", title: "Measure a floor and a ceiling", hint: "Why P, C, and R(k)?",
+    summary: "Retention has meaning only relative to what the SUT knew before learning and what it could learn without interruption.",
+    why: "The same post-reset score can be excellent for a weak learner or poor for a capable one.",
+    buys: "The learnable band C − P and a within-system interpretation of retained improvement.",
+    tradeoff: "A narrow band produces unstable ratios and must be excluded rather than over-interpreted.",
+    leads: "Prior arm · ceiling arm · normalised retention", source: "../docs/metrics.md", anchor: "docs/metrics.md — reset-axis gain curve"
+  },
+  {
+    id: "uniform", depth: "design", title: "Repeat resets during the run", hint: "Graceful degradation",
+    summary: "Uniform schedules interleave hard resets with learning and reveal how performance behaves as disruption accumulates.",
+    why: "Real agent sessions end repeatedly, not just once after training.",
+    buys: "A reset-count axis R(k) and post-reset windows that reveal immediate damage.",
+    tradeoff: "Mid-learning erasure conflates failure to consolidate with lack of time to learn.",
+    leads: "EveryNInstances · measured k · W(m)", source: "../retention_bench/gain_curve.py", anchor: "retention_bench/gain_curve.py — run_reset_sweep"
+  },
+  {
+    id: "phased", depth: "design", title: "Reset once after learning", hint: "Migration into a durable artifact",
+    summary: "A single train/probe-boundary reset removes the volatile episodic store after learning, then probes what remains in the durable artifact.",
+    why: "The central consolidation question is not cleanly answered when stores are erased before learning completes.",
+    buys: "A direct comparison between no-reset capability and post-store-removal capability.",
+    tradeoff: "The SUT must keep its episodic store volatile and persist only the consolidated artifact, or the protocol degenerates.",
+    leads: "Explicit boundary · volatile store · durable weights", source: "../docs/phased-store-removal.md", anchor: "docs/phased-store-removal.md — The protocol"
+  },
+  {
+    id: "contract", depth: "mechanism", title: "Use one process-level SUT contract", hint: "Mechanism agnostic",
+    summary: "Each query and reply is one JSON line. Notes, retrieval, fine-tuning, or structural growth all appear behind the same process boundary.",
+    why: "The instrument should compare memory mechanisms without privileging a Python class hierarchy or model architecture.",
+    buys: "Language- and substrate-neutral SUTs with task-specific structured responses.",
+    tradeoff: "Resource fields are currently self-reported, and the SUT must obey the persistence boundary.",
+    leads: "response_schema · JSONL · resource events", source: "../docs/sut-interface.md", anchor: "docs/sut-interface.md — I/O channel"
+  },
+  {
+    id: "task", depth: "mechanism", title: "Teach nonce associations, then compose", hint: "Current native task",
+    summary: "The task teaches object→attribute facts and attribute→bin rules, then probes direct recall and two-hop transfer.",
+    why: "Nonce labels make acquisition during the run explicit and reduce contamination from prior knowledge.",
+    buys: "Exact scoring, analytic chance, and a small bridge from episodic recall to composition.",
+    tradeoff: "It remains synthetic and supports only the bottom two rungs of the intended probe ladder.",
+    leads: "Recall probes · transfer probes · held-out objects", source: "../retention_bench/tasks/symbolic_associative_retention.py", anchor: "symbolic_associative_retention.py — task class"
+  },
+  {
+    id: "holdout", depth: "mechanism", title: "Hold objects out of bridging", hint: "Not out of teaching",
+    summary: "The last object for each attribute is still taught, but is marked holdout so a write-time shortcut cannot precompute its object→bin answer.",
+    why: "Without the split, a lookup table over every composed answer can pass transfer without composing at query time.",
+    buys: "A held-out transfer number that better reflects composition-generalisation.",
+    tradeoff: "A sophisticated store can still perform iterative retrieval; whether that closes the gap is an open empirical question.",
+    leads: "role: holdout · modulo assignment · transfer split", source: "../retention_bench/tasks/symbolic_associative_retention.py", anchor: "symbolic_associative_retention.py — _spec / _build_instances"
+  },
+  {
+    id: "observe", depth: "implementation", title: "Reset only after a completed instance", hint: "The boundary guard",
+    summary: "observe() ignores intermediate observations, increments a 1-based completed-instance count, measures storage, then checks the schedule.",
+    why: "CL-Bench may emit observations within an instance; resets must occur only at complete instance boundaries.",
+    buys: "Reset ordinals that align with post-reset windows and comparable arm outcomes.",
+    tradeoff: "The implementation depends on CL-Bench's completion predicate and next-query convention.",
+    leads: "observation_marks_instance_complete · reset_ordinals", source: "../retention_bench/system.py", anchor: "retention_bench/system.py:318 — observe"
+  },
+  {
+    id: "final", depth: "implementation", title: "Suppress a reset after the final query", hint: "next_query is not None",
+    summary: "Even if the schedule says the final ordinal is a boundary, the harness does not count a reset when there is no next query to receive it.",
+    why: "A reset is a discontinuity between instances. Killing after the run cannot affect an observation and would inflate k.",
+    buys: "Measured k counts only experimental reset boundaries that can affect performance.",
+    tradeoff: "End-of-run process reaping is separate teardown and is intentionally not a scheduled reset.",
+    leads: "will_reset predicate · shutdown()", source: "../retention_bench/system.py", anchor: "retention_bench/system.py:330 — will_reset"
+  },
+  {
+    id: "wipe", depth: "implementation", title: "Wipe durable state only for P", hint: "The stateless arm",
+    summary: "On a wiping reset, every survive-dir entry except the reserved .harness directory is removed; real directories and symlinks take different deletion paths.",
+    why: "P must expose each instance to a fresh process with no SUT-created durable carry-over.",
+    buys: "A process-level expression of CL-Bench's stateless baseline.",
+    tradeoff: "Deletion errors are deliberately suppressed; integrity depends on later behaviour and tests rather than a transactional wipe.",
+    leads: "wipe_on_reset · _wipe_survive_dir", source: "../retention_bench/system.py", anchor: "retention_bench/system.py:276 — _wipe_survive_dir"
+  },
+  {
+    id: "epsilon", depth: "implementation", title: "Exclude a collapsed learnable band", hint: "ε is relative to r_max",
+    summary: "The absolute exclusion threshold is 5% of the task's achievable run-mean reward. When C − P is smaller, normalised retention is undefined.",
+    why: "Dividing by a tiny estimated band turns noise into confident-looking ratios.",
+    buys: "Honest EXCLUDED results for systems that learned nothing or already saturated the task.",
+    tradeoff: "Exclusion removes a normalised comparison; raw P, C, R and chance must remain visible.",
+    leads: "band_epsilon · GainCurve.excluded", source: "../retention_bench/scoring.py", anchor: "retention_bench/scoring.py — band_epsilon"
+  },
+  {
+    id: "limits", depth: "motivation", title: "Name what the instrument cannot yet show", hint: "Strongest fair criticism",
+    summary: "One synthetic owned task, no completed real-LLM measurement, and co-design with an intended learner limit what current results establish.",
+    why: "A transparent instrument should distinguish validated plumbing from evidence for its central research claim.",
+    buys: "Falsifiable scope and a roadmap whose probe design predates favourable measurements.",
+    tradeoff: "The most interesting claims remain open rather than being resolved by the existing reference ladder.",
+    leads: "Real LLM arm · higher probe rungs · independent challenge", source: "../README.md", anchor: "README.md — Scope and limits"
+  }
+];
+
+const tree = document.querySelector("#tree");
+const detail = document.querySelector("#detail");
+const filters = [...document.querySelectorAll("[data-filter]")];
+
+function renderDetail(node) {
+  detail.innerHTML = `
+    <span class="depth">${node.depth}</span>
+    <h2>${node.title}</h2>
+    <p>${node.summary}</p>
+    <div class="fact-grid">
+      <div class="fact"><strong>Why?</strong>${node.why}</div>
+      <div class="fact"><strong>What does it buy?</strong>${node.buys}</div>
+      <div class="fact"><strong>Trade-off</strong>${node.tradeoff}</div>
+      <div class="fact"><strong>Leads to</strong>${node.leads}</div>
+    </div>
+    <a class="code-anchor" href="${node.source}">Source anchor → ${node.anchor}</a>`;
+}
+
+nodes.forEach((node, index) => {
+  const button = document.createElement("button");
+  button.className = "node";
+  button.dataset.depth = node.depth;
+  button.dataset.id = node.id;
+  button.innerHTML = `<strong>${node.title}</strong><small>${node.hint}</small>`;
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".node").forEach(n => n.classList.remove("active"));
+    button.classList.add("active");
+    renderDetail(node);
+    if (matchMedia("(max-width: 850px)").matches) detail.scrollIntoView({behavior:"smooth", block:"start"});
+  });
+  tree.append(button);
+  if (index === 0) { button.classList.add("active"); renderDetail(node); }
+});
+
+filters.forEach(button => button.addEventListener("click", () => {
+  const value = button.dataset.filter;
+  filters.forEach(b => { b.classList.toggle("active", b === button); b.setAttribute("aria-pressed", String(b === button)); });
+  document.querySelectorAll(".node").forEach(node => { node.hidden = value !== "all" && node.dataset.depth !== value; });
+  const active = document.querySelector(".node.active:not([hidden])");
+  if (!active) document.querySelector(".node:not([hidden])")?.click();
+}));

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Step through a tiny Retention Bench run and calculate prior, ceiling, retained performance, and normalised retention.">
+  <title>Worked run — Retention Bench</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="run.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span><span>Retention Bench · Learn</span></a>
+  <nav class="nav" aria-label="Learning views"><a href="index.html">Story</a><a href="map.html">Map</a><a href="run.html" aria-current="page">Run</a></nav>
+</header>
+<main id="main">
+  <section class="page-hero">
+    <p class="eyebrow">A deliberately tiny toy run</p>
+    <h1>Follow one reset across the boundary</h1>
+    <p class="lede">This six-instance illustration uses simpler numbers than the real 112-instance default. It demonstrates control flow and metric meaning; it is not a published experiment.</p>
+  </section>
+  <div class="run-layout">
+    <section class="stage" aria-live="polite">
+      <div class="progress" id="progress" aria-label="Run progress"></div>
+      <p class="step-label" id="step-label"></p>
+      <h2 id="step-title"></h2>
+      <p id="step-copy"></p>
+      <div class="event-visual" id="event-visual" aria-label="Current run event"></div>
+      <div class="callout" id="step-note"></div>
+      <div class="step-actions">
+        <button id="prev">← Previous</button>
+        <button id="restart">Restart</button>
+        <button class="primary" id="next">Next →</button>
+      </div>
+    </section>
+    <aside class="ledger" aria-label="Toy run ledger">
+      <p class="kicker">Live ledger</p>
+      <h2>Measured arms</h2>
+      <dl>
+        <div><dt>Prior P</dt><dd id="p-value">—</dd></div>
+        <div><dt>Ceiling C</dt><dd id="c-value">—</dd></div>
+        <div><dt>Retained R(1)</dt><dd id="r-value">—</dd></div>
+        <div><dt>Measured resets k</dt><dd id="k-value">0</dd></div>
+        <div><dt>Survive-dir</dt><dd id="disk-value">empty</dd></div>
+      </dl>
+      <div class="formula">(R − P) / (C − P)<output id="norm-value">waiting…</output></div>
+      <div class="why" id="ledger-note">Advance the run to fill the measured floor, ceiling, and retained arm.</div>
+    </aside>
+  </div>
+  <section class="section">
+    <div class="section-intro"><p class="kicker">What the toy omits</p><h2>The real run is stricter</h2></div>
+    <div class="grid">
+      <article class="card"><h3>Fresh directories</h3><p>Each real P, C, and R arm starts from a separate empty survive-directory, so state cannot leak between arms.</p></article>
+      <article class="card"><h3>Every task instance</h3><p>P, C, and R play the identical deterministic instance schedule. Their scores are means over those outcomes, not hand-picked probes.</p></article>
+      <article class="card"><h3>Uncertainty and windows</h3><p>The real curve carries bootstrap intervals and <code>W(m)</code>, the first instances after each reset, to distinguish retention from fast relearning.</p></article>
+    </div>
+  </section>
+  <footer class="footer"><a href="map.html">← Decision map</a><a href="../docs/metrics.md">Read the metric specification →</a></footer>
+</main>
+</body>
+</html>

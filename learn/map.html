@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore the motivations, design choices, mechanisms, and implementation anchors of Retention Bench.">
+  <title>Decision map — Retention Bench</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="map.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span><span>Retention Bench · Learn</span></a>
+  <nav class="nav" aria-label="Learning views"><a href="index.html">Story</a><a href="map.html" aria-current="page">Map</a><a href="run.html">Run</a></nav>
+</header>
+<main id="main">
+  <section class="page-hero">
+    <p class="eyebrow">Explanatory dependency map</p>
+    <h1>Why does each piece exist?</h1>
+    <p class="lede">Filter by depth, then choose a branch. This is a map of reasons and consequences—not a file tree.</p>
+  </section>
+  <div class="controls" role="group" aria-label="Filter map by explanatory depth">
+    <button class="active" data-filter="all" aria-pressed="true">All depths</button>
+    <button data-filter="motivation" aria-pressed="false">Motivation</button>
+    <button data-filter="design" aria-pressed="false">Design</button>
+    <button data-filter="mechanism" aria-pressed="false">Mechanism</button>
+    <button data-filter="implementation" aria-pressed="false">Implementation</button>
+  </div>
+  <div class="map-layout">
+    <nav class="tree" aria-label="Retention Bench decision branches" id="tree"></nav>
+    <article class="detail" id="detail" aria-live="polite">
+      <span class="depth">Start here</span>
+      <h2>What is Retention Bench trying to discover?</h2>
+      <p>Whether a system acquires capability during a run that survives the loss of working state—and, eventually, whether experience is integrated into knowledge no single episode contains.</p>
+      <div class="fact-grid"><div class="fact"><strong>Start with</strong>The research suspicion</div><div class="fact"><strong>Then ask</strong>How could it be measured?</div></div>
+      <p>Select any branch on the left. On a small screen, the explanation follows the branch list.</p>
+    </article>
+  </div>
+  <footer class="footer"><a href="index.html">← Story view</a><a href="run.html">Worked run →</a></footer>
+</main>
+</body>
+</html>

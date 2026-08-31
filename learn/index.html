@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A guided, non-technical introduction to why Retention Bench exists and how its design follows from its research question.">
+  <title>Retention Bench — from why to code</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span><span>Retention Bench · Learn</span></a>
+  <nav class="nav" aria-label="Learning views">
+    <a href="index.html" aria-current="page">Story</a>
+    <a href="map.html">Map</a>
+    <a href="run.html">Run</a>
+  </nav>
+</header>
+<main id="main">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">A why → design → code guide</p>
+      <h1>What survives when the agent does not?</h1>
+      <p class="lede">Retention Bench is a research instrument for asking what a system learned during a run—and whether that learning survives a real discontinuity. Start with the question, then follow each design choice down to the code.</p>
+      <div class="actions">
+        <a class="button" href="#lunch-route">Take the 15-minute route</a>
+        <a class="button secondary" href="map.html">Explore the full map</a>
+      </div>
+    </div>
+    <div class="hero-diagram" aria-label="A process orbiting a persistent survive directory">
+      <div class="orbit"></div>
+      <div class="core">survive-dir<br><small>the only state across RESET</small></div>
+      <span class="float-label one">process A</span>
+      <span class="float-label two">SIGKILL</span>
+      <span class="float-label three">process B</span>
+    </div>
+  </section>
+
+  <section class="section" id="lunch-route">
+    <div class="section-intro">
+      <p class="kicker">The lunch-break route</p>
+      <h2>Four questions before any implementation detail</h2>
+      <p>Read these in order. Each answer creates the reason for the next piece of machinery.</p>
+    </div>
+    <div class="route">
+      <ol class="route-list">
+        <li><span><strong>What is the research suspicion?</strong><br><small>Persisting records may not be the same as keeping an abstraction.</small></span><span>3 min</span></li>
+        <li><span><strong>What must the instrument distinguish?</strong><br><small>Prior competence, learnable competence, and what remains after disruption.</small></span><span>4 min</span></li>
+        <li><span><strong>Why a hard process reset?</strong><br><small>Because a polite reset cannot prove hidden working state was erased.</small></span><span>4 min</span></li>
+        <li><span><strong>Why three experimental arms?</strong><br><small>Because retention only means something relative to a measured floor and ceiling.</small></span><span>4 min</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="story">
+    <div class="section-intro">
+      <p class="kicker">The story</p>
+      <h2>Nine branches, from purpose to limitations</h2>
+      <p>This is an explanatory order, not the repository’s directory order. Technical facts arrive only after the question that makes them necessary.</p>
+    </div>
+    <div class="grid">
+      <article class="card"><div class="card-number">01</div><h3>The suspicion</h3><p>Agents can write notes or replay logs across sessions. But a recording is not automatically an integrated memory: the system may re-derive the useful abstraction from scratch every time.</p></article>
+      <article class="card"><div class="card-number">02</div><h3>The measurement problem</h3><p>A raw post-training score is ambiguous. Was the system already capable? Could it learn at all? Did disruption erase anything? The instrument needs a measured prior, ceiling, and retained performance.</p></article>
+      <article class="card"><div class="card-number">03</div><h3>The discontinuity</h3><p>A logical <em>reset()</em> asks the SUT to forget. Retention Bench instead kills the process group. Only files already flushed to the survive-directory can cross the boundary.</p></article>
+      <article class="card"><div class="card-number">04</div><h3>The arms</h3><p><strong>P</strong> repeatedly wipes durable state, <strong>C</strong> runs without resets, and <strong>R(k)</strong> keeps disk state across <em>k</em> measured hard resets. Together they define the learnable band.</p></article>
+      <article class="card"><div class="card-number">05</div><h3>Two reset questions</h3><p>Uniform resets ask about graceful degradation during repeated disruption. One reset after learning, with the episodic store removed, asks whether capability migrated into a durable artifact.</p></article>
+      <article class="card"><div class="card-number">06</div><h3>The task</h3><p>The current native task teaches nonce object→attribute facts and attribute→bin rules. Recall tests one hop; transfer joins two. Held-out objects stop every transfer answer becoming a pre-written shortcut.</p></article>
+      <article class="card"><div class="card-number">07</div><h3>The journey</h3><p>CL-Bench emits a query. <code>SubprocessSystem</code> sends one JSON line to the SUT, validates one reply, records resources, observes completion, and may kill the process before the next query.</p></article>
+      <article class="card"><div class="card-number">08</div><h3>The sharp edges</h3><p>Reset ordinals are counted after completed instances. The final boundary never resets. Storage is measured before the kill. A collapsed learnable band is excluded, not promoted into a precise-looking score.</p></article>
+      <article class="card"><div class="card-number">09</div><h3>The honest limits</h3><p>The instrument has one owned synthetic task, no completed real-LLM measurement, and a co-design validity hazard. Today it demonstrates a measurement approach—not the central thesis.</p></article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="callout">
+      <h3>The key formula, in plain language</h3>
+      <p><code>(R − P) / (C − P)</code> asks: <strong>of the improvement this particular system could acquire during this task, how much was still visible after resets?</strong> When <code>C − P</code> is too small, there was no credible learnable signal, so the curve is marked <em>excluded</em>.</p>
+      <a href="run.html">Calculate it in the worked run →</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-intro"><p class="kicker">Choose your next view</p><h2>Reorient, or watch it happen</h2></div>
+    <div class="grid">
+      <article class="card"><div class="card-number">M</div><h3>Map view</h3><p>Filter decisions by motivation, design, mechanism, or implementation. Select a branch to see why it exists, what it buys, its trade-off, and its source anchor.</p><p><a href="map.html">Open the decision map →</a></p></article>
+      <article class="card"><div class="card-number">R</div><h3>Run view</h3><p>Step through a deliberately tiny example: teach associations, write the survive-dir, cross a hard reset, probe the fresh process, and compare P, C, and R.</p><p><a href="run.html">Start the toy run →</a></p></article>
+      <article class="card"><div class="card-number">C</div><h3>Recall cards</h3><p>Once this structure feels familiar, return to the implementation-level cards. Their reset ordinals, wipe semantics, held-out arithmetic, and epsilon handling now have somewhere to attach.</p><p><a href="https://github.com/symbolfarm/code-recall/blob/main/passes/retention-bench.md">Open the existing pass ↗</a></p></article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-intro"><p class="kicker">Grounding</p><h2>Primary project sources</h2><p>The pages paraphrase current repository documentation and code; they do not introduce a new specification.</p></div>
+    <ul class="source-list">
+      <li><a href="../README.md">README — thesis, reset rationale, scope</a></li>
+      <li><a href="../docs/ROADMAP.md">Research agenda — claim and probe ladder</a></li>
+      <li><a href="../docs/metrics.md">Metrics — P, C, R(k), exclusion and W(m)</a></li>
+      <li><a href="../docs/phased-store-removal.md">Phased store-removal protocol</a></li>
+      <li><a href="../docs/sut-interface.md">SUT process and survive-dir contract</a></li>
+      <li><a href="../retention_bench/system.py">SubprocessSystem implementation</a></li>
+    </ul>
+  </section>
+
+  <footer class="footer"><span>Retention Bench learning map · dependency-free static HTML</span><span>Explanatory companion, not a replacement for the reference docs.</span></footer>
+</main>
+</body>
+</html>

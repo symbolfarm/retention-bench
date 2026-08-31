@@ -235,6 +235,10 @@ thing now than after we have published results on it.
 
 ## Documentation
 
+- [`learn/`](learn/) — a dependency-free, phone-friendly learning path with a
+  guided why-to-code story, an explorable decision map, and a worked toy run.
+  Start here if the reference docs or implementation-level recall cards assume
+  more of the mental model than you have built yet.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — the research agenda: what we think we
   are measuring, the probe ladder, and the open questions. Published before the
   measurements exist.
