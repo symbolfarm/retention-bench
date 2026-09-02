@@ -2,27 +2,27 @@
 
 *Current native task*
 
-## Summary
+## Decision
 
 The task teaches object→attribute facts and attribute→bin rules, then probes
 direct recall and two-hop transfer.
 
-## Why
+## Context
 
 Nonce labels make acquisition during the run explicit and reduce contamination
 from prior knowledge.
 
-## What it buys
+## Gains
 
 Exact scoring, analytic chance, and a small bridge from episodic recall to
 composition.
 
-## Trade-off
+## Costs
 
 It remains synthetic and supports only the bottom two rungs of the intended
 probe ladder.
 
-## Leads to
+## See also
 
 Recall probes · transfer probes · held-out objects
 

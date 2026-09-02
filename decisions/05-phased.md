@@ -2,27 +2,27 @@
 
 *Migration into a durable artifact*
 
-## Summary
+## Decision
 
 A single train/probe-boundary reset removes the volatile episodic store after
 learning, then probes what remains in the durable artifact.
 
-## Why
+## Context
 
 The central consolidation question is not cleanly answered when stores are
 erased before learning completes.
 
-## What it buys
+## Gains
 
 A direct comparison between no-reset capability and post-store-removal
 capability.
 
-## Trade-off
+## Costs
 
 The SUT must keep its episodic store volatile and persist only the
 consolidated artifact, or the protocol degenerates.
 
-## Leads to
+## See also
 
 Explicit boundary · volatile store · durable weights
 

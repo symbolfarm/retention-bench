@@ -2,25 +2,25 @@
 
 *Graceful degradation*
 
-## Summary
+## Decision
 
 Uniform schedules interleave hard resets with learning and reveal how
 performance behaves as disruption accumulates.
 
-## Why
+## Context
 
 Real agent sessions end repeatedly, not just once after training.
 
-## What it buys
+## Gains
 
 A reset-count axis R(k) and post-reset windows that reveal immediate damage.
 
-## Trade-off
+## Costs
 
 Mid-learning erasure conflates failure to consolidate with lack of time to
 learn.
 
-## Leads to
+## See also
 
 EveryNInstances · measured k · W(m)
 

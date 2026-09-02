@@ -2,26 +2,26 @@
 
 *The boundary guard*
 
-## Summary
+## Decision
 
 observe() ignores intermediate observations, increments a 1-based
 completed-instance count, measures storage, then checks the schedule.
 
-## Why
+## Context
 
 CL-Bench may emit observations within an instance; resets must occur only at
 complete instance boundaries.
 
-## What it buys
+## Gains
 
 Reset ordinals that align with post-reset windows and comparable arm outcomes.
 
-## Trade-off
+## Costs
 
 The implementation depends on CL-Bench's completion predicate and next-query
 convention.
 
-## Leads to
+## See also
 
 observation_marks_instance_complete · reset_ordinals
 

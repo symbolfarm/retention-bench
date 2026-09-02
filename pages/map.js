@@ -29,10 +29,10 @@ function renderDetail(node) {
     <h2>${node.title}</h2>
     <p>${node.summary}</p>
     <div class="fact-grid">
-      <div class="fact"><strong>Why?</strong>${node.why}</div>
-      <div class="fact"><strong>What does it buy?</strong>${node.buys}</div>
-      <div class="fact"><strong>Trade-off</strong>${node.tradeoff}</div>
-      <div class="fact"><strong>Leads to</strong>${node.leads}</div>
+      <div class="fact"><strong>Context</strong>${node.why}</div>
+      <div class="fact"><strong>Gains</strong>${node.buys}</div>
+      <div class="fact"><strong>Costs</strong>${node.tradeoff}</div>
+      <div class="fact"><strong>See also</strong>${node.leads}</div>
     </div>
     <a class="code-anchor" href="${link.href}">Source anchor → ${link.label} \u2197</a>`;
 }

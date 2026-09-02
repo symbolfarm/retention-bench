@@ -2,26 +2,26 @@
 
 *Not out of teaching*
 
-## Summary
+## Decision
 
 The last object for each attribute is still taught, but is marked holdout so a
 write-time shortcut cannot precompute its object→bin answer.
 
-## Why
+## Context
 
 Without the split, a lookup table over every composed answer can pass transfer
 without composing at query time.
 
-## What it buys
+## Gains
 
 A held-out transfer number that better reflects composition-generalisation.
 
-## Trade-off
+## Costs
 
 A sophisticated store can still perform iterative retrieval; whether that
 closes the gap is an open empirical question.
 
-## Leads to
+## See also
 
 role: holdout · modulo assignment · transfer split
 

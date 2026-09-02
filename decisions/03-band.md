@@ -2,27 +2,27 @@
 
 *Why P, C, and R(k)?*
 
-## Summary
+## Decision
 
 Retention has meaning only relative to what the SUT knew before learning and
 what it could learn without interruption.
 
-## Why
+## Context
 
 The same post-reset score can be excellent for a weak learner or poor for a
 capable one.
 
-## What it buys
+## Gains
 
 The learnable band C − P and a within-system interpretation of retained
 improvement.
 
-## Trade-off
+## Costs
 
 A narrow band produces unstable ratios and must be excluded rather than
 over-interpreted.
 
-## Leads to
+## See also
 
 Prior arm · ceiling arm · normalised retention
 

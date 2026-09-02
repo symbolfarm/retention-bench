@@ -51,12 +51,16 @@ INDEX_MD = DECISIONS_DIR / "INDEX.md"
 
 # Section heading -> record key. The headings are the reader-facing wording;
 # the keys are what map.js already consumes.
+# Heading -> record key. The headings borrow the architecture-decision-record
+# vocabulary (context/decision/consequences) rather than inventing one; the keys
+# are the older names map.js already consumes, kept stable so a heading rename
+# does not ripple into the renderers.
 SECTIONS = {
-    "Summary": "summary",
-    "Why": "why",
-    "What it buys": "buys",
-    "Trade-off": "tradeoff",
-    "Leads to": "leads",
+    "Decision": "summary",
+    "Context": "why",
+    "Gains": "buys",
+    "Costs": "tradeoff",
+    "See also": "leads",
 }
 
 TOML_FENCE_RE = re.compile(r"```toml\n(.*?)```", re.S)

@@ -2,26 +2,26 @@
 
 *Mechanism agnostic*
 
-## Summary
+## Decision
 
 Each query and reply is one JSON line. Notes, retrieval, fine-tuning, or
 structural growth all appear behind the same process boundary.
 
-## Why
+## Context
 
 The instrument should compare memory mechanisms without privileging a Python
 class hierarchy or model architecture.
 
-## What it buys
+## Gains
 
 Language- and substrate-neutral SUTs with task-specific structured responses.
 
-## Trade-off
+## Costs
 
 Resource fields are currently self-reported, and the SUT must obey the
 persistence boundary.
 
-## Leads to
+## See also
 
 response_schema · JSONL · resource events
 
