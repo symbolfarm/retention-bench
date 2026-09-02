@@ -4,6 +4,7 @@
 # Usage:
 #   ./run.sh smoke              # canonical offline, keyless smoke (gain curve)
 #   ./run.sh ladder             # offline, keyless reference-ladder sweep (floor/partial/full)
+#   ./run.sh decisions [check]  # regenerate the decision-record renderings
 #   ./run.sh [gain_curve args]  # arbitrary CL-Bench task; pass-through
 set -euo pipefail
 
@@ -73,6 +74,15 @@ if [[ "$cmd" == "ladder" ]]; then
     echo
   done
   exit 0
+fi
+
+if [[ "$cmd" == "decisions" ]]; then
+  shift || true
+  # Re-render pages/decisions.js and decisions/INDEX.md from decisions/*.md.
+  # Pass `check` to fail instead of writing, which is what CI and
+  # tests/test_doc_claims.py do. The decision documents are the authored source;
+  # both outputs are generated and carry a do-not-edit banner.
+  exec "$PYTHON_BIN" tools/decisions.py "${1:-build}"
 fi
 
 # Fall through: pass-through to the gain-curve driver for any other CL-Bench

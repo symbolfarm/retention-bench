@@ -9,16 +9,20 @@ retuned and six prose files keep quoting the old number.
 
 Three checks, one per class of claim the guide makes:
 
-* ``test_source_anchors_resolve`` — every ``source:`` ref in ``pages/map.js``
-  names a real Python symbol or a real markdown heading. The guide originally
-  used line-number anchors (``system.py:318``); those were correct on the day
-  they were written and had no way to stay correct, which is why the refs are
-  symbol-shaped now and why this test exists to keep them honest.
+* ``test_source_anchors_resolve`` — every ``[source]`` anchor in
+  ``decisions/*.md`` names a real Python symbol or a real markdown heading. The
+  guide originally used line-number anchors (``system.py:318``); those were
+  correct on the day they were written and had no way to stay correct, which is
+  why the anchors are symbol-shaped now and why this test keeps them honest.
 * ``test_epsilon_claims_match_code`` / ``test_r_max_claims_match_task`` — the
   two numeric constants the docs and pages quote back at the reader, checked
   against the source of truth rather than against each other.
 * ``test_page_relative_links_resolve`` — the HTML equivalent of the markdown
   link check, so a rename inside ``pages/`` cannot dangle unnoticed.
+* ``test_generated_files_current`` — ``pages/decisions.js`` and
+  ``decisions/INDEX.md`` are generated, and a committed generated file can go
+  stale. This is the cost of the build step, paid down to a test failure on the
+  commit that causes it.
 
 Deliberately *not* here: any check that the explanatory prose matches the
 reference docs word for word. The guide is a different register for a different
@@ -30,11 +34,16 @@ from __future__ import annotations
 
 import ast
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from retention_bench.scoring import EPSILON
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+import decisions  # noqa: E402  (needs the path insert above)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PAGES = REPO_ROOT / "pages"
@@ -45,20 +54,24 @@ EXCLUDED_PREFIXES = ("docs/archive/", "history/")
 
 # --- source anchors -------------------------------------------------------- #
 
-# source: {path: "...", symbol: "..."} | {path: "...", heading: "..."}
-SOURCE_RE = re.compile(
-    r'source:\s*\{path:\s*"([^"]+)",\s*(symbol|heading):\s*"((?:[^"\\]|\\.)*)"\}'
-)
+def _decision_anchors() -> list[tuple[str, str, str]]:
+    """``(path, kind, name)`` for every decision document.
+
+    Sourced from :mod:`tools.decisions` rather than by regex over the generated
+    JS: the documents are the authored truth, and a parse error there should
+    fail loudly here rather than silently yielding zero anchors to check.
+    """
+    found = [
+        (r["source"]["path"], *(("symbol", r["source"]["symbol"]) if "symbol" in r["source"]
+                                else ("heading", r["source"]["heading"])))
+        for r in decisions.load()
+    ]
+    assert found, "decisions/ yielded no anchors — has the document shape changed?"
+    return found
+
 
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 HEADING_RE = re.compile(r"^#{1,6}\s+(.*?)\s*$")
-
-
-def _map_js_anchors() -> list[tuple[str, str, str]]:
-    text = (PAGES / "map.js").read_text(encoding="utf-8")
-    found = [(p, k, n.replace('\\"', '"')) for p, k, n in SOURCE_RE.findall(text)]
-    assert found, "pages/map.js exposes no source: refs — has the shape changed?"
-    return found
 
 
 def _python_symbols(path: Path) -> set[str]:
@@ -90,23 +103,23 @@ def _markdown_headings(path: Path) -> set[str]:
 
 
 @pytest.mark.parametrize(
-    "rel_path,kind,name", _map_js_anchors(), ids=lambda v: str(v)[:40]
+    "rel_path,kind,name", _decision_anchors(), ids=lambda v: str(v)[:40]
 )
 def test_source_anchors_resolve(rel_path: str, kind: str, name: str) -> None:
     target = REPO_ROOT / rel_path
-    assert target.exists(), f"pages/map.js anchors {rel_path}, which does not exist"
+    assert target.exists(), f"decisions/ anchors {rel_path}, which does not exist"
 
     if kind == "symbol":
         symbols = _python_symbols(target)
         assert name in symbols, (
-            f"pages/map.js claims {rel_path} defines `{name}`, but it does not. "
+            f"decisions/ claims {rel_path} defines `{name}`, but it does not. "
             f"Either the symbol was renamed (update the anchor) or the decision "
             f"it documents has moved."
         )
     else:
         headings = _markdown_headings(target)
         assert name in headings, (
-            f"pages/map.js anchors {rel_path} heading '{name}', which is gone. "
+            f"decisions/ anchors {rel_path} heading '{name}', which is gone. "
             f"The page also builds its deep link from this text, so the URL "
             f"fragment is now dead too. Headings present: {sorted(headings)}"
         )
@@ -257,3 +270,20 @@ def test_page_relative_links_resolve(page: Path) -> None:
     assert not broken, (
         f"pages/{page.name} has {len(broken)} dangling link(s): " + ", ".join(broken)
     )
+
+
+# --- generated files ------------------------------------------------------- #
+
+def test_generated_files_current() -> None:
+    """``tools/decisions.py check`` must be clean.
+
+    ``pages/decisions.js`` and ``decisions/INDEX.md`` are generated from
+    ``decisions/*.md``. Editing a decision without regenerating leaves the page
+    and the index quoting the old wording — the exact drift this whole file
+    exists to prevent, reintroduced by the fix for it.
+    """
+    result = subprocess.run(
+        [sys.executable, "tools/decisions.py", "check"],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

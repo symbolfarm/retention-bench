@@ -16,6 +16,7 @@ the static [why → design → code learning guide](https://symbolfarm.github.io
 | Doc | What it covers |
 |---|---|
 | [The learning guide](https://symbolfarm.github.io/retention-bench/) | A phone-friendly guided story, decision map, and worked toy run. Start here to build the mental model before the reference docs or implementation-level recall cards. |
+| [`../decisions/`](../decisions/INDEX.md) | The decision record: why each piece exists, what it buys, and what it costs, one document per decision, each anchored to the code or spec that implements it. The interactive map in the learning guide is generated from these. |
 | [`ROADMAP.md`](ROADMAP.md) | The research agenda, published ahead of the measurements: the recording-vs-memory thesis, why the hard RESET, the probe ladder (recall → composition → aggregation → revision → application), confidence tiers, and the open questions. Start here for *why*. |
 | [`sut-interface.md`](sut-interface.md) | The system-under-test process contract — the `SubprocessSystem` one-line-JSON query/reply per CL-Bench instance, the survive-dir / hard-`RESET` mechanics, resource self-report, and launch (subprocess / container). Start here if you're building a SUT. |
 | [`metrics.md`](metrics.md) | The retention metric — the reset-axis gain curve `norm_gain(k) = (R − P) / max(C − P, ε)`, the `C ≈ P` exclusion rule, and reconciliation with CL-Bench's gain. |
