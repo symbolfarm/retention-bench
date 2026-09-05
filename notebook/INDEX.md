@@ -43,9 +43,12 @@ Public statements: [`README.md`](../README.md) §"The claim it exists to test",
   mismatch between our headline metric and the reachability reading; why ADUS stays
   out of the README.
 - [Where the instrument will strain](notes/instrument-scaling-limits.md) — the
-  substrate holds; the metric layer is where the ambition bites. Three predicted
-  strains (per-arm cost at scale, an unstable `P` once the SUT is an LLM, run-mean
-  scoring diluting sparse acquisition), and why **RB-19 outranks RB-21**.
+  substrate holds; the metric layer is where the ambition bites. RB-19 evidence
+  now separates observed strains (run-mean dilution and a stochastic ceiling)
+  from still-open predictions (cost at scale and unstable pretrained `P`).
+- [RB-19 agentic two-hop retrieval](experiments/RB-19-agentic-two-hop-retrieval.md)
+  — the first real LLM snapshot: iterative retrieval clears all 32 transfer probes,
+  so the current two-hop rung does not separate retrieval from consolidation.
 
 Not yet migrated — still authoritative in `docs/`:
 [`metrics.md`](../docs/metrics.md) (scoring),
@@ -80,14 +83,15 @@ notebook level:
    question has no ladder behind it. See [ADUS mapping](notes/adus-mapping.md).
 3. **Does the elicitation-ceiling control arm hold up** as the licence for real
    rather than invented mathematics? Untested. See [2026-08-02](log/2026-08-02.md).
-4. **No language model has been measured yet.** The central claim is unfalsified
-   in either direction — and every prediction in
-   [Where the instrument will strain](notes/instrument-scaling-limits.md) is
-   speculation until one runs. This is [RB-19](../.tasks/RB-19-first-agentic-llm-measurement.md)
-   and it is the next thing to do.
+4. **The first language-model result narrows the open boundary.** Iterative
+   retrieval clears two-hop composition, so deeper composition, revision, and
+   aggregation—not another two-hop run—are what can now test the claim. See
+   [RB-19](experiments/RB-19-agentic-two-hop-retrieval.md).
 
 ## Log
 
+- [2026-09-06](log/2026-09-06.md) — first real LLM measurement: two-hop gap
+  closed by iterative retrieval; stochastic-ceiling and token-budget findings.
 - [2026-08-02](log/2026-08-02.md) — pre-v0.1 messaging and philosophy pass:
   new claim, ICL correction, recording-vs-memory taxonomy, storage budget promoted,
   ADUS section added.
