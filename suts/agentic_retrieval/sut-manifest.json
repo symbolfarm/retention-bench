@@ -1,0 +1,13 @@
+{
+  "name": "agentic-retrieval",
+  "version": "0.1.0",
+  "mode": "retrieval",
+  "hardware_tier": "API",
+  "strict_verbatim": false,
+  "clbench_entrypoint": ["python", "-m", "agentic_retrieval.clbench_main"],
+  "env": ["OPENROUTER_API_KEY", "AGENTIC_RETRIEVAL_MODEL", "RETENTION_BENCH_BASE_URL"],
+  "resource_appendix": {
+    "kind": "api",
+    "model_id": "deepseek/deepseek-v4-flash-0731"
+  }
+}

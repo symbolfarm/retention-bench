@@ -1,0 +1,13 @@
+[project]
+name = "retention-bench-sut-agentic-retrieval"
+version = "0.1.0"
+description = "Iterative-retrieval LLM SUT for retention-bench"
+requires-python = ">=3.10"
+dependencies = ["openai>=1.40.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["agentic_retrieval*"]

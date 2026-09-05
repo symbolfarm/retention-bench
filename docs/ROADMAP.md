@@ -103,10 +103,11 @@ become semantic memory rather than remain episodic.
 | **Revision** | the answer requires knowing which of two taught items is current | updating what is believed |
 | **Application** | apply a procedure that was learned during the run, to an input never seen | skill |
 
-Every rung is a case of *the answer is not contained in any single stored item*. Retrieval
-works exactly when the distance is zero, and we expect it to degrade as the distance grows —
-though how fast, and whether iterative retrieval changes the shape, is precisely what we do
-not yet know.
+Every rung is a case of *the answer is not contained in any single stored item*. Single-shot
+retrieval works exactly when the distance is zero. Iterative retrieval has now cleared the
+existing two-hop composition rung (32/32 transfer and 16/16 held-out transfer in the
+[2026-09-06 LLM snapshot](llm-snapshot-2026-09-06.md)); how it degrades with deeper hops and
+whether it survives ambiguity or whole-set questions remain open.
 
 Only **Recall** and a two-hop **Composition** probe exist today.
 
@@ -241,10 +242,8 @@ candidate below; it is not specific to any one of them.
 These are the questions the next round of measurement is meant to answer. We do not know the
 answers, and we have deliberately not predicted them.
 
-1. Does **iterative** retrieval close the composition gap? A system that retrieves twice —
-   the attribute, then the rule keyed on it — should be able to solve two-hop composition that
-   single-shot retrieval structurally cannot. Does it, in practice, and does it keep working
-   as hops deepen?
+1. How does **iterative** retrieval degrade as composition deepens? Two dependent lookups
+   closed the current two-hop gap in the 2026-09-06 snapshot; deeper hops remain unmeasured.
 2. Does iterative retrieval close the **revision** gap, or does iterating compound the
    ambiguity?
 3. How large is the **anticipation gap** — the difference between aggregate questions the
@@ -305,9 +304,12 @@ through a real process-kill reset. That constructive measurement was of an out-o
 reached through the process contract; it is **not reproducible from this repository**, and the
 reference ladder a reader can run covers the keyless systems only.
 
-It has measured **no language model**. The central claim is therefore unfalsified in either
-direction. Coherence is not evidence, and the first real measurement is the immediate next
-step.
+It has also measured one pinned language model through an agentic iterative-retrieval SUT as a
+separate [dated snapshot](llm-snapshot-2026-09-06.md). That system cleared all 32 two-hop
+transfer probes, including all 16 held-out probes, when its store survived; it scored zero when
+the store was wiped. Two-hop composition is therefore not a boundary for iterative retrieval.
+The central claim remains open above that rung: revision, aggregation/absence, application, and
+the cost of re-deriving abstractions from a growing store are still unmeasured.
 
 **Neither driver is the headline.** The uniform `k`-sweep and phased store removal answer
 different questions and are routed by the claim being made: ceiling for consolidation, slope

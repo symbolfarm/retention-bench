@@ -152,6 +152,13 @@ The native task's width and length are knobs, and chance level is
 (LLM-backed reference SUTs like `notes_llm` need an OpenAI-compatible endpoint —
 copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.)
 
+The first real LLM run is a dated snapshot, deliberately outside the keyless
+ladder: `deepseek/deepseek-v4-flash-0731` with iterative retrieval scored
+32/32 on two-hop transfer and 16/16 on held-out transfer with an intact store,
+versus 0/32 when the store was wiped. See
+[`docs/llm-snapshot-2026-09-06.md`](docs/llm-snapshot-2026-09-06.md) for the
+small-n caveats, cost, raw traces, and rerun command.
+
 The uniform `--reset-every k` sweep measures **graceful degradation** across
 repeated erasure. To instead ask *did capability migrate into the weights* — reset
 **once** at the train/probe boundary with `--reset-at`, removing the store — see
