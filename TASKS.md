@@ -85,10 +85,14 @@ rest of the repo, since RB-22).
   once the SUT is a language model, run-mean scoring diluting sparse acquisition events) are
   all speculation until one real messy SUT runs through it. See
   [`notebook/notes/instrument-scaling-limits.md`](notebook/notes/instrument-scaling-limits.md).
-- **RB-21** *(medium)* — phased store-removal reference ladder. The consolidation protocol
-  has no calibration ladder, so it is *argued* to discriminate rather than *demonstrated* to;
-  the gap is stated openly in three docs. Cheap (keyless, offline, ~a day) but deliberately
-  behind RB-19 — do not let it delay the LLM measurement.
+- ~~**RB-21**~~ — **done 2026-09-10.** Phased store-removal calibration ladder:
+  `./run.sh ladder-phased`, seven rungs, both arms per rung, in
+  [`docs/phased-store-removal.md`](docs/phased-store-removal.md). The protocol
+  discriminates and has resolution — **and it is blind to its own SUT-contract
+  violation**: a SUT persisting its raw store to the survive-dir scores the same
+  `1.000` as one that consolidates, and only the uniform arm separates them. Report
+  the pair. See the debrief and
+  [the experiment note](notebook/experiments/RB-21-phased-store-removal-ladder.md).
 - **RB-3** — paused repeated-exposure curriculum variant for sample-efficiency /
   RL-adjacent exploration; resume after constructive-retention SUTs have advanced
   enough to make exposure-count curves informative.
