@@ -1,0 +1,13 @@
+[project]
+name = "retention-bench-sut-consolidating-memory"
+version = "0.1.0"
+description = "Keyless reference SUT with a tunable episodic-to-consolidated migration fraction."
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["consolidating_memory*"]

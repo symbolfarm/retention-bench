@@ -4,6 +4,7 @@
 # Usage:
 #   ./run.sh smoke              # canonical offline, keyless smoke (gain curve)
 #   ./run.sh ladder             # offline, keyless reference-ladder sweep (floor/partial/full)
+#   ./run.sh ladder-phased      # offline, keyless PHASED store-removal ladder (--reset-at)
 #   ./run.sh decisions [check]  # regenerate the decision-record renderings
 #   ./run.sh [gain_curve args]  # arbitrary CL-Bench task; pass-through
 set -euo pipefail
@@ -70,6 +71,49 @@ if [[ "$cmd" == "ladder" ]]; then
       --sut "python -m ${pkg}.clbench_main" \
       --extra-pythonpath "$path" \
       --reset-every 1 --reset-every 2 \
+      --name "$name" "$@"
+    echo
+  done
+  exit 0
+fi
+
+if [[ "$cmd" == "ladder-phased" ]]; then
+  shift || true
+  # Phased store-removal ladder: the calibration ladder for `--reset-at`, the
+  # protocol that asks whether capability MIGRATED into the durable artifact
+  # (see docs/phased-store-removal.md). Offline, no API key, no model weights.
+  #
+  # Every rung runs BOTH arms in one table — phased (boundaries:48, the single
+  # reset at the train/probe boundary) and uniform (every_1) — because the
+  # phased number alone does not identify consolidation. A SUT that persists its
+  # raw store to the survive-dir scores 1.000 phased for the wrong reason; only
+  # the uniform arm separates it from one that consolidates in batches.
+  #
+  #   random-guess-chance         chance line under the phased protocol (band EXCLUDED)
+  #   no-state-floor              in-RAM only, nothing persisted        -> floor
+  #   consolidate-none            batch consolidator, fraction 0.0      -> floor, mechanism held constant
+  #   consolidate-partial         batch consolidator, fraction 0.5      -> strictly between
+  #   consolidate-partial-hashed  fraction 0.5, alignment-free selector -> strictly between
+  #   consolidate-full            batch consolidator, fraction 1.0      -> ceiling; uniform arm 0.000
+  #   raw-store-control           associative_memory, raw store on disk -> ceiling in BOTH arms (contract violation)
+  #
+  # The train/probe boundary of symbolic_associative_retention's default
+  # 112-instance schedule is ordinal 48.
+  for entry in \
+    "random-guess-chance:random_guess:suts/random_guess::" \
+    "no-state-floor:no_state:suts/no_state::" \
+    "consolidate-none:consolidating_memory:suts/consolidating_memory:CONSOLIDATION_FRACTION=0.0:" \
+    "consolidate-partial:consolidating_memory:suts/consolidating_memory:CONSOLIDATION_FRACTION=0.5:" \
+    "consolidate-partial-hashed:consolidating_memory:suts/consolidating_memory:CONSOLIDATION_FRACTION=0.5:CONSOLIDATION_SELECTOR=hashed" \
+    "consolidate-full:consolidating_memory:suts/consolidating_memory:CONSOLIDATION_FRACTION=1.0:" \
+    "raw-store-control:associative_memory:suts/associative_memory::"; do
+    IFS=':' read -r name pkg path env1 env2 <<<"$entry"
+    echo "===== ${name} ====="
+    env ${env1:+"$env1"} ${env2:+"$env2"} "$PYTHON_BIN" -m retention_bench.gain_curve \
+      --task symbolic_associative_retention \
+      --sut "python -m ${pkg}.clbench_main" \
+      --extra-pythonpath "$path" \
+      --reset-at "48" --reset-every 1 \
       --name "$name" "$@"
     echo
   done
