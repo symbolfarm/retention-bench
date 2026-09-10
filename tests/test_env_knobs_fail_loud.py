@@ -10,6 +10,7 @@ against the SUT modules directly (stdlib only, no harness/cl-bench needed).
 from __future__ import annotations
 
 import sys
+from fractions import Fraction
 from pathlib import Path
 
 import pytest
@@ -18,11 +19,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 RESET_LOSSY_PKG = REPO_ROOT / "suts" / "reset_lossy"
 BOUNDED_MEMORY_PKG = REPO_ROOT / "suts" / "bounded_memory"
 RANDOM_GUESS_PKG = REPO_ROOT / "suts" / "random_guess"
-for pkg in (RESET_LOSSY_PKG, BOUNDED_MEMORY_PKG, RANDOM_GUESS_PKG):
+CONSOLIDATING_PKG = REPO_ROOT / "suts" / "consolidating_memory"
+for pkg in (RESET_LOSSY_PKG, BOUNDED_MEMORY_PKG, RANDOM_GUESS_PKG, CONSOLIDATING_PKG):
     if str(pkg) not in sys.path:
         sys.path.insert(0, str(pkg))
 
 from bounded_memory import clbench_main as bounded_memory_main  # noqa: E402
+from consolidating_memory import clbench_main as consolidating_main  # noqa: E402
 from random_guess import clbench_main as random_guess_main  # noqa: E402
 from reset_lossy import clbench_main as reset_lossy_main  # noqa: E402
 
@@ -119,3 +122,61 @@ def test_random_guess_is_a_pure_function_of_seed_and_prompt():
     assert first == again
     assert first in vocab
     assert other_seed in vocab
+
+
+# --- consolidating_memory knobs ------------------------------------------- #
+
+
+def test_consolidation_knobs_default_when_unset(monkeypatch):
+    for name in (
+        "CONSOLIDATION_FRACTION",
+        "CONSOLIDATION_SELECTOR",
+        "CONSOLIDATION_BATCH",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    assert consolidating_main._fraction() == Fraction(consolidating_main.DEFAULT_FRACTION)
+    assert consolidating_main._selector() == consolidating_main.DEFAULT_SELECTOR
+    assert consolidating_main._batch() == consolidating_main.DEFAULT_BATCH
+
+
+@pytest.mark.parametrize("value", ["0", "0.5", "1/4", "1.0"])
+def test_consolidation_fraction_accepts_valid_values(monkeypatch, value):
+    monkeypatch.setenv("CONSOLIDATION_FRACTION", value)
+    assert 0 <= consolidating_main._fraction() <= 1
+
+
+@pytest.mark.parametrize("bad_value", ["nope", "-0.1", "1.5", "1/0"])
+def test_consolidation_fraction_raises_on_bad_value(monkeypatch, bad_value):
+    monkeypatch.setenv("CONSOLIDATION_FRACTION", bad_value)
+    with pytest.raises(ValueError, match="CONSOLIDATION_FRACTION"):
+        consolidating_main._fraction()
+
+
+@pytest.mark.parametrize("bad_value", ["random", "Ordinal", ""])
+def test_consolidation_selector_raises_on_bad_value(monkeypatch, bad_value):
+    monkeypatch.setenv("CONSOLIDATION_SELECTOR", bad_value)
+    with pytest.raises(ValueError, match="CONSOLIDATION_SELECTOR"):
+        consolidating_main._selector()
+
+
+@pytest.mark.parametrize("bad_value", ["0", "-3", "eight"])
+def test_consolidation_batch_raises_on_bad_value(monkeypatch, bad_value):
+    monkeypatch.setenv("CONSOLIDATION_BATCH", bad_value)
+    with pytest.raises(ValueError, match="CONSOLIDATION_BATCH"):
+        consolidating_main._batch()
+
+
+def test_migration_selectors_are_deterministic_and_hit_the_rate():
+    half = Fraction(1, 2)
+    ordinals = [i for i in range(48) if consolidating_main._migrates_by_ordinal(i, half)]
+    assert ordinals == list(range(0, 48, 2))
+    hashed = [
+        key
+        for key in (f"obj{i}" for i in range(1000))
+        if consolidating_main._migrates_by_hash("object_attributes", key, half)
+    ]
+    assert 450 < len(hashed) < 550
+    # Stable across calls — the rung must be a fixed line, not a fresh sample.
+    assert consolidating_main._migrates_by_hash("object_attributes", "obj0", half) == (
+        consolidating_main._migrates_by_hash("object_attributes", "obj0", half)
+    )
