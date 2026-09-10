@@ -78,6 +78,15 @@ So: **retire the concept of a headline; route by claim.** Both drivers are
 first-class, each doc says which question each answers, and the calibration gap is
 stated rather than hidden. Reorder properly once a phased ladder exists.
 
+**The gate cleared 2026-09-10** —
+[RB-21](../experiments/RB-21-phased-store-removal-ladder.md) built the phased
+ladder, so "leading with a driver that has no calibration ladder" is no longer the
+objection. The ladder also weakened the case for promoting the phased driver on its
+own: its number is blind to a persisted raw store, and only the uniform arm rules
+that out. If the ordering changes, the unit that gets promoted is the **pair of
+arms**, not the phased curve. That is a decision for a review, not a consequence of
+the ladder landing.
+
 ## Claim 4 may resolve the cost problem
 
 The ROADMAP's *Exploring* tier is stuck because token counts are not

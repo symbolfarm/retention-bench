@@ -313,5 +313,7 @@ the cost of re-deriving abstractions from a growing store are still unmeasured.
 
 **Neither driver is the headline.** The uniform `k`-sweep and phased store removal answer
 different questions and are routed by the claim being made: ceiling for consolidation, slope
-for degradation. The keyless reference ladder is calibrated on the uniform sweep only; building
-a phased ladder is the work that would let that ordering change.
+for degradation. Both now have a keyless calibration ladder (`./run.sh ladder` and
+`./run.sh ladder-phased`, RB-21, 2026-09-10) — but the phased ladder's own finding is that its
+arm is not self-sufficient: a SUT persisting its raw store to the survive-dir scores a perfect
+migration verdict, and only the uniform arm separates it. Report the pair.

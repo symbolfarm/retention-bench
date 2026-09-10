@@ -49,6 +49,10 @@ Public statements: [`README.md`](../README.md) §"The claim it exists to test",
 - [RB-19 agentic two-hop retrieval](experiments/RB-19-agentic-two-hop-retrieval.md)
   — the first real LLM snapshot: iterative retrieval clears all 32 transfer probes,
   so the current two-hop rung does not separate retrieval from consolidation.
+- [RB-21 phased store-removal ladder](experiments/RB-21-phased-store-removal-ladder.md)
+  — the protocol discriminates and has resolution, **and** it is blind to its own
+  SUT-contract violation: a persisted raw store scores a perfect migration verdict.
+  Read the phased and uniform arms as a pair.
 
 Not yet migrated — still authoritative in `docs/`:
 [`metrics.md`](../docs/metrics.md) (scoring),
@@ -78,9 +82,14 @@ notebook level:
 
 1. **Does the profile-across-rungs prediction hold?** Recording = high recall +
    cliff; memory = graded decline. Untested; needs a rung above composition.
-2. **A phased reference ladder does not exist.** Both drivers are now first-class
-   and routed by claim, but calibration is uniform-sweep-only, so the consolidation
-   question has no ladder behind it. See [ADUS mapping](notes/adus-mapping.md).
+2. **~~A phased reference ladder does not exist.~~** Closed 2026-09-10 by
+   [RB-21](experiments/RB-21-phased-store-removal-ladder.md). What replaces it is
+   narrower: **the phased arm is not self-sufficient.** A SUT that persists its raw
+   store to the survive-dir scores the same perfect migration verdict as one that
+   consolidates, so a consolidation claim needs the uniform arm alongside it to rule
+   out the store-present explanation. Whether that pair is *sufficient* — whether
+   some other mechanism also produces `1.000` phased / `0.000` uniform without
+   consolidating — is untested. See [ADUS mapping](notes/adus-mapping.md).
 3. **Does the elicitation-ceiling control arm hold up** as the licence for real
    rather than invented mathematics? Untested. See [2026-08-02](log/2026-08-02.md).
 4. **The first language-model result narrows the open boundary.** Iterative

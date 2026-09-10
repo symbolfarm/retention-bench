@@ -77,7 +77,9 @@ is acceptable in a dated snapshot but cannot be read like the deterministic ladd
 Most importantly, iterative retrieval answered all 32 two-hop transfer probes. The
 current composition rung no longer tests the claimed boundary. Deeper composition,
 revision, and aggregation now carry the theory; the phased-ladder calibration gap
-([RB-21](../../.tasks/RB-21-phased-reference-ladder.md)) remains separate.
+was separate and closed on 2026-09-10 by
+[RB-21](../experiments/RB-21-phased-store-removal-ladder.md), which replaced it with
+a narrower limit — the phased arm cannot see a persisted raw store.
 
 The validity concern is now concrete rather than hypothetical. The first messy,
 stochastic SUT did not break the substrate, but it made the independently sampled
