@@ -115,11 +115,92 @@ capability genuinely survived store removal.
 > happened"; it does not finely quantify how much. Read the point estimate as a
 > verdict, not a measurement.
 >
-> This example is one real SUT, not a calibrated ladder. Unlike the uniform sweep
-> (see [`reference-ladder.md`](reference-ladder.md)) there is no keyless floor,
-> chance, or partial-consolidation rung run through this protocol, so the protocol
-> is *argued* to discriminate rather than *demonstrated* to. Building that ladder
-> is open work.
+> This example is one real SUT. The keyless calibration ladder that demonstrates
+> the protocol discriminates — rather than arguing that it does — is the next
+> section.
+
+## Reference ladder — what the phased protocol discriminates
+
+Built under RB-21, 2026-09-10. The uniform sweep's ladder
+([`reference-ladder.md`](reference-ladder.md)) answers *does the metric separate a
+system that retains from one that doesn't?* This is the same question for the
+phased protocol, and it needs its own rungs, because retention and *migration* are
+not the same property.
+
+Regenerate (offline, no API key, no model weights, deterministic):
+
+```bash
+./run.sh ladder-phased
+```
+
+Every rung runs **both arms in one table** — the phased arm (a single reset at the
+train/probe boundary, `boundaries:48`) and the uniform arm (`every_1`) — for the
+reason the table makes plain.
+
+| Rung | Mechanism | Phased `norm_gain` | Uniform `norm_gain` |
+|---|---|---:|---:|
+| `random-guess-chance` | stateless uniform guesser | **EXCLUDED** (band = 0) | **EXCLUDED** |
+| `no-state-floor` | in-RAM only, never touches the survive-dir | **0.000** | 0.000 |
+| `consolidate-none` | batch consolidator, fraction 0.0 | **0.000** | 0.000 |
+| `consolidate-partial` | batch consolidator, fraction 0.5, ordinal selector | **0.500** | 0.000 |
+| `consolidate-partial-hashed` | fraction 0.5, alignment-free selector | **0.344** | 0.000 |
+| `consolidate-full` | batch consolidator, fraction 1.0 | **1.000** | 0.000 |
+| `raw-store-control` | `associative_memory` — raw store in the survive-dir | **1.000** | **1.000** |
+
+`P = 0.0000` and `C = 0.5714` for every rung except the chance line, whose band is
+excluded (`P == C == 0.0268`). The consolidating rungs are one SUT
+([`../suts/consolidating_memory/`](../suts/consolidating_memory/)) under three
+settings of `CONSOLIDATION_FRACTION`, so the ladder varies *migration behaviour*
+with mechanism, prompt parsing and scoring held constant.
+
+### What it demonstrates
+
+**The protocol has resolution, not just a verdict.** The partial rung lands
+strictly between floor and ceiling — `0.500 [0.348, 0.679]` — rather than snapping
+to one end. A SUT that consolidated part of what it learned is visible as such.
+
+**The phased number alone does not identify consolidation.** The last two rows
+score identically on the phased arm and mean opposite things. `raw-store-control`
+persists its raw store to the survive-dir, so the hard reset never removes it and
+the protocol degenerates to the store-present condition — exactly the SUT-contract
+violation described above. **The uniform arm is what separates them:** a batch
+consolidator reads `0.000` there, because its buffer never reaches the batch size
+before the next kill, while the store-present SUT reads `1.000` in both. Report
+the pair, not the phased number.
+
+That pair is also the calibrated, keyless version of the worked example's
+contrast — `1.000` phased against `0.000` uniform on identical machinery, with no
+model weights involved.
+
+### What the partial number depends on
+
+The two partial rungs are the same fraction — 0.5 — and score differently, which is
+the ladder telling on itself. `symbolic_associative_retention` gives object `i`
+attribute `i % A`. Migrating every other episode therefore migrates exactly the
+objects whose attribute rules also migrated, so 2-hop transfer survives at the same
+rate as 1-hop recall and `norm_gain` lands on the migration fraction exactly. The
+`hashed` selector migrates each fact independently; transfer then survives at
+roughly the square of the recall rate, and the same fraction scores `0.344`.
+
+Neither is wrong. The point is that **a partial score is a joint fact about the
+SUT's migration behaviour and the task's structure**, so read it as a position
+between floor and ceiling, not as "half the capability migrated".
+
+### Resolution limits at the default schedule
+
+Quarter-steps are not separable here. Fraction 0.25 scores `0.250 [0.136, 0.390]`
+against fraction 0.5's `0.500 [0.348, 0.679]`; the intervals overlap, so at
+`n = 112` the ladder resolves floor / middle / ceiling and not much finer.
+Percentile bootstrap over 112 per-instance outcomes is the constraint — a claim
+that needs finer resolution needs a longer schedule, not a different metric.
+
+### Coverage
+
+`tests/test_consolidating_memory_clbench.py` asserts the ordering, the strict
+between-ness, the phased/uniform signature, and the raw-store control's
+indistinguishability on the phased arm. It runs in CI as part of the suite;
+`./run.sh ladder-phased` is the human-readable rendering of the same runs, in the
+same relationship as `./run.sh ladder` and the per-SUT tests.
 
 ## When to use which
 
@@ -134,7 +215,6 @@ store-removal when the claim is about consolidation / understanding migrating in
 the durable artifact, the uniform curve when it is about graceful degradation under
 repeated erasure. The instrument's central claim (see
 [`../README.md`](../README.md)) is a consolidation claim, so phased store removal is
-the protocol that bears on it most directly — but the keyless reference ladder is
-currently calibrated on the uniform sweep only, and a phased ladder does not exist
-yet. Reporting either without saying which question it answers is how the two get
-conflated.
+the protocol that bears on it most directly, and it now has its own keyless
+calibration ladder (above). Reporting either without saying which question it
+answers is how the two get conflated.

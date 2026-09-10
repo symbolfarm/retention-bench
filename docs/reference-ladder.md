@@ -13,6 +13,12 @@ Regenerate (offline, no API key, no model weights):
 ./run.sh ladder
 ```
 
+This is the ladder for the **uniform** sweep. The phased store-removal protocol
+has its own, built under RB-21 — `./run.sh ladder-phased`, documented in
+[`phased-store-removal.md`](phased-store-removal.md). They calibrate different
+properties (graceful degradation versus migration into the durable artifact) and
+neither substitutes for the other.
+
 This sweeps five keyless reference SUTs over the reset axis
 (`--reset-every 1 --reset-every 2`) on the default 112-instance schedule
 (`r_max = 64/112 ≈ 0.571`, so `k = 55` and `k = 111` measured resets). Numbers

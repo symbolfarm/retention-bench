@@ -200,8 +200,11 @@ claim above is about. Using the wrong one inverts verdicts — the *same SUT* ca
 score `1.000` phased and `0.000` uniform. Why, and which to reach for, is in
 [`docs/phased-store-removal.md`](docs/phased-store-removal.md).
 
-The keyless reference ladder is currently calibrated on the uniform sweep only; a
-phased ladder does not exist yet.
+Both protocols now have a keyless reference ladder: `./run.sh ladder` for the
+uniform sweep, `./run.sh ladder-phased` for phased store removal. The phased one
+also shows why the two arms belong in one table — a SUT that persists its raw
+store scores `1.000` phased for the wrong reason, and only the uniform arm gives
+it away.
 
 ## Scope and limits
 
