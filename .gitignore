@@ -20,3 +20,6 @@ runs/
 .env
 .env.*
 !.env.example
+
+# Agent repo lock (LOCKING.md) — machine state, not history.
+.tasks/.lock
