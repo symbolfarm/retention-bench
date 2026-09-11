@@ -142,9 +142,10 @@ class SubprocessSystem(ContinualLearningSystem):
         self._command = list(command)
         self._state_dir = Path(state_dir)
         self._state_dir.mkdir(parents=True, exist_ok=True)
-        # Match dir_lifecycle.create_dir: reserve `.harness/` up front so the
-        # two dir-creation paths (harness-driven runs vs. a bare SubprocessSystem)
-        # don't drift on what's excluded from account_dir/snapshot_dir.
+        # Reserve `.harness/` up front: account_dir excludes that prefix, so any
+        # future harness artefact written there cannot inflate the storage signal
+        # a stateless arm is supposed to report as zero. Created with exist_ok —
+        # the survive-dir is never wiped here, because surviving is the point.
         (self._state_dir / dir_lifecycle.HARNESS_RESERVED_PREFIX).mkdir(exist_ok=True)
         self._schedule = reset_schedule
         self._name = name

@@ -279,20 +279,33 @@ def test_shutdown_is_idempotent_without_a_live_handle(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# `.harness/` dir-creation parity + `_split_reply`/`respond()` error
+# `.harness/` reservation + `_split_reply`/`respond()` error
 # taxonomy at the SUT-reply contract boundary.
 # --------------------------------------------------------------------------- #
 from harness import dir_lifecycle, sut_process  # noqa: E402
 from retention_bench.system import _split_reply  # noqa: E402
 
 
-def test_init_reserves_harness_dir_like_dir_lifecycle(tmp_path):
-    """SubprocessSystem.__init__ must reserve `.harness/` the same way
-    `dir_lifecycle.create_dir` does, so the two dir-creation paths don't drift
-    on what's excluded from `account_dir`/`snapshot_dir`."""
+def test_init_reserves_harness_prefix_and_excludes_it_from_accounting(tmp_path):
+    """`__init__` reserves `.harness/`, and nothing under it counts as SUT state.
+
+    RB-25 rewrote this from a parity check against `dir_lifecycle.create_dir`
+    (removed: it created `<parent>/dir` and rmtree'd it, semantics a retention run
+    must never have) into a direct assertion about the property that actually
+    matters — a harness artefact inside the survive-dir must not inflate the
+    storage signal, or a stateless arm could look like it retained.
+    """
     state_dir = tmp_path / "d"
-    SubprocessSystem(COUNTER_CMD, state_dir)
-    assert (state_dir / dir_lifecycle.HARNESS_RESERVED_PREFIX).is_dir()
+    system = SubprocessSystem(COUNTER_CMD, state_dir)
+    reserved = state_dir / dir_lifecycle.HARNESS_RESERVED_PREFIX
+    assert reserved.is_dir()
+
+    (reserved / "bookkeeping").write_bytes(b"harness artefact")
+    assert dir_lifecycle.account_dir(state_dir) == (0, 0)
+    assert system._last_storage_bytes == 0
+
+    (state_dir / "sut-state").write_bytes(b"x" * 12)
+    assert dir_lifecycle.account_dir(state_dir) == (12, 1)
 
 
 @pytest.mark.parametrize("bad_resource", [0, "", False])
